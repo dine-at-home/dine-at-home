@@ -18,6 +18,20 @@ A modern social dining platform built with Next.js 15, TypeScript, and Tailwind 
 npm install
 ```
 
+### Environment Setup
+
+**Important:** Create a `.env.local` file before running the app:
+
+```bash
+# Copy the template
+cp final-env-template.txt .env.local
+
+# Or create manually and add required variables:
+# BACKEND_API_URL, NEXT_PUBLIC_API_URL
+```
+
+See `FRONTEND_ENV_SETUP.md` for detailed setup instructions.
+
 ### Development
 
 ```bash
@@ -52,35 +66,23 @@ DineWithUs/
 
 ## Deployment
 
-✅ **Your project is ready to deploy on Vercel with Supabase!**
+✅ **Your project is ready to deploy on Vercel!**
 
 ### Quick Setup
 ```bash
-# Run the setup script
-./setup-vercel.sh
-
 # Deploy to Vercel
 npm install -g vercel
 vercel --prod
 ```
 
 ### Prerequisites
-- [Supabase](https://supabase.com) account
 - [Vercel](https://vercel.com) account
-- Google OAuth credentials
-
-### Detailed Instructions
-- **Supabase Setup**: [SUPABASE_SETUP_GUIDE.md](./SUPABASE_SETUP_GUIDE.md) - Complete step-by-step guide
-- **Supabase Checklist**: [SUPABASE_CHECKLIST.md](./SUPABASE_CHECKLIST.md) - Track your progress
-- **Vercel Deployment**: [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) - Deployment instructions
+- Backend API deployed and running
 
 ### Environment Variables
 ```bash
-DATABASE_URL="postgresql://..." # Supabase connection string
-NEXTAUTH_SECRET="your-secret"   # Generate with: openssl rand -base64 32
-NEXTAUTH_URL="https://your-app.vercel.app"
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
+BACKEND_API_URL="https://your-backend-api.com/api"
+NEXT_PUBLIC_API_URL="https://your-backend-api.com/api"
 ```
 
 ## Features

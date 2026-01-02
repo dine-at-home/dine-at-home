@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/contexts/auth-context'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
@@ -112,7 +112,7 @@ const mockReviews = [
 ]
 
 function ProfilePageContent() {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'overview'
@@ -130,17 +130,17 @@ function ProfilePageContent() {
     memberSince: 'January 2023'
   })
 
-  // Update profile data when session loads
+  // Update profile data when user loads
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       setProfileData(prev => ({
         ...prev,
-        name: session.user.name || '',
-        email: session.user.email || '',
-        profileImage: session.user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+        name: user.name || '',
+        email: user.email || '',
+        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
       }))
     }
-  }, [session])
+  }, [user])
 
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
@@ -160,19 +160,19 @@ function ProfilePageContent() {
     )
   }
 
-  // Show loading if session is not loaded yet
-  if (!session && status === 'unauthenticated') {
+  // Show loading if user is not loaded yet
+  if (!user && !loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading session...</p>
+          <p className="text-muted-foreground">Loading user...</p>
         </div>
       </div>
     )
   }
 
-  if (!session) {
+  if (!user) {
     router.push('/auth/signin')
     return null
   }

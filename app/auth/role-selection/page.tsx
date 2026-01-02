@@ -1,60 +1,55 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, ChefHat, ArrowRight } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function RoleSelectionPage() {
-  const { data: session, status } = useSession()
+  const { user, loading, isAuthenticated, updateRole } = useAuth()
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     // If user is not authenticated, redirect to sign-in
-    if (status === 'unauthenticated') {
+    if (!loading && !isAuthenticated) {
       router.push('/auth/signin')
     }
     
-    // If user already has a role, redirect to appropriate page
-    if (session?.user?.role && session.user.role !== 'guest') {
-      router.push(session.user.role === 'host' ? '/host/dashboard' : '/')
+    // If user already has a role and doesn't need role selection, redirect
+    if (user && !user.needsRoleSelection && user.role !== 'guest') {
+      router.push(user.role === 'host' ? '/host/dashboard' : '/')
     }
-  }, [session, status, router])
+  }, [user, loading, isAuthenticated, router])
 
   const handleRoleSelection = async (role: 'guest' | 'host') => {
-    setLoading(true)
+    setUpdating(true)
     
     try {
-      const response = await fetch('/api/auth/update-role', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role }),
-      })
+      const result = await updateRole(role)
 
-      if (response.ok) {
-        // Force a complete page refresh to get updated session
+      if (result.success) {
+        // Redirect based on role
         if (role === 'host') {
-          window.location.href = '/host/dashboard'
+          router.push('/host/dashboard')
         } else {
-          window.location.href = '/'
+          router.push('/')
         }
+        router.refresh()
       } else {
-        console.error('Failed to update role')
-        setLoading(false)
+        console.error('Failed to update role:', result.error)
+        setUpdating(false)
       }
     } catch (error) {
       console.error('Error updating role:', error)
-      setLoading(false)
+      setUpdating(false)
     }
   }
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <MainLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -67,7 +62,7 @@ export default function RoleSelectionPage() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     return null
   }
 
@@ -107,7 +102,7 @@ export default function RoleSelectionPage() {
                   className="w-full" 
                   variant="outline"
                   onClick={() => handleRoleSelection('guest')}
-                  disabled={loading}
+                  disabled={updating}
                 >
                   Continue as Guest
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -136,7 +131,7 @@ export default function RoleSelectionPage() {
                 <Button 
                   className="w-full bg-primary-600 hover:bg-primary-700" 
                   onClick={() => handleRoleSelection('host')}
-                  disabled={loading}
+                  disabled={updating}
                 >
                   Continue as Host
                   <ArrowRight className="w-4 h-4 ml-2" />

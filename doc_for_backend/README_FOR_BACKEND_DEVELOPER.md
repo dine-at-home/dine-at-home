@@ -126,7 +126,7 @@ Some database fields store JSON as strings:
 
 ## 🗄️ Database
 
-**Type:** PostgreSQL (hosted on Supabase)
+**Type:** MongoDB
 **ORM:** Prisma
 
 ### Main Tables
@@ -135,7 +135,7 @@ Some database fields store JSON as strings:
 3. **bookings** - Reservations made by guests
 4. **reviews** - Ratings and comments
 5. **accounts** - OAuth provider data
-6. **sessions** - NextAuth.js sessions
+6. **sessions** - User sessions (for future use)
 
 ### Key Relationships
 ```
@@ -150,7 +150,7 @@ users (1) ──→ (*) reviews
 
 ## 🔐 Authentication
 
-**Method:** NextAuth.js (session-based)
+**Method:** JWT (JSON Web Tokens)
 
 **Providers:**
 - Google OAuth
@@ -205,7 +205,7 @@ Authorization: Bearer {session_token}
 - Node.js / Express (or your preferred framework)
 - PostgreSQL
 - Prisma ORM
-- NextAuth.js (for session validation)
+- JWT token validation
 
 **Recommended:**
 - TypeScript
@@ -355,9 +355,8 @@ GET /api/search/dinners?location=Brooklyn&date=2024-11-15&guests=4&cuisine=Itali
 # Database
 DATABASE_URL="postgresql://user:pass@host:5432/db"
 
-# NextAuth
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="https://your-domain.com"
+# JWT Secret
+JWT_SECRET="your-secret-key"
 
 # OAuth
 GOOGLE_CLIENT_ID="your-client-id"

@@ -68,14 +68,14 @@ Prisma schema file (source of truth for database structure).
 ```
 
 ### 2. Key Technologies
-- **Database:** PostgreSQL (hosted on Supabase)
+- **Database:** MongoDB
 - **ORM:** Prisma
-- **Authentication:** NextAuth.js (session-based)
+- **Authentication:** JWT (JSON Web Tokens)
 - **API Style:** RESTful
 - **Data Format:** JSON
 
 ### 3. Authentication
-- Session-based authentication using NextAuth.js
+- JWT-based authentication
 - Support for Google OAuth and email/password
 - Role-based access control (guest, host, admin)
 - Session token in Authorization header: `Bearer {token}`
@@ -145,14 +145,14 @@ Prisma schema file (source of truth for database structure).
 1. POST /api/auth/register
 2. Create user with hashed password
 3. Return user object
-4. Frontend handles NextAuth.js sign-in
+4. Frontend receives JWT token and stores it
 ```
 
 ### Google OAuth Flow
 ```
 1. User clicks "Sign in with Google"
 2. Google OAuth redirect
-3. NextAuth.js handles callback
+3. OAuth callback handled by frontend (if implemented)
 4. If new user:
    - Create user with needsRoleSelection=true
    - Redirect to role selection page
@@ -411,9 +411,9 @@ WHERE id = $1;
 ## 🔗 Useful Resources
 
 1. **Prisma Documentation:** https://www.prisma.io/docs
-2. **NextAuth.js Documentation:** https://next-auth.js.org
+2. **JWT Documentation:** https://jwt.io
 3. **PostgreSQL JSON Functions:** https://www.postgresql.org/docs/current/functions-json.html
-4. **Supabase Documentation:** https://supabase.com/docs
+4. **MongoDB Documentation:** https://www.mongodb.com/docs
 
 ---
 
@@ -451,14 +451,13 @@ Your backend implementation is complete when:
 ### Environment Variables Needed
 ```bash
 DATABASE_URL="postgresql://..."
-NEXTAUTH_SECRET="..."
-NEXTAUTH_URL="https://your-domain.com"
+JWT_SECRET="your-jwt-secret-key"
 GOOGLE_CLIENT_ID="..."
 GOOGLE_CLIENT_SECRET="..."
 ```
 
 ### Database Setup
-1. Create PostgreSQL database on Supabase
+1. Set up MongoDB database (local or MongoDB Atlas)
 2. Run `npx prisma db push` to create tables
 3. Seed initial data (optional)
 4. Set up database backups

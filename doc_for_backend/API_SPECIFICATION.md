@@ -832,7 +832,7 @@ All authenticated endpoints require a valid session token in the Authorization h
 Authorization: Bearer {session_token}
 ```
 
-For NextAuth.js integration, the session is managed automatically via cookies.
+JWT tokens are stored in localStorage and sent in the Authorization header.
 
 ---
 
@@ -866,7 +866,7 @@ All dates should be in ISO 8601 format:
 
 1. **Database Schema:** See `prisma/schema.prisma` for the complete database schema
 2. **JSON Fields:** Some fields (images, menu, dietary, etc.) are stored as JSON strings in the database
-3. **Authentication:** Using NextAuth.js with Google OAuth and email/password
+3. **Authentication:** Using JWT tokens with email/password and OTP verification
 4. **File Uploads:** Image uploads should return URLs to be stored in the database
 5. **Real-time Updates:** Consider WebSocket support for booking notifications
 6. **Payment Integration:** Stripe integration will be needed for payment processing

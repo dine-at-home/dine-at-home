@@ -1,68 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+import { getBackendUrl } from '@/lib/api-config'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, role } = await request.json()
+    const body = await request.json()
+    const { name, email, password, role, phone, gender, country, languages } = body
 
     // Validate input
     if (!name || !email || !password) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { 
+          success: false,
+          error: 'Missing required fields',
+          code: 'BAD_REQUEST'
+        },
         { status: 400 }
       )
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
+        { 
+          success: false,
+          error: 'Password must be at least 8 characters',
+          code: 'BAD_REQUEST'
+        },
         { status: 400 }
       )
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email: email.toLowerCase()
-      }
-    })
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 400 }
-      )
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
+    // Call backend API with all fields
+    const response = await fetch(getBackendUrl('/auth/register'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         name,
         email: email.toLowerCase(),
-        password: hashedPassword,
+        password,
         role: role || 'guest',
-        emailVerified: null, // Will be verified via email
-      }
+        phone: phone || undefined,
+        gender: gender || undefined,
+        country: country || undefined,
+        languages: languages || undefined,
+      }),
     })
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user
+    const data = await response.json()
 
+    if (!response.ok) {
+      // Return backend error response as-is for proper error handling
+      return NextResponse.json(
+        {
+          success: false,
+          error: data.error || 'Registration failed',
+          code: data.code,
+          details: data.details,
+        },
+        { status: response.status }
+      )
+    }
+
+    // Return in format expected by frontend
     return NextResponse.json(
-      { 
-        message: 'User created successfully',
-        user: userWithoutPassword 
+      {
+        success: true,
+        message: data.message || 'User created successfully',
+        data: data.data || data,
       },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        success: false,
+        error: 'Internal server error',
+        code: 'INTERNAL_SERVER_ERROR'
+      },
       { status: 500 }
     )
   }

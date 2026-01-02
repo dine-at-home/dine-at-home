@@ -1,23 +1,12 @@
 # Copy this content to your .env.local file
 
-# Database (Supabase PostgreSQL with Session Pooler)
-DATABASE_URL="postgresql://postgres.flqztzvxtktxtkzxdkeo:EJv9380x69XAQz5R@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+# Backend API Base URL
+# NEXT_PUBLIC_BASE_URL is used for client-side API calls (exposed to browser)
+# BASE_URL is used for server-side API calls (Next.js API routes)
+# You can use the same value for both, or different values if needed
+NEXT_PUBLIC_BASE_URL="http://localhost:3001/api"
+BASE_URL="http://localhost:3001/api"
 
-# Direct connection for migrations
-DIRECT_URL="postgresql://postgres.flqztzvxtktxtkzxdkeo:EJv9380x69XAQz5R@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
-
-# NextAuth.js
-NEXTAUTH_SECRET="H7ZXxsiWBHjvNF4hH7PWb39r5UHFLwvwOskSKBwq23U="
-NEXTAUTH_URL="http://localhost:3000"
-
-# Google OAuth (keep your existing values)
-GOOGLE_CLIENT_ID="52319103089-tc9u81mqmojlhvkb6547v9hq96q3p50t.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="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"
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL="https://flqztzvxtktxtkzxdkeo.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscXp0enZ4dGt0eHRrenhka2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMzQxNTMsImV4cCI6MjA3NjgxMDE1M30.AZCki5BRuzajmxzZO_jjzpoEt-5o2k_op3pFDeN_NPU"
-
-# Expo (for future mobile app development)
-EXPO_PUBLIC_SUPABASE_URL="https://flqztzvxtktxtkzxdkeo.supabase.co"
-EXPO_PUBLIC_SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscXp0enZ4dGt0eHRrenhka2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMzQxNTMsImV4cCI6MjA3NjgxMDE1M30.AZCki5BRuzajmxzZO_jjzpoEt-5o2k_op3pFDeN_NPU"
+# Legacy support (optional - will fallback to BASE_URL if not set)
+# BACKEND_API_URL="http://localhost:3001/api"
+# NEXT_PUBLIC_API_URL="http://localhost:3001/api"

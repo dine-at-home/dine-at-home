@@ -140,10 +140,9 @@ export interface FeatureFlags {
 }
 
 // Environment Variables
+// Note: DATABASE_URL and JWT_SECRET are backend-only and not needed in frontend
 export interface EnvConfig {
   NEXT_PUBLIC_API_URL: string
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?: string
   NEXT_PUBLIC_MAP_API_KEY?: string
-  DATABASE_URL: string
-  JWT_SECRET: string
 }

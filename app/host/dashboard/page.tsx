@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/contexts/auth-context'
 import { MainLayout } from '@/components/layout/main-layout'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
@@ -122,7 +122,7 @@ const mockBookings = [
 function HostDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
   const [dinnerFilter, setDinnerFilter] = useState('all')
@@ -138,15 +138,15 @@ function HostDashboardContent() {
   })
 
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       setProfileData(prev => ({
         ...prev,
-        name: session.user.name || '',
-        email: session.user.email || '',
-        profileImage: session.user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+        name: user.name || '',
+        email: user.email || '',
+        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
       }))
     }
-  }, [session])
+  }, [user])
 
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {

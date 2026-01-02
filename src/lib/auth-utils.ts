@@ -1,12 +1,22 @@
-import { Session } from "next-auth"
+import { User } from './auth-service'
 
-export function getRedirectUrl(session: Session | null): string {
-  if (!session?.user) {
+export function getRedirectUrl(user: User | null): string {
+  if (!user) {
     return '/'
   }
 
+  // If profile needs completion, redirect to profile completion page
+  if (user.needsProfileCompletion) {
+    return '/auth/complete-profile'
+  }
+
+  // If role needs selection, redirect to role selection page
+  if (user.needsRoleSelection) {
+    return '/auth/role-selection'
+  }
+
   // Redirect hosts to their dashboard
-  if (session.user.role === 'host') {
+  if (user.role === 'host') {
     return '/host/dashboard'
   }
 
@@ -14,6 +24,6 @@ export function getRedirectUrl(session: Session | null): string {
   return '/'
 }
 
-export function shouldRedirectToDashboard(session: Session | null): boolean {
-  return session?.user?.role === 'host'
+export function shouldRedirectToDashboard(user: User | null): boolean {
+  return user?.role === 'host'
 }

@@ -71,7 +71,7 @@ Stores OAuth provider information for users.
 
 ### 3. sessions
 
-Stores user session information for NextAuth.js.
+Stores user session information (for future use).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
