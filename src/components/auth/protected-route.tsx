@@ -1,11 +1,11 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Loader2, Lock } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -20,17 +20,17 @@ export function ProtectedRoute({
   redirectTo = '/auth/signin',
   requiredRole 
 }: ProtectedRouteProps) {
-  const { data: session, status } = useSession()
+  const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!loading && !isAuthenticated) {
       router.push(redirectTo)
     }
-  }, [status, router, redirectTo])
+  }, [loading, isAuthenticated, router, redirectTo])
 
   // Show loading state
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -42,7 +42,7 @@ export function ProtectedRoute({
   }
 
   // Show fallback if not authenticated
-  if (status === 'unauthenticated') {
+  if (!isAuthenticated) {
     if (fallback) {
       return <>{fallback}</>
     }
@@ -82,7 +82,7 @@ export function ProtectedRoute({
   }
 
   // Check role requirement if specified
-  if (requiredRole && session?.user?.role !== requiredRole) {
+  if (requiredRole && user?.role !== requiredRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">

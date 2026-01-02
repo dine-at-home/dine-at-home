@@ -1,12 +1,12 @@
 'use client'
 
 import Image from 'next/image'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/contexts/auth-context'
 import { SearchWidget } from '@/components/search/search-widget'
 
 export function HeroSection() {
-  const { data: session } = useSession()
-  const isHost = session?.user?.role === 'host'
+  const { user } = useAuth()
+  const isHost = user?.role === 'host'
   
   return (
     <section className="relative h-[70vh] lg:h-[80vh] flex items-center justify-center overflow-hidden">

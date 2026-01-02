@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/auth-context";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -33,7 +33,7 @@ interface HeaderProps {
 
 export function Header({ onSearch }: HeaderProps = {}) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -78,12 +78,12 @@ export function Header({ onSearch }: HeaderProps = {}) {
                   <Menu className="w-4 h-4" />
                   <Avatar className="w-8 h-8">
                     <AvatarImage
-                      src={session?.user?.image || ""}
-                      alt={session?.user?.name || "User avatar"}
+                      src={user?.image || ""}
+                      alt={user?.name || "User avatar"}
                     />
                     <AvatarFallback>
-                      {session?.user?.name ? (
-                        session.user.name.charAt(0).toUpperCase()
+                      {user?.name ? (
+                        user.name.charAt(0).toUpperCase()
                       ) : (
                         <User className="w-4 h-4" />
                       )}
@@ -92,12 +92,12 @@ export function Header({ onSearch }: HeaderProps = {}) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-2">
-                {session ? (
+                {user ? (
                   <>
                     <DropdownMenuItem className="font-semibold">
-                      {session.user?.name || session.user?.email}
+                      {user?.name || user?.email}
                     </DropdownMenuItem>
-                    {session.user?.role === "host" ? (
+                    {user?.role === "host" ? (
                       <>
                         <DropdownMenuItem onClick={() => router.push("/host/dashboard")}>
                           <ChefHat className="w-4 h-4 mr-2" />
@@ -137,12 +137,12 @@ export function Header({ onSearch }: HeaderProps = {}) {
                       <HelpCircle className="w-4 h-4 mr-2" />
                       Help Center
                     </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push(session.user?.role === "host" ? "/host/dashboard?tab=settings" : "/profile?tab=settings")}>
+        <DropdownMenuItem onClick={() => router.push(user?.role === "host" ? "/host/dashboard?tab=settings" : "/profile?tab=settings")}>
           <Settings className="w-4 h-4 mr-2" />
           Settings
         </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => signOut({ callbackUrl: "/" })}
+                      onClick={() => logout()}
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Logout

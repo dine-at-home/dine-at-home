@@ -1,147 +1,110 @@
-# Vercel Deployment Guide with Supabase
+# Vercel Deployment Guide
+
+This guide will help you deploy the DineWithUs frontend to Vercel.
 
 ## Prerequisites
 
-1. **Supabase Account**: Sign up at [supabase.com](https://supabase.com)
-2. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
-3. **Google OAuth**: Set up Google OAuth credentials
+1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
+2. **Backend API**: Your backend API should be deployed and accessible
+3. **GitHub Account**: (Optional, but recommended for CI/CD)
 
-## Step 1: Set up Supabase
+## Step 1: Prepare Your Project
 
-### 1.1 Create a new Supabase project
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Choose a name for your project (e.g., "dinewithus")
-3. Set a strong database password
-4. Choose a region close to your users
+1. Make sure your code is committed to Git
+2. Ensure all environment variables are documented
+3. Test your build locally:
+   ```bash
+   npm run build
+   ```
 
-### 1.2 Get your Supabase credentials
-1. Go to **Settings** → **API** in your Supabase dashboard
-2. Copy the following values:
-   - **Project URL** (looks like: `https://your-project-id.supabase.co`)
-   - **Anon Key** (starts with `eyJ...`)
-   - **Service Role Key** (starts with `eyJ...`)
+## Step 2: Deploy to Vercel
 
-### 1.3 Get your database connection string
-1. Go to **Settings** → **Database** in your Supabase dashboard
-2. Copy the **Connection string** (URI format)
-   - Format: `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-ID].supabase.co:5432/postgres`
+### Option A: Deploy via Vercel Dashboard
 
-## Step 2: Update Environment Variables
+1. Go to [vercel.com](https://vercel.com) and sign in
+2. Click "Add New Project"
+3. Import your Git repository
+4. Configure the project:
+   - **Framework Preset**: Next.js
+   - **Root Directory**: `dine-at-home` (if monorepo)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.next`
 
-### 2.1 Local Development (.env.local)
+### Option B: Deploy via CLI
+
 ```bash
-# Database
-DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-ID].supabase.co:5432/postgres"
+# Install Vercel CLI
+npm install -g vercel
 
-# NextAuth.js
-NEXTAUTH_SECRET="your-nextauth-secret-here"
-NEXTAUTH_URL="http://localhost:3000"
+# Login
+vercel login
 
-# Google OAuth
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-```
-
-### 2.2 Vercel Environment Variables
-In your Vercel dashboard, add these environment variables:
-
-1. **DATABASE_URL**: Your Supabase connection string
-2. **NEXTAUTH_SECRET**: Generate with `openssl rand -base64 32`
-3. **NEXTAUTH_URL**: Your Vercel app URL (e.g., `https://your-app.vercel.app`)
-4. **GOOGLE_CLIENT_ID**: Your Google OAuth client ID
-5. **GOOGLE_CLIENT_SECRET**: Your Google OAuth client secret
-
-## Step 3: Update Google OAuth Settings
-
-### 3.1 Update Authorized Redirect URIs
-In your Google Cloud Console:
-1. Go to **APIs & Services** → **Credentials**
-2. Edit your OAuth 2.0 Client ID
-3. Add these redirect URIs:
-   - `https://your-app.vercel.app/api/auth/callback/google`
-   - `http://localhost:3000/api/auth/callback/google` (for local development)
-
-## Step 4: Database Setup
-
-### 4.1 Run Prisma migrations
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Push schema to Supabase
-npx prisma db push
-
-# (Optional) Seed the database
-npx prisma db seed
-```
-
-### 4.2 Verify database connection
-```bash
-# Check database connection
-npx prisma studio
-```
-
-## Step 5: Deploy to Vercel
-
-### 5.1 Connect to Vercel
-1. Install Vercel CLI: `npm i -g vercel`
-2. Login: `vercel login`
-3. Link project: `vercel link`
-
-### 5.2 Deploy
-```bash
-# Deploy to preview
+# Deploy
+cd dine-at-home
 vercel
 
 # Deploy to production
 vercel --prod
 ```
 
-### 5.3 Or deploy via GitHub
-1. Push your code to GitHub
-2. Connect your GitHub repo to Vercel
-3. Vercel will automatically deploy on every push
+## Step 3: Set Environment Variables
 
-## Step 6: Post-Deployment
+In your Vercel project settings, add these environment variables:
 
-### 6.1 Update Google OAuth (if needed)
-1. Go to Google Cloud Console
-2. Update the authorized redirect URI with your actual Vercel URL
+### Required Variables
 
-### 6.2 Test the application
-1. Visit your Vercel app URL
-2. Test Google OAuth sign-in
-3. Test role selection
-4. Test all major features
+```env
+BACKEND_API_URL="https://your-backend-api.com/api"
+NEXT_PUBLIC_API_URL="https://your-backend-api.com/api"
+```
+
+### Optional Variables
+
+These have defaults and are only needed if you want to override:
+
+- `BACKEND_API_URL` - Backend API base URL
+- `NEXT_PUBLIC_API_URL` - Public backend API URL for client-side requests
+
+## Step 4: Verify Deployment
+
+1. Visit your deployed URL
+2. Test authentication flow
+3. Verify API calls are working
+4. Check browser console for errors
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Database connection errors**: Check your DATABASE_URL format
-2. **Google OAuth errors**: Verify redirect URIs are correct
-3. **NextAuth errors**: Ensure NEXTAUTH_SECRET is set
-4. **Build errors**: Check that all environment variables are set in Vercel
+1. **Build Errors**
+   - Check build logs in Vercel dashboard
+   - Ensure all dependencies are in `package.json`
+   - Verify Node.js version compatibility
 
-### Environment Variables Checklist
+2. **API Connection Errors**
+   - Verify `BACKEND_API_URL` is set correctly
+   - Check CORS settings on backend
+   - Ensure backend is accessible from Vercel
 
-- [ ] DATABASE_URL (Supabase connection string)
-- [ ] NEXTAUTH_SECRET (32+ character random string)
-- [ ] NEXTAUTH_URL (your Vercel app URL)
-- [ ] GOOGLE_CLIENT_ID
-- [ ] GOOGLE_CLIENT_SECRET
+3. **Environment Variables Not Loading**
+   - Restart deployment after adding variables
+   - Check variable names match exactly
+   - Verify variables are set for production environment
 
-## Security Notes
+## Production Checklist
 
-1. Never commit `.env.local` to version control
-2. Use strong passwords for Supabase database
-3. Keep your Google OAuth credentials secure
-4. Regularly rotate your NEXTAUTH_SECRET in production
+- [ ] Environment variables set in Vercel
+- [ ] Backend API is deployed and accessible
+- [ ] CORS configured on backend for your Vercel domain
+- [ ] Build completes successfully
+- [ ] Authentication flow works
+- [ ] API calls are successful
+- [ ] Error handling works correctly
 
-## Support
+## Next Steps
 
-If you encounter issues:
-1. Check Vercel function logs
-2. Check Supabase logs
-3. Verify all environment variables are set correctly
-4. Test locally with the same environment variables
+After deployment:
+1. Set up custom domain (optional)
+2. Configure analytics
+3. Set up monitoring
+4. Configure CI/CD for automatic deployments

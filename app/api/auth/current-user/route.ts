@@ -1,45 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getBackendUrl } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.email) {
+    // Get JWT token from Authorization header
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get current user from database
-    const user = await prisma.user.findUnique({
-      where: {
-        email: session.user.email
+    // Call backend API
+    const response = await fetch(getBackendUrl('/auth/current-user'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        needsRoleSelection: true
-      }
     })
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const data = await response.json()
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.error || 'Failed to get current user' },
+        { status: response.status }
+      )
     }
 
-    return NextResponse.json({ 
-      user: user,
-      session: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        role: session.user.role,
-        needsRoleSelection: session.user.needsRoleSelection
-      }
+    // Return user data
+    return NextResponse.json({
+      success: true,
+      data: data.data || data,
     })
-
   } catch (error) {
     console.error('Error fetching current user:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

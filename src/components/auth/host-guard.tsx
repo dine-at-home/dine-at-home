@@ -1,34 +1,34 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { canAccessHostDashboard, getAccessDeniedMessageForHostDashboard } from '@/lib/access-control'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '../ui/button'
+import { useAuth } from '@/contexts/auth-context'
 
 interface HostGuardProps {
   children: React.ReactNode
 }
 
 export function HostGuard({ children }: HostGuardProps) {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
-  const isAllowed = canAccessHostDashboard(session)
-  const accessDeniedMessage = getAccessDeniedMessageForHostDashboard(session)
+  const isAllowed = canAccessHostDashboard(user)
+  const accessDeniedMessage = getAccessDeniedMessageForHostDashboard(user)
 
   useEffect(() => {
-    if (status === 'loading') return // Do nothing while session is loading
+    if (loading) return
 
     if (!isAllowed) {
       // Optionally, you could redirect immediately here, but showing a message first is more user-friendly
       // router.replace('/');
     }
-  }, [status, isAllowed, router])
+  }, [loading, isAllowed, router])
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>

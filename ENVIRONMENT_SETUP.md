@@ -1,56 +1,26 @@
-# Environment Variables Setup
+# Environment Setup
 
-Create a `.env.local` file in your project root with the following variables:
+## Frontend Environment Variables
 
-```bash
-# NextAuth.js Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here
+Create a `.env.local` file in the `dine-at-home` directory:
 
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# Database Configuration (for production)
-DATABASE_URL=your-database-url
-
-# Email Configuration (optional)
-EMAIL_SERVER_HOST=your-email-server
-EMAIL_SERVER_PORT=587
-EMAIL_SERVER_USER=your-email-user
-EMAIL_SERVER_PASSWORD=your-email-password
-EMAIL_FROM=your-email-from
-
-# Stripe Configuration (for payments)
-STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
-STRIPE_SECRET_KEY=your-stripe-secret-key
-STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+```env
+# Backend API URL
+BACKEND_API_URL="http://localhost:3001/api"
+NEXT_PUBLIC_API_URL="http://localhost:3001/api"
 ```
 
-## How to get the values:
+## Backend Environment Variables
 
-### NextAuth Secret
-Generate a random secret key:
-```bash
-openssl rand -base64 32
-```
+See `../backend/ENV_SETUP.md` for backend environment variables.
 
-### Google OAuth Credentials
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Google+ API
-4. Go to Credentials → Create Credentials → OAuth 2.0 Client IDs
-5. Set authorized redirect URIs:
-   - `http://localhost:3000/api/auth/callback/google` (development)
-   - `https://yourdomain.com/api/auth/callback/google` (production)
+## Quick Start
 
-### Database URL
-For development, you can use SQLite or PostgreSQL. For production, use a managed database service.
+1. **Frontend**: Copy `final-env-template.txt` to `.env.local`
+2. **Backend**: Copy `../backend/.env.example` to `../backend/.env` and update with your MongoDB connection string
 
-### Email Configuration
-Optional. Used for sending verification emails and notifications.
+## Notes
 
-### Stripe Configuration
-1. Create a Stripe account at [stripe.com](https://stripe.com)
-2. Get your API keys from the Stripe Dashboard
-3. Set up webhooks for payment processing
+- Frontend uses JWT authentication via backend API
+- No database connection needed in frontend
+- All data operations go through the backend API
