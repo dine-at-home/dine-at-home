@@ -1,7 +1,6 @@
 import { User } from './auth-service'
 
 export function canBookDinners(user: User | null): boolean {
-  // Only guests can book dinners
   return user?.role === 'guest'
 }
 
