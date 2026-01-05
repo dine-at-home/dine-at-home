@@ -3,6 +3,5 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "buildCommand": "prisma generate && npm run build"
+  }
 }
