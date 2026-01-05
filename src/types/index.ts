@@ -140,9 +140,10 @@ export interface FeatureFlags {
 }
 
 // Environment Variables
-// Note: DATABASE_URL and JWT_SECRET are backend-only and not needed in frontend
+// Only BASE_URL and GOOGLE_CLIENT_ID are used in the frontend
+// Note: DATABASE_URL is only needed for Prisma generation (build-time), not runtime
 export interface EnvConfig {
-  NEXT_PUBLIC_API_URL: string
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?: string
-  NEXT_PUBLIC_MAP_API_KEY?: string
+  BASE_URL: string
+  NEXT_PUBLIC_BASE_URL: string
+  GOOGLE_CLIENT_ID?: string
 }

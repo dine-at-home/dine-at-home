@@ -2,29 +2,27 @@
  * API Configuration
  * Centralized configuration for backend API endpoints
  * 
- * Uses BASE_URL from .env.local:
- * - NEXT_PUBLIC_BASE_URL for client-side calls (exposed to browser)
- * - BASE_URL for server-side calls (Next.js API routes)
+ * Environment variables used:
+ * - BASE_URL: Server-side API URL (used for Next.js API routes and SSR)
+ * - NEXT_PUBLIC_BASE_URL: Client-side API URL (required for browser access, should match BASE_URL)
  * 
- * Falls back to NEXT_PUBLIC_API_URL, BACKEND_API_URL, or default localhost
+ * Note: In Next.js, client-side code can only access variables prefixed with NEXT_PUBLIC_.
+ * Both BASE_URL and NEXT_PUBLIC_BASE_URL should be set to the same value.
  */
 
-// Get base URL for client-side (browser) - must be NEXT_PUBLIC_* to be accessible
+// Get base URL for client-side (browser) - must use NEXT_PUBLIC_ prefix
 const getClientBaseUrl = (): string => {
   return (
     process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
     'http://localhost:3001/api'
   );
 };
 
-// Get base URL for server-side (Next.js API routes)
+// Get base URL for server-side (Next.js API routes and SSR)
+// Uses BASE_URL as the primary variable
 const getServerBaseUrl = (): string => {
   return (
     process.env.BASE_URL ||
-    process.env.BACKEND_API_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
     'http://localhost:3001/api'
   );
 };
