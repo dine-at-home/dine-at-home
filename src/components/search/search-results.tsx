@@ -20,9 +20,9 @@ import {
   ArrowUpDown,
   Search
 } from 'lucide-react'
-import { mockData } from '@/lib/mock-data'
-
-import { SearchParams, NavigationParams } from '@/types'
+import { getApiUrl } from '@/lib/api-config'
+import { transformDinner } from '@/lib/dinner-utils'
+import { SearchParams, NavigationParams, Dinner } from '@/types'
 
 interface SearchResultsProps {
   searchParams: SearchParams
@@ -36,14 +36,71 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   const [instantBookOnly, setInstantBookOnly] = useState(false)
   const [superhostOnly, setSuperhostOnly] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [dinners, setDinners] = useState<Dinner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false)
 
-  const { dinners } = mockData
+  // Fetch dinners from API
+  useEffect(() => {
+    const fetchDinners = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Build query parameters
+        const queryParams = new URLSearchParams({
+          limit: '100',
+          page: '1'
+        })
+
+        if (searchParams.location) {
+          queryParams.append('location', searchParams.location)
+        }
+        if (searchParams.date) {
+          queryParams.append('date', searchParams.date.toISOString().split('T')[0])
+        }
+        if (searchParams.guests) {
+          queryParams.append('guests', searchParams.guests.toString())
+        }
+        if (searchParams.cuisine) {
+          queryParams.append('cuisine', searchParams.cuisine)
+        }
+
+        const response = await fetch(getApiUrl(`/dinners?${queryParams.toString()}`), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          const transformedDinners = result.data.map(transformDinner)
+          setDinners(transformedDinners)
+        } else {
+          setError(result.error || 'Failed to load dinners')
+          setDinners([])
+        }
+      } catch (err: any) {
+        console.error('Error fetching dinners:', err)
+        setError('Failed to load dinners. Please try again later.')
+        setDinners([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDinners()
+  }, [searchParams.location, searchParams.date, searchParams.guests, searchParams.cuisine])
   
-  // Get unique cuisines for filter
-  const cuisines = Array.from(new Set(dinners.map(dinner => dinner.cuisine)))
+  // Get unique cuisines for filter (computed from fetched dinners)
+  const cuisines = useMemo(() => {
+    return Array.from(new Set(dinners.map(dinner => dinner.cuisine).filter(Boolean)))
+  }, [dinners])
 
   // Mobile detection
   useEffect(() => {
@@ -252,7 +309,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl font-semibold">
-                  {filteredDinners.length} dinner experiences
+                  {loading ? 'Loading...' : `${filteredDinners.length} dinner experiences`}
                   {searchParams.location && (
                     <span className="text-muted-foreground"> in {searchParams.location}</span>
                   )}
@@ -323,8 +380,24 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
               </div>
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading dinners...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="text-center py-16">
+                <p className="text-destructive text-lg mb-2">{error}</p>
+                <p className="text-muted-foreground mb-4">Please try again later</p>
+              </div>
+            )}
+
             {/* Active Filters */}
-            {(selectedCuisines.length > 0 || instantBookOnly || superhostOnly || priceRange[0] > 0 || priceRange[1] < 200) && (
+            {!loading && !error && (selectedCuisines.length > 0 || instantBookOnly || superhostOnly || priceRange[0] > 0 || priceRange[1] < 200) && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {selectedCuisines.map(cuisine => (
                   <Badge 
@@ -367,7 +440,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             )}
 
             {/* Results Grid */}
-            {filteredDinners.length === 0 ? (
+            {!loading && !error && filteredDinners.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <MapPin className="w-8 h-8 text-muted-foreground" />
@@ -380,7 +453,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                   Clear all filters
                 </Button>
               </div>
-            ) : (
+            ) : !loading && !error ? (
                 <div className={`grid gap-6 ${
                   viewMode === 'grid' 
                     ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
@@ -394,7 +467,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                     />
                   ))}
                 </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

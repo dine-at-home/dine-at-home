@@ -36,8 +36,9 @@ import {
   Phone
 } from 'lucide-react'
 import Image from 'next/image'
+import { getApiUrl } from '@/lib/api-config'
 
-// Mock data for demonstration
+// Mock data for demonstration (fallback)
 const mockDinners = [
   {
     id: '1',
@@ -126,6 +127,8 @@ function HostDashboardContent() {
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
   const [dinnerFilter, setDinnerFilter] = useState('all')
+  const [dinners, setDinners] = useState<any[]>([])
+  const [dinnersLoading, setDinnersLoading] = useState(true)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -148,6 +151,96 @@ function HostDashboardContent() {
     }
   }, [user])
 
+  // Fetch dinners from backend
+  useEffect(() => {
+    const fetchDinners = async () => {
+      if (!user?.id) {
+        setDinnersLoading(false)
+        return
+      }
+
+      try {
+        setDinnersLoading(true)
+        const token = localStorage.getItem('auth_token')
+        
+        if (!token) {
+          setDinnersLoading(false)
+          return
+        }
+
+        const response = await fetch(getApiUrl(`/host/${user.id}/dinners`), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.data) {
+            // Transform backend data to match frontend format
+            const transformedDinners = result.data.map((dinner: any) => {
+              const dinnerDate = new Date(dinner.date)
+              const now = new Date()
+              const status = dinner.isActive === false 
+                ? 'draft' 
+                : dinnerDate > now 
+                ? 'upcoming' 
+                : 'completed'
+
+              // Parse images (assuming it's a JSON string or array)
+              let images = []
+              try {
+                images = typeof dinner.images === 'string' 
+                  ? JSON.parse(dinner.images) 
+                  : dinner.images || []
+              } catch (e) {
+                images = []
+              }
+
+              // Filter out invalid blob URLs (they don't work after page reload)
+              const validImages = images.filter((img: string) => 
+                img && 
+                typeof img === 'string' && 
+                (img.startsWith('http://') || img.startsWith('https://'))
+              )
+
+              return {
+                id: dinner.id,
+                title: dinner.title,
+                date: dinner.date.split('T')[0], // Extract date part
+                time: dinner.time,
+                guests: dinner.capacity - dinner.available,
+                maxCapacity: dinner.capacity,
+                price: dinner.price,
+                status: status,
+                bookings: dinner.capacity - dinner.available,
+                revenue: (dinner.capacity - dinner.available) * dinner.price,
+                rating: dinner.rating || 0,
+                reviews: dinner.reviewCount || 0,
+                image: validImages[0] || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center'
+              }
+            })
+            setDinners(transformedDinners)
+          } else {
+            // Fallback to mock data if API fails
+            setDinners(mockDinners)
+          }
+        } else {
+          // Fallback to mock data if API fails
+          setDinners(mockDinners)
+        }
+      } catch (error) {
+        console.error('Error fetching dinners:', error)
+        // Fallback to mock data on error
+        setDinners(mockDinners)
+      } finally {
+        setDinnersLoading(false)
+      }
+    }
+
+    fetchDinners()
+  }, [user])
+
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab)
@@ -167,11 +260,37 @@ function HostDashboardContent() {
   }
 
   // Filter dinners based on selected filter
-  const filteredDinners = mockDinners.filter(dinner => {
+  const filteredDinners = dinners.filter(dinner => {
     if (dinnerFilter === 'all') return true
     return dinner.status === dinnerFilter
   })
 
+
+  // Calculate stats from real data
+  const calculateStats = () => {
+    const totalRevenue = dinners.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    const totalGuests = dinners.reduce((sum, d) => sum + (d.guests || 0), 0)
+    const dinnersWithRatings = dinners.filter(d => d.rating > 0)
+    const averageRating = dinnersWithRatings.length > 0
+      ? (dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length).toFixed(1)
+      : '0.0'
+    const totalReviews = dinners.reduce((sum, d) => sum + (d.reviews || 0), 0)
+    const upcomingDinners = dinners.filter(d => d.status === 'upcoming')
+    const nextUpcoming = upcomingDinners.length > 0
+      ? upcomingDinners.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+      : null
+
+    return {
+      totalRevenue,
+      totalGuests,
+      averageRating,
+      totalReviews,
+      upcomingCount: upcomingDinners.length,
+      nextUpcoming
+    }
+  }
+
+  const stats = calculateStats()
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -182,11 +301,10 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">$1,750</p>
+                <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
               </div>
               <DollarSign className="w-8 h-8 text-primary-600" />
             </div>
-            <p className="text-xs text-green-600 mt-2">+12% from last month</p>
           </CardContent>
         </Card>
 
@@ -195,11 +313,10 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Guests</p>
-                <p className="text-2xl font-bold">48</p>
+                <p className="text-2xl font-bold">{stats.totalGuests}</p>
               </div>
               <Users className="w-8 h-8 text-primary-600" />
             </div>
-            <p className="text-xs text-green-600 mt-2">+8 from last month</p>
           </CardContent>
         </Card>
 
@@ -208,11 +325,13 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                <p className="text-2xl font-bold">4.9</p>
+                <p className="text-2xl font-bold">{stats.averageRating}</p>
               </div>
               <Star className="w-8 h-8 text-primary-600" />
             </div>
-            <p className="text-xs text-green-600 mt-2">Based on 35 reviews</p>
+            {stats.totalReviews > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">Based on {stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -221,11 +340,15 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Upcoming Dinners</p>
-                <p className="text-2xl font-bold">2</p>
+                <p className="text-2xl font-bold">{stats.upcomingCount}</p>
               </div>
               <Calendar className="w-8 h-8 text-primary-600" />
             </div>
-            <p className="text-xs text-blue-600 mt-2">Next: Feb 15</p>
+            {stats.nextUpcoming && (
+              <p className="text-xs text-blue-600 mt-2">
+                Next: {new Date(stats.nextUpcoming.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -240,37 +363,8 @@ function HostDashboardContent() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 border rounded-lg">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <Users className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">New booking for Italian Pasta Making</p>
-                <p className="text-sm text-muted-foreground">Sarah Johnson booked 2 seats for Feb 15</p>
-              </div>
-              <span className="text-sm text-muted-foreground">2 hours ago</span>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 border rounded-lg">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Star className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">New 5-star review received</p>
-                <p className="text-sm text-muted-foreground">Mike Chen left a review for Japanese Sushi Workshop</p>
-              </div>
-              <span className="text-sm text-muted-foreground">1 day ago</span>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 border rounded-lg">
-              <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">Payment received</p>
-                <p className="text-sm text-muted-foreground">$480 from French Wine Tasting completed dinner</p>
-              </div>
-              <span className="text-sm text-muted-foreground">3 days ago</span>
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground">No recent activity</p>
             </div>
           </div>
         </CardContent>
@@ -295,28 +389,28 @@ function HostDashboardContent() {
           size="sm"
           onClick={() => setDinnerFilter('all')}
         >
-          All ({mockDinners.length})
+          All ({dinners.length})
         </Button>
         <Button
           variant={dinnerFilter === 'upcoming' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setDinnerFilter('upcoming')}
         >
-          Upcoming ({mockDinners.filter(d => d.status === 'upcoming').length})
+          Upcoming ({dinners.filter(d => d.status === 'upcoming').length})
         </Button>
         <Button
           variant={dinnerFilter === 'completed' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setDinnerFilter('completed')}
         >
-          Completed ({mockDinners.filter(d => d.status === 'completed').length})
+          Completed ({dinners.filter(d => d.status === 'completed').length})
         </Button>
         <Button
           variant={dinnerFilter === 'draft' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setDinnerFilter('draft')}
         >
-          Draft ({mockDinners.filter(d => d.status === 'draft').length})
+          Draft ({dinners.filter(d => d.status === 'draft').length})
         </Button>
       </div>
 
@@ -327,7 +421,7 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Dinners</p>
-                <p className="text-2xl font-bold">{mockDinners.length}</p>
+                <p className="text-2xl font-bold">{dinners.length}</p>
               </div>
               <Calendar className="w-8 h-8 text-primary-600" />
             </div>
@@ -339,7 +433,7 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">${mockDinners.reduce((sum, d) => sum + d.revenue, 0)}</p>
+                <p className="text-2xl font-bold">${dinners.reduce((sum, d) => sum + d.revenue, 0)}</p>
               </div>
               <DollarSign className="w-8 h-8 text-primary-600" />
             </div>
@@ -351,7 +445,7 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Guests</p>
-                <p className="text-2xl font-bold">{mockDinners.reduce((sum, d) => sum + d.guests, 0)}</p>
+                <p className="text-2xl font-bold">{dinners.reduce((sum, d) => sum + d.guests, 0)}</p>
               </div>
               <Users className="w-8 h-8 text-primary-600" />
             </div>
@@ -364,8 +458,8 @@ function HostDashboardContent() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
                 <p className="text-2xl font-bold">
-                  {mockDinners.filter(d => d.rating > 0).length > 0 
-                    ? (mockDinners.reduce((sum, d) => sum + d.rating, 0) / mockDinners.filter(d => d.rating > 0).length).toFixed(1)
+                  {dinners.filter(d => d.rating > 0).length > 0 
+                    ? (dinners.reduce((sum, d) => sum + d.rating, 0) / dinners.filter(d => d.rating > 0).length).toFixed(1)
                     : '0.0'
                   }
                 </p>
@@ -376,9 +470,18 @@ function HostDashboardContent() {
         </Card>
       </div>
 
+      {/* Loading State */}
+      {dinnersLoading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dinners...</p>
+        </div>
+      )}
+
       {/* Dinners Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredDinners.map((dinner) => (
+      {!dinnersLoading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredDinners.map((dinner) => (
           <Card key={dinner.id} className="overflow-hidden">
             <div className="relative">
               <Image
@@ -432,10 +535,11 @@ function HostDashboardContent() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {filteredDinners.length === 0 && (
+      {!dinnersLoading && filteredDinners.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

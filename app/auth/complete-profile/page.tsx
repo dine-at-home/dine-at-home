@@ -27,7 +27,7 @@ export default function CompleteProfilePage() {
     role: 'guest' as 'guest' | 'host',
     gender: '',
     country: '',
-    languages: ['English'] as string[],
+    language: 'English',
   })
   const [formLoading, setFormLoading] = useState(false)
   const [error, setError] = useState('')
@@ -48,7 +48,7 @@ export default function CompleteProfilePage() {
           role: (user.role as 'guest' | 'host') || 'guest',
           gender: user.gender || '',
           country: user.country || '',
-          languages: user.languages && user.languages.length > 0 ? user.languages : ['English'],
+          language: user.languages && user.languages.length > 0 ? user.languages[0] : 'English',
         })
       }
     }
@@ -60,7 +60,7 @@ export default function CompleteProfilePage() {
     setError('')
 
     // Validation
-    if (!formData.role || !formData.gender || !formData.country || formData.languages.length === 0) {
+    if (!formData.role || !formData.gender || !formData.country || !formData.language) {
       setError('Please fill in all required fields')
       setFormLoading(false)
       return
@@ -103,7 +103,7 @@ export default function CompleteProfilePage() {
         body: JSON.stringify({
           gender: formData.gender,
           country: formData.country,
-          languages: formData.languages,
+          languages: [formData.language],
         }),
       })
 
@@ -140,14 +140,6 @@ export default function CompleteProfilePage() {
     }
   }
 
-  const toggleLanguage = (language: string) => {
-    setFormData(prev => ({
-      ...prev,
-      languages: prev.languages.includes(language)
-        ? prev.languages.filter(l => l !== language)
-        : [...prev.languages, language]
-    }))
-  }
 
   if (loading) {
     return (
@@ -248,37 +240,29 @@ export default function CompleteProfilePage() {
             </select>
           </div>
 
-          {/* Languages Field */}
+          {/* Language Field */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               <Languages className="inline w-4 h-4 mr-2" />
-              Languages * (Select at least one)
+              Language *
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-muted rounded-xl">
+            <select
+              value={formData.language}
+              onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
+              className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+              required
+            >
+              <option value="">Select language</option>
               {LANGUAGE_OPTIONS.map(language => (
-                <label
-                  key={language}
-                  className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-background transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.languages.includes(language)}
-                    onChange={() => toggleLanguage(language)}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary/50"
-                  />
-                  <span className="text-sm text-foreground">{language}</span>
-                </label>
+                <option key={language} value={language}>{language}</option>
               ))}
-            </div>
-            {formData.languages.length === 0 && (
-              <p className="text-sm text-destructive mt-1">Please select at least one language</p>
-            )}
+            </select>
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={formLoading || formData.languages.length === 0}
+            disabled={formLoading}
             className="w-full bg-primary-600 text-white py-2.5 rounded-xl text-base font-semibold leading-normal hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary-600"
           >
             {formLoading ? (

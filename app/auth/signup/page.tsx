@@ -2,11 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, AlertCircle, User, Users } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, User, Users, Globe, Languages } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/auth-context'
 import { getRedirectUrl } from '@/lib/auth-utils'
+
+const COUNTRIES = [
+  'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Italy', 'Spain',
+  'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Sweden', 'Norway', 'Denmark', 'Finland',
+  'Poland', 'Portugal', 'Greece', 'Ireland', 'New Zealand', 'Japan', 'South Korea', 'Singapore',
+  'India', 'China', 'Brazil', 'Mexico', 'Argentina', 'Chile', 'South Africa', 'Other'
+]
+
+const LANGUAGE_OPTIONS = [
+  'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch', 'Chinese',
+  'Japanese', 'Korean', 'Arabic', 'Hindi'
+]
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -23,7 +35,11 @@ export default function SignUpPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     userType: 'guest' as 'guest' | 'host',
+    gender: '',
+    country: '',
+    language: 'English',
     password: '',
     confirmPassword: '',
   })
@@ -63,6 +79,24 @@ export default function SignUpPage() {
       return
     }
 
+    if (!formData.gender) {
+      setError('Please select your gender')
+      setFormLoading(false)
+      return
+    }
+
+    if (!formData.country) {
+      setError('Please select your country')
+      setFormLoading(false)
+      return
+    }
+
+    if (!formData.language) {
+      setError('Please select a language')
+      setFormLoading(false)
+      return
+    }
+
     if (!agreeToTerms) {
       setError('Please agree to the Terms & Conditions')
       setFormLoading(false)
@@ -75,6 +109,10 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         role: formData.userType,
+        phone: formData.phone || undefined,
+        gender: formData.gender,
+        country: formData.country,
+        languages: [formData.language],
       })
 
       if (result.success) {
@@ -159,6 +197,73 @@ export default function SignUpPage() {
                   placeholder="Enter your email"
                   required
                 />
+              </div>
+
+              {/* Phone Number Field */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Phone Number</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+
+              {/* Gender Field */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Gender *</label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                  required
+                >
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer-not-to-say">Prefer not to say</option>
+                </select>
+              </div>
+
+              {/* Country Field */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <Globe className="inline w-4 h-4 mr-2" />
+                  Country *
+                </label>
+                <select
+                  value={formData.country}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                  required
+                >
+                  <option value="">Select country</option>
+                  {COUNTRIES.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Language Field */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <Languages className="inline w-4 h-4 mr-2" />
+                  Language *
+                </label>
+                <select
+                  value={formData.language}
+                  onChange={(e) => handleInputChange('language', e.target.value)}
+                  className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                  required
+                >
+                  <option value="">Select language</option>
+                  {LANGUAGE_OPTIONS.map(language => (
+                    <option key={language} value={language}>{language}</option>
+                  ))}
+                </select>
               </div>
 
               {/* User Type Field */}

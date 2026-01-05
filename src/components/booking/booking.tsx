@@ -283,21 +283,22 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                 <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                   <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm">
                     <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-                    <span>
+                    <span className="font-medium">
                       {date ? date.toLocaleDateString('en-US', { 
                         weekday: 'long', 
                         month: 'long', 
-                        day: 'numeric' 
+                        day: 'numeric',
+                        year: 'numeric'
                       }) : 'Date not selected'}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm">
                     <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-                    <span>{dinner.time}</span>
+                    <span className="font-medium">{dinner.time}</span>
                   </div>
                   <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm">
                     <Users className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-                    <span>{guests} {guests === 1 ? 'guest' : 'guests'}</span>
+                    <span className="font-medium">{guests} {guests === 1 ? 'guest' : 'guests'}</span>
                   </div>
                   <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />

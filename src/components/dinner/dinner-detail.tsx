@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 
 import { Dinner, NavigationParams } from "@/types";
+import { useAuth } from "@/contexts/auth-context";
 
 interface DinnerDetailProps {
   dinner: Dinner;
@@ -45,6 +46,8 @@ interface DinnerDetailProps {
 }
 
 export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
+  const { user } = useAuth();
+  const isHost = user?.role === 'host';
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedGuests, setSelectedGuests] = useState(2);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -52,33 +55,8 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  // Mock reviews data
-  const reviews = [
-    {
-      id: "1",
-      user: {
-        name: "Sarah Johnson",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face",
-      },
-      rating: 5,
-      date: "2024-01-15",
-      comment:
-        "Absolutely incredible experience! Maria's pasta was life-changing and the atmosphere was so warm and welcoming.",
-    },
-    {
-      id: "2",
-      user: {
-        name: "Mike Chen",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-      },
-      rating: 5,
-      date: "2024-01-10",
-      comment:
-        "Perfect evening with great food and even better company. Maria is a fantastic host!",
-    },
-  ];
+  // Use reviews from dinner data if available, otherwise empty array
+  const reviews = dinner.reviews || [];
 
   const amenities = [
     { icon: ChefHat, label: "Professional chef" },
@@ -88,6 +66,10 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   ];
 
   const handleBooking = () => {
+    if (isHost) {
+      // Hosts can't book, do nothing
+      return;
+    }
     onNavigate("booking", {
       dinner,
       date: selectedDate,
@@ -180,8 +162,8 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Image Gallery */}
-            <div className="grid grid-cols-4 gap-2 rounded-xl overflow-hidden">
-              <div className="col-span-4 sm:col-span-2 sm:row-span-2 relative">
+            <div className="grid grid-cols-4 gap-2 rounded-xl overflow-hidden" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+              <div className="col-span-4 sm:col-span-2 sm:row-span-2 relative min-h-[400px]">
                 <Image
                   src={dinner.images[0] || "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&h=800&fit=crop&crop=center"}
                   alt={dinner.title}
@@ -192,7 +174,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 />
               </div>
               {dinner.images.slice(1, 5).map((image, index) => (
-                <div className="relative h-32" key={index}>
+                <div className="relative min-h-[200px]" key={index}>
                   <Image
                     src={image || "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop&crop=center"}
                     alt={`${dinner.title} ${index + 2}`}
@@ -296,44 +278,55 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {reviews.map((review) => (
-                  <div key={review.id} className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage
-                          src={review.user.avatar}
-                          alt={review.user.name}
-                        />
-                        <AvatarFallback>{review.user.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium text-sm">
-                          {review.user.name}
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          {[...Array(review.rating)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className="w-3 h-3 fill-yellow-400 text-yellow-400"
+              {reviews.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage
+                              src={review.userAvatar}
+                              alt={review.userName}
                             />
-                          ))}
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {new Date(review.date).toLocaleDateString()}
-                          </span>
+                            <AvatarFallback>{review.userName[0]}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium text-sm">
+                              {review.userName}
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              {[...Array(review.rating)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className="w-3 h-3 fill-yellow-400 text-yellow-400"
+                                />
+                              ))}
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {new Date(review.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                          {review.comment}
+                        </p>
                       </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {review.comment}
-                    </p>
+                    ))}
                   </div>
-                ))}
-              </div>
-
-              <Button variant="outline" className="mt-6">
-                Show all {dinner.reviewCount} reviews
-              </Button>
+                  {dinner.reviewCount > reviews.length && (
+                    <Button variant="outline" className="mt-6">
+                      Show all {dinner.reviewCount} reviews
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">
+                    No reviews yet. Be the first to review this experience!
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -413,23 +406,36 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
 
                 {/* Booking Options */}
                 <div className="space-y-3">
-                  {dinner.instantBook ? (
+                  {isHost ? (
                     <Button
-                      className="w-full bg-primary-600 hover:bg-primary-700"
+                      className="w-full cursor-not-allowed opacity-60"
                       onClick={handleBooking}
-                      disabled={!selectedDate}
+                      disabled
+                      title="Host can't book - switch to guest account to make booking"
                     >
-                      <Zap className="w-4 h-4 mr-2" />
-                      Reserve instantly
+                      Host can't book
                     </Button>
                   ) : (
-                    <Button
-                      className="w-full"
-                      onClick={handleBooking}
-                      disabled={!selectedDate}
-                    >
-                      Request to book
-                    </Button>
+                    <>
+                      {dinner.instantBook ? (
+                        <Button
+                          className="w-full bg-primary-600 hover:bg-primary-700"
+                          onClick={handleBooking}
+                          disabled={!selectedDate}
+                        >
+                          <Zap className="w-4 h-4 mr-2" />
+                          Reserve instantly
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          onClick={handleBooking}
+                          disabled={!selectedDate}
+                        >
+                          Request to book
+                        </Button>
+                      )}
+                    </>
                   )}
 
                   <Button

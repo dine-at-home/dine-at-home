@@ -21,12 +21,18 @@ import {
   Save,
   ArrowLeft,
   ChefHat,
-  Image as ImageIcon
+  Image as ImageIcon,
+  AlertCircle
 } from 'lucide-react'
 import Image from 'next/image'
+import { getApiUrl } from '@/lib/api-config'
 
 export default function CreateDinnerPage() {
   const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
   const [dinnerData, setDinnerData] = useState({
     title: '',
     description: '',
@@ -92,35 +98,190 @@ export default function CreateDinnerPage() {
     }))
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files) {
-      // In a real app, you would upload to a cloud service
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file))
-      setDinnerData(prev => ({
-        ...prev,
-        images: [...prev.images, ...newImages]
-      }))
+    if (!files || files.length === 0) return
+
+    const newFiles = Array.from(files)
+    
+    // Validate file types
+    const validFiles = newFiles.filter(file => file.type.startsWith('image/'))
+    if (validFiles.length !== newFiles.length) {
+      setError('Only image files are allowed')
+      e.target.value = ''
+      return
     }
+
+    // Validate file sizes (5MB max)
+    const sizeValidFiles = validFiles.filter(file => file.size <= 5 * 1024 * 1024)
+    if (sizeValidFiles.length !== validFiles.length) {
+      setError('Images must be smaller than 5MB each')
+      e.target.value = ''
+      return
+    }
+
+    // Add to selected files (will upload when form is submitted)
+    setSelectedImageFiles(prev => [...prev, ...sizeValidFiles])
+    e.target.value = ''
   }
 
   const removeImage = (index: number) => {
+    setSelectedImageFiles(prev => prev.filter((_, i) => i !== index))
+    // Also remove from dinnerData.images if it exists
     setDinnerData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    if (files.length === 0) return []
+
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      throw new Error('You must be logged in to upload images')
+    }
+
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('images[]', file)
+    })
+
+    const response = await fetch(getApiUrl('/upload/images'), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+        // DON'T set Content-Type - browser will set it with boundary
+      },
+      body: formData
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to upload images')
+    }
+
+    if (!result.success || !result.data?.urls) {
+      throw new Error('Invalid response from upload endpoint')
+    }
+
+    return result.data.urls
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Submit to backend
-    console.log('Dinner created:', dinnerData)
-    router.push('/host/dashboard')
+    setIsSubmitting(true)
+    setError('')
+
+    try {
+      // Get auth token
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setError('You must be logged in to create a dinner')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Step 1: Upload images first (if any)
+      let imageUrls: string[] = []
+      if (selectedImageFiles.length > 0) {
+        setUploadingImages(true)
+        try {
+          imageUrls = await uploadImages(selectedImageFiles)
+          setUploadingImages(false)
+        } catch (uploadError: any) {
+          setUploadingImages(false)
+          setError(uploadError.message || 'Failed to upload images. Please try again.')
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      // Parse menu from string (assuming it's comma-separated or newline-separated)
+      const menuItems = dinnerData.menu
+        ? dinnerData.menu.split(/[,\n]/).map(item => item.trim()).filter(item => item)
+        : []
+
+      // Build location object
+      const location = {
+        address: dinnerData.address,
+        city: dinnerData.city,
+        state: dinnerData.state,
+        zipCode: dinnerData.zipCode,
+        neighborhood: dinnerData.city, // Using city as neighborhood if not separate field
+        coordinates: {
+          lat: 0, // TODO: Get from geocoding service
+          lng: 0  // TODO: Get from geocoding service
+        }
+      }
+
+      // Combine date and time into ISO date string
+      const dateTime = dinnerData.date && dinnerData.time
+        ? new Date(`${dinnerData.date}T${dinnerData.time}:00`).toISOString()
+        : new Date(dinnerData.date).toISOString()
+
+      // Prepare request body according to API specification
+      const requestBody = {
+        title: dinnerData.title,
+        description: dinnerData.description,
+        price: dinnerData.pricePerPerson,
+        currency: 'USD',
+        date: dateTime,
+        time: dinnerData.time,
+        duration: dinnerData.duration * 60, // Convert hours to minutes
+        capacity: dinnerData.maxCapacity,
+        images: imageUrls, // Use uploaded image URLs
+        cuisine: dinnerData.cuisineType,
+        dietary: dinnerData.dietaryAccommodations,
+        instantBook: false, // Default value
+        menu: menuItems,
+        included: [], // Can be extended later
+        houseRules: dinnerData.specialInstructions 
+          ? [dinnerData.specialInstructions] 
+          : [],
+        location: location
+      }
+
+      // Send to backend API
+      const response = await fetch(getApiUrl('/dinners'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Failed to create dinner. Please try again.')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Success - redirect to dashboard
+      router.push('/host/dashboard?tab=dinners')
+      router.refresh()
+    } catch (err: any) {
+      console.error('Error creating dinner:', err)
+      setError('An unexpected error occurred. Please try again.')
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <HostGuard>
       <div className="min-h-screen bg-background">
+        {error && (
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center gap-3">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <span className="text-destructive text-sm font-medium">{error}</span>
+            </div>
+          </div>
+        )}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -497,28 +658,31 @@ export default function CreateDinnerPage() {
                 </div>
               </div>
 
-              {dinnerData.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {dinnerData.images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <Image
-                        src={image}
-                        alt={`Dinner photo ${index + 1}`}
-                        width={200}
-                        height={150}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        className="absolute top-2 right-2 w-6 h-6 p-0"
-                        onClick={() => removeImage(index)}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
+              {selectedImageFiles.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Selected Photos ({selectedImageFiles.length})</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {selectedImageFiles.map((file, index) => (
+                      <div key={index} className="relative">
+                        <Image
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
+                          width={200}
+                          height={150}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2 w-6 h-6 p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -549,12 +713,35 @@ export default function CreateDinnerPage() {
 
           {/* Submit */}
           <div className="flex items-center justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => router.push('/host/dashboard')}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => router.push('/host/dashboard')}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="gap-2">
-              <Save className="w-4 h-4" />
-              Create Dinner
+            <Button 
+              type="submit" 
+              className="gap-2"
+              disabled={isSubmitting || uploadingImages}
+            >
+              {uploadingImages ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Uploading images...
+                </>
+              ) : isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Create Dinner
+                </>
+              )}
             </Button>
           </div>
         </form>

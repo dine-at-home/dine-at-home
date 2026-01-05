@@ -8,6 +8,7 @@ import { Badge } from '../ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Heart, Star, Zap, Calendar, MapPin, Users, Clock } from 'lucide-react'
 import { Dinner } from '@/types'
+import { useAuth } from '@/contexts/auth-context'
 
 interface DinnerCardProps {
   dinner: Dinner
@@ -16,6 +17,8 @@ interface DinnerCardProps {
 
 export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
   const router = useRouter()
+  const { user } = useAuth()
+  const isHost = user?.role === 'host'
   const [isFavorited, setIsFavorited] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
@@ -44,6 +47,10 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
   const handleQuickBook = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (isHost) {
+      // Hosts can't book, do nothing or show message
+      return
+    }
     router.push(`/booking?dinner=${dinner.id}`)
   }
 
@@ -195,12 +202,23 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
 
           {/* Quick Book Button */}
           <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Button 
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
-              onClick={handleQuickBook}
-            >
-              Quick Book
-            </Button>
+            {isHost ? (
+              <Button 
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg cursor-not-allowed opacity-60"
+                onClick={handleQuickBook}
+                disabled
+                title="Host can't book - switch to guest account to book"
+              >
+                Host can't book
+              </Button>
+            ) : (
+              <Button 
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
+                onClick={handleQuickBook}
+              >
+                Quick Book
+              </Button>
+            )}
           </div>
         </div>
       </div>

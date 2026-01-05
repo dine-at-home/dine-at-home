@@ -24,11 +24,9 @@ function SearchPageContent() {
 	}
 
 	return (
-		<BookingGuard>
-			<PageLayout>
-				<SearchResults searchParams={searchParamsObj} />
-			</PageLayout>
-		</BookingGuard>
+		<PageLayout>
+			<SearchResults searchParams={searchParamsObj} />
+		</PageLayout>
 	)
 }
 
