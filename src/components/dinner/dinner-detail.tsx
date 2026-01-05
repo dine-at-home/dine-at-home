@@ -7,7 +7,6 @@ import { Badge } from "../ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { Separator } from "../ui/separator";
-import { Calendar } from "../ui/calendar";
 import {
   Select,
   SelectContent,
@@ -48,8 +47,10 @@ interface DinnerDetailProps {
 export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const { user } = useAuth();
   const isHost = user?.role === 'host';
-  const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedGuests, setSelectedGuests] = useState(2);
+  
+  // Use the date and time set by the host when creating the listing
+  const dinnerDate = new Date(dinner.date);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
@@ -72,7 +73,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
     }
     onNavigate("booking", {
       dinner,
-      date: selectedDate,
+      date: dinnerDate,
       guests: selectedGuests,
     });
   };
@@ -341,19 +342,29 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   <span className="text-muted-foreground">per person</span>
                 </div>
 
-                {/* Date Selection */}
+                {/* Date and Time (Set by Host - Read Only) */}
                 <div className="space-y-4 mb-6">
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Select date
+                      Date & Time
                     </label>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date) => date < new Date()}
-                      className="rounded-md border"
-                    />
+                    <div className="space-y-2 p-3 bg-muted rounded-md">
+                      <div className="flex items-center space-x-2 text-sm">
+                        <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">
+                          {dinnerDate.toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            month: 'long', 
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">{dinner.time}</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Guest Selection */}
@@ -421,7 +432,6 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                         <Button
                           className="w-full bg-primary-600 hover:bg-primary-700"
                           onClick={handleBooking}
-                          disabled={!selectedDate}
                         >
                           <Zap className="w-4 h-4 mr-2" />
                           Reserve instantly
@@ -430,7 +440,6 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                         <Button
                           className="w-full"
                           onClick={handleBooking}
-                          disabled={!selectedDate}
                         >
                           Request to book
                         </Button>

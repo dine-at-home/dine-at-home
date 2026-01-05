@@ -31,8 +31,10 @@ import {
   X
 } from 'lucide-react'
 import Image from 'next/image'
+import { bookingService } from '@/lib/booking-service'
+import { transformDinner } from '@/lib/dinner-utils'
 
-// Mock data for demonstration
+// Mock data for demonstration (fallback only)
 const mockBookings = [
   {
     id: '1',
@@ -118,6 +120,8 @@ function ProfilePageContent() {
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
   const [isEditing, setIsEditing] = useState(false)
+  const [bookings, setBookings] = useState<any[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(true)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -141,6 +145,57 @@ function ProfilePageContent() {
       }))
     }
   }, [user])
+
+  // Fetch bookings when user is available
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!user?.id) {
+        setBookingsLoading(false)
+        return
+      }
+
+      try {
+        setBookingsLoading(true)
+        const result = await bookingService.getUserBookings(user.id)
+        if (result.success && result.data) {
+          // Transform bookings to match frontend format
+          const transformedBookings = result.data.map((booking: any) => {
+            const dinner = booking.dinner ? transformDinner(booking.dinner) : null
+            return {
+              id: booking.id,
+              status: booking.status?.toLowerCase() || 'confirmed',
+              guests: booking.guests,
+              totalAmount: booking.totalPrice,
+              dinner: dinner ? {
+                title: dinner.title,
+                host: {
+                  name: dinner.host.name,
+                  avatar: dinner.host.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+                },
+                image: dinner.images?.[0] || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
+                location: `${dinner.location.neighborhood}, ${dinner.location.city}`,
+                date: dinner.date,
+                time: dinner.time,
+                price: dinner.price,
+                capacity: dinner.capacity
+              } : null,
+              review: null // Reviews will be fetched separately if needed
+            }
+          })
+          setBookings(transformedBookings)
+        } else {
+          setBookings([])
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error)
+        setBookings([])
+      } finally {
+        setBookingsLoading(false)
+      }
+    }
+
+    fetchBookings()
+  }, [user?.id])
 
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
@@ -374,13 +429,13 @@ function ProfilePageContent() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary-600">{mockBookings.length}</div>
+                      <div className="text-2xl font-bold text-primary-600">{bookings.length}</div>
                       <div className="text-sm text-muted-foreground">Total Bookings</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary-600">{mockBookings.filter(b => b.status === 'completed').length}</div>
+                      <div className="text-2xl font-bold text-primary-600">{bookings.filter(b => b.status === 'completed' || b.status === 'COMPLETED').length}</div>
                       <div className="text-sm text-muted-foreground">Completed Dinners</div>
                     </CardContent>
                   </Card>
@@ -406,84 +461,97 @@ function ProfilePageContent() {
                     <CardDescription>Your past and upcoming dinner reservations</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {mockBookings.map((booking) => (
-                      <div key={booking.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex gap-4">
-                          <div className="relative">
-                            <Image
-                              src={booking.dinner.image}
-                              alt={booking.dinner.title}
-                              width={80}
-                              height={80}
-                              className="rounded-lg object-cover"
-                            />
-                            <Badge 
-                              className={`absolute -top-2 -right-2 text-xs ${getStatusColor(booking.status)}`}
-                            >
-                              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                            </Badge>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between">
+                    {bookingsLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">Loading bookings...</p>
+                      </div>
+                    ) : bookings.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No bookings yet. Start exploring dinners!</p>
+                      </div>
+                    ) : (
+                      bookings.map((booking) => {
+                        if (!booking.dinner) return null
+                        return (
+                          <div key={booking.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                            <div className="flex gap-4">
+                              <div className="relative flex-shrink-0 w-36 self-stretch min-h-[140px]">
+                                <Image
+                                  src={booking.dinner.image}
+                                  alt={booking.dinner.title}
+                                  fill
+                                  className="rounded-lg object-cover"
+                                />
+                                <Badge 
+                                  className={`absolute -top-2 -right-2 text-xs ${getStatusColor(booking.status)}`}
+                                >
+                                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                </Badge>
+                              </div>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-lg">{booking.dinner.title}</h3>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <User className="w-4 h-4" />
-                                  {booking.dinner.host.name}
-                                </p>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <MapPin className="w-4 h-4" />
-                                  {booking.dinner.location}
-                                </p>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <Calendar className="w-4 h-4" />
-                                  {booking.dinner.date} at {booking.dinner.time}
-                                </p>
-                                <div className="flex items-center gap-4 mt-2">
-                                  <span className="text-sm text-muted-foreground">
-                                    {booking.guests} guest{booking.guests > 1 ? 's' : ''}
-                                  </span>
-                                  <span className="text-lg font-semibold text-primary-600">
-                                    ${booking.totalAmount}
-                                  </span>
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h3 className="font-semibold text-lg">{booking.dinner.title}</h3>
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                      <User className="w-4 h-4" />
+                                      {booking.dinner.host.name}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                      <MapPin className="w-4 h-4" />
+                                      {booking.dinner.location}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                      <Calendar className="w-4 h-4" />
+                                      {booking.dinner.date} at {booking.dinner.time}
+                                    </p>
+                                    <div className="flex items-center gap-4 mt-2">
+                                      <span className="text-sm text-muted-foreground">
+                                        {booking.guests} guest{booking.guests > 1 ? 's' : ''}
+                                      </span>
+                                      <span className="text-lg font-semibold text-primary-600">
+                                        ${booking.totalAmount}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Review Section - Always present for consistency */}
+                                <div className="mt-4">
+                                  {booking.review ? (
+                                    <div className="p-3 bg-muted rounded-lg">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <div className="flex">{renderStars(booking.review.rating)}</div>
+                                        <span className="text-sm font-medium">Your Review</span>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">{booking.review.comment}</p>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">
+                                        {booking.status === 'completed' || booking.status === 'COMPLETED'
+                                          ? 'No review written yet' 
+                                          : booking.status === 'confirmed' || booking.status === 'CONFIRMED'
+                                            ? 'Review available after completion'
+                                            : booking.status === 'cancelled' || booking.status === 'CANCELLED'
+                                              ? 'Booking was cancelled'
+                                              : 'Pending review'
+                                        }
+                                      </span>
+                                      {(booking.status === 'completed' || booking.status === 'COMPLETED') && (
+                                        <Button size="sm" variant="outline">
+                                          Write Review
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
-                            
-                            {/* Review Section - Always present for consistency */}
-                            <div className="mt-4">
-                              {booking.review ? (
-                                <div className="p-3 bg-muted rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="flex">{renderStars(booking.review.rating)}</div>
-                                    <span className="text-sm font-medium">Your Review</span>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">{booking.review.comment}</p>
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm text-muted-foreground">
-                                    {booking.status === 'completed' 
-                                      ? 'No review written yet' 
-                                      : booking.status === 'confirmed' 
-                                        ? 'Review available after completion'
-                                        : booking.status === 'cancelled'
-                                          ? 'Booking was cancelled'
-                                          : 'Pending review'
-                                    }
-                                  </span>
-                                  {booking.status === 'completed' && (
-                                    <Button size="sm" variant="outline">
-                                      Write Review
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        )
+                      })
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

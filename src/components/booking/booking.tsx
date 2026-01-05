@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Input } from '../ui/input'
@@ -20,10 +21,14 @@ import {
   CreditCard,
   Shield,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 
 import { Dinner, NavigationParams } from '@/types'
+import { useAuth } from '@/contexts/auth-context'
+import { bookingService } from '@/lib/booking-service'
+import { dispatchBookingCreated } from '@/lib/booking-events'
 
 interface BookingProps {
   dinner: Dinner
@@ -33,6 +38,8 @@ interface BookingProps {
 }
 
 export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
+  const { user } = useAuth()
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [guestDetails, setGuestDetails] = useState({
     firstName: '',
@@ -42,6 +49,8 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     specialRequests: ''
   })
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const subtotal = dinner.price * guests
   const serviceFee = Math.round(subtotal * 0.14)
@@ -53,9 +62,58 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     }
   }
 
-  const handleBookingConfirm = () => {
-    // Simulate booking confirmation
-    onNavigate('booking-confirmed', { dinner, date, guests, total })
+  const handleBookingConfirm = async () => {
+    if (!user) {
+      setError('Please sign in to make a booking')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      // Create booking with all details
+      const bookingData = {
+        dinnerId: dinner.id,
+        guests: guests,
+        message: guestDetails.specialRequests || undefined,
+        contactInfo: {
+          name: `${guestDetails.firstName} ${guestDetails.lastName}`,
+          email: guestDetails.email,
+          phone: guestDetails.phone || undefined,
+        }
+      }
+
+      const result = await bookingService.createBooking(bookingData)
+
+      console.log('🔵 Booking Response:', result)
+      console.log('🔵 Full result.data:', result.data)
+      console.log('🔵 result.data.dinnerId:', result.data?.dinnerId)
+      console.log('🔵 Component dinner.id:', dinner.id)
+
+      if (result.success && result.data) {
+        // Get dinnerId from backend response (REQUIRED - backend must send this)
+        // Fallback to component prop only if backend doesn't send it (should not happen)
+        const bookedDinnerId = result.data.dinnerId || dinner.id
+        
+        console.log('🔵 Using dinnerId:', bookedDinnerId)
+        
+        if (!result.data.dinnerId) {
+          console.warn('⚠️ Warning: Backend did not return dinnerId in booking response. Using fallback.')
+        }
+        
+        // Navigate to home page with booking success and dinnerId to remove
+        // The home page will filter out this dinnerId immediately
+        window.location.href = `/?booking=success&bookedDinnerId=${bookedDinnerId}`
+      } else {
+        setError(result.error || 'Failed to create booking. Please try again.')
+      }
+    } catch (err: any) {
+      console.error('Booking error:', err)
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -240,10 +298,22 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                     <Button 
                       onClick={handleBookingConfirm}
                       className="flex-1 bg-primary-600 hover:bg-primary-700"
-                      disabled={!paymentMethod}
+                      disabled={!paymentMethod || isSubmitting}
                     >
-                      Confirm Booking
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Creating Booking...
+                        </>
+                      ) : (
+                        'Confirm Booking'
+                      )}
                     </Button>
+                    {error && (
+                      <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <p className="text-sm text-destructive">{error}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

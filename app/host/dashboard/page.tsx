@@ -37,6 +37,9 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
+import { getDinnerStatus } from '@/lib/dinner-filters'
+import { transformDinner } from '@/lib/dinner-utils'
+import { bookingService } from '@/lib/booking-service'
 
 // Mock data for demonstration (fallback)
 const mockDinners = [
@@ -129,6 +132,8 @@ function HostDashboardContent() {
   const [dinnerFilter, setDinnerFilter] = useState('all')
   const [dinners, setDinners] = useState<any[]>([])
   const [dinnersLoading, setDinnersLoading] = useState(true)
+  const [bookings, setBookings] = useState<any[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(true)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -179,13 +184,10 @@ function HostDashboardContent() {
           if (result.success && result.data) {
             // Transform backend data to match frontend format
             const transformedDinners = result.data.map((dinner: any) => {
-              const dinnerDate = new Date(dinner.date)
-              const now = new Date()
-              const status = dinner.isActive === false 
-                ? 'draft' 
-                : dinnerDate > now 
-                ? 'upcoming' 
-                : 'completed'
+              // Transform to Dinner type first
+              const dinnerTransformed = transformDinner(dinner)
+              // Use the new status logic: completed if booked OR past time
+              const status = getDinnerStatus(dinnerTransformed, dinner.isActive !== false)
 
               // Parse images (assuming it's a JSON string or array)
               let images = []
@@ -207,7 +209,7 @@ function HostDashboardContent() {
               return {
                 id: dinner.id,
                 title: dinner.title,
-                date: dinner.date.split('T')[0], // Extract date part
+                date: dinnerTransformed.date, // Use formatted date from transformDinner
                 time: dinner.time,
                 guests: dinner.capacity - dinner.available,
                 maxCapacity: dinner.capacity,
@@ -241,6 +243,51 @@ function HostDashboardContent() {
     fetchDinners()
   }, [user])
 
+  // Fetch bookings from backend
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!user?.id) {
+        setBookingsLoading(false)
+        return
+      }
+
+      try {
+        setBookingsLoading(true)
+        const result = await bookingService.getHostBookings(user.id)
+        if (result.success && result.data) {
+          // Transform bookings to match frontend format
+          const transformedBookings = result.data.map((booking: any) => {
+            return {
+              id: booking.id,
+              dinner: booking.dinner?.title || 'Unknown Dinner',
+              guest: {
+                name: booking.user?.name || 'Unknown Guest',
+                avatar: booking.user?.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                email: booking.user?.email || ''
+              },
+              date: booking.dinner?.date ? (typeof booking.dinner.date === 'string' ? booking.dinner.date.split('T')[0] : new Date(booking.dinner.date).toISOString().split('T')[0]) : '',
+              time: booking.dinner?.time || '',
+              guests: booking.guests,
+              totalAmount: booking.totalPrice,
+              status: booking.status?.toLowerCase() || 'confirmed',
+              specialRequests: booking.message || ''
+            }
+          })
+          setBookings(transformedBookings)
+        } else {
+          setBookings([])
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error)
+        setBookings([])
+      } finally {
+        setBookingsLoading(false)
+      }
+    }
+
+    fetchBookings()
+  }, [user?.id])
+
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab)
@@ -249,11 +296,22 @@ function HostDashboardContent() {
   }
 
   // Helper function for dinner status colors
-  const getStatusColor = (status: string) => {
+  const getDinnerStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming': return 'bg-blue-100 text-blue-800'
       case 'completed': return 'bg-green-100 text-green-800'
       case 'draft': return 'bg-gray-100 text-gray-800'
+      case 'cancelled': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  // Helper function for booking status colors
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'bg-green-100 text-green-800'
+      case 'confirmed': return 'bg-blue-100 text-blue-800'
+      case 'pending': return 'bg-yellow-100 text-yellow-800'
       case 'cancelled': return 'bg-red-100 text-red-800'
       default: return 'bg-gray-100 text-gray-800'
     }
@@ -491,7 +549,7 @@ function HostDashboardContent() {
                 height={200}
                 className="w-full h-48 object-cover"
               />
-              <Badge className={`absolute top-3 right-3 ${getStatusColor(dinner.status)}`}>
+              <Badge className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}>
                 {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
               </Badge>
             </div>
@@ -569,8 +627,18 @@ function HostDashboardContent() {
         <p className="text-muted-foreground">Manage guest reservations</p>
       </div>
 
-      <div className="space-y-4">
-        {mockBookings.map((booking) => (
+      {bookingsLoading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading bookings...</p>
+        </div>
+      ) : bookings.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No bookings yet. Your bookings will appear here when guests make reservations.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {bookings.map((booking) => (
           <Card key={booking.id}>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -631,8 +699,9 @@ function HostDashboardContent() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
+import { shouldShowInListings } from '@/lib/dinner-filters'
+import { BOOKING_CREATED_EVENT } from '@/lib/booking-events'
 import { SearchParams, NavigationParams, Dinner } from '@/types'
 
 interface SearchResultsProps {
@@ -78,10 +80,12 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
 
         const result = await response.json()
 
-        if (result.success && result.data) {
-          const transformedDinners = result.data.map(transformDinner)
-          setDinners(transformedDinners)
-        } else {
+				if (result.success && result.data) {
+					const transformedDinners = result.data.map(transformDinner)
+					// Filter out booked and past dinners
+					const availableDinners = transformedDinners.filter(shouldShowInListings)
+					setDinners(availableDinners)
+				} else {
           setError(result.error || 'Failed to load dinners')
           setDinners([])
         }
@@ -96,6 +100,34 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
 
     fetchDinners()
   }, [searchParams.location, searchParams.date, searchParams.guests, searchParams.cuisine])
+
+  // Listen for booking created events to remove dinner from listings in real-time
+  useEffect(() => {
+    const handleBookingCreated = (event: Event) => {
+      console.log('🟠 Search results received booking-created event:', event)
+      const customEvent = event as CustomEvent<{ dinnerId: string; bookingId: string }>
+      const { dinnerId } = customEvent.detail
+      
+      console.log('🟠 Event detail:', customEvent.detail)
+      console.log('🟠 Removing dinnerId from search results:', dinnerId)
+      console.log('🟠 Current dinners count:', dinners.length)
+      
+      // Remove the booked dinner from listings immediately
+      setDinners(prevDinners => {
+        const filtered = prevDinners.filter(d => d.id !== dinnerId)
+        console.log('🟠 After filtering, remaining dinners:', filtered.length)
+        return filtered
+      })
+    }
+
+    console.log('🟠 Search results setting up event listener for:', BOOKING_CREATED_EVENT)
+    window.addEventListener(BOOKING_CREATED_EVENT, handleBookingCreated)
+
+    return () => {
+      console.log('🟠 Search results removing event listener')
+      window.removeEventListener(BOOKING_CREATED_EVENT, handleBookingCreated)
+    }
+  }, [dinners.length])
   
   // Get unique cuisines for filter (computed from fetched dinners)
   const cuisines = useMemo(() => {
