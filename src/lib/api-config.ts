@@ -2,39 +2,24 @@
  * API Configuration
  * Centralized configuration for backend API endpoints
  * 
- * Environment variables used:
- * - BASE_URL: Server-side API URL (used for Next.js API routes and SSR)
- * - NEXT_PUBLIC_BASE_URL: Client-side API URL (required for browser access, should match BASE_URL)
+ * Environment variable used:
+ * - BASE_URL: API URL (used for both server-side and client-side calls)
  * 
- * Note: In Next.js, client-side code can only access variables prefixed with NEXT_PUBLIC_.
- * Both BASE_URL and NEXT_PUBLIC_BASE_URL should be set to the same value.
+ * Note: In Next.js, client-side code cannot access BASE_URL directly.
+ * For client-side calls, the URL is obtained from the server or uses a default.
  */
 
-// Get base URL for client-side (browser) - must use NEXT_PUBLIC_ prefix
-const getClientBaseUrl = (): string => {
-  return (
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    'http://localhost:3001/api'
-  );
-};
-
-// Get base URL for server-side (Next.js API routes and SSR)
-// Uses BASE_URL as the primary variable
-const getServerBaseUrl = (): string => {
-  return (
-    process.env.BASE_URL ||
-    'http://localhost:3001/api'
-  );
-};
-
-// Get the appropriate base URL based on context (client or server)
+// Get base URL - uses BASE_URL
 const getBaseUrl = (): string => {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    return getClientBaseUrl();
+  // Server-side: BASE_URL is available from process.env
+  if (typeof window === 'undefined') {
+    return process.env.BASE_URL || 'http://localhost:3001/api';
   }
-  // Server-side
-  return getServerBaseUrl();
+  
+  // Client-side: BASE_URL is injected from server via window.__BASE_URL__
+  return (typeof window !== 'undefined' && (window as any).__BASE_URL__) 
+    ? (window as any).__BASE_URL__ 
+    : 'http://localhost:3001/api';
 };
 
 export const API_CONFIG = {
@@ -51,9 +36,9 @@ export const getApiUrl = (endpoint: string): string => {
   return `${baseUrl}${path}`;
 };
 
-// Helper function to get backend API URL (for server-side - always uses server base URL)
+// Helper function to get backend API URL (for server-side - always uses BASE_URL)
 export const getBackendUrl = (endpoint: string): string => {
-  const baseUrl = getServerBaseUrl().replace(/\/$/, ''); // Remove trailing slash
+  const baseUrl = (process.env.BASE_URL || 'http://localhost:3001/api').replace(/\/$/, ''); // Remove trailing slash
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${baseUrl}${path}`;
 };

@@ -144,6 +144,5 @@ export interface FeatureFlags {
 // Note: DATABASE_URL is only needed for Prisma generation (build-time), not runtime
 export interface EnvConfig {
   BASE_URL: string
-  NEXT_PUBLIC_BASE_URL: string
   GOOGLE_CLIENT_ID?: string
 }

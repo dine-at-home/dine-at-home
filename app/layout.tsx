@@ -7,8 +7,18 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+	// Get BASE_URL from environment (server-side only)
+	const baseUrl = process.env.BASE_URL || 'http://localhost:3001/api';
+	
 	return (
 		<html lang="en">
+			<head>
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `window.__BASE_URL__ = ${JSON.stringify(baseUrl)};`,
+					}}
+				/>
+			</head>
 			<body>
 				<AuthProvider>
 					{children}

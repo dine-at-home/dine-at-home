@@ -1,11 +1,7 @@
 # Copy this content to your .env.local file
 
 # Backend API Base URL
-# BASE_URL is used for server-side API calls (Next.js API routes and SSR)
-# NEXT_PUBLIC_BASE_URL is required for client-side API calls (browser access)
-# Both should be set to the same value
 BASE_URL="http://localhost:3001/api"
-NEXT_PUBLIC_BASE_URL="http://localhost:3001/api"
 
 # Google OAuth Client ID (if using Google authentication)
 GOOGLE_CLIENT_ID="your-google-client-id"
