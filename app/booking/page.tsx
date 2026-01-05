@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Booking } from '@/components/booking/booking'
@@ -9,7 +9,7 @@ import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
 import { NavigationParams, Dinner } from '@/types'
 
-export default function BookingPage() {
+function BookingPageContent() {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const dinnerId = searchParams.get('dinner')
@@ -118,6 +118,23 @@ export default function BookingPage() {
 				/>
 			</PageLayout>
 		</BookingGuard>
+	)
+}
+
+export default function BookingPage() {
+	return (
+		<Suspense fallback={
+			<BookingGuard>
+				<PageLayout>
+					<div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+						<p className="text-muted-foreground">Loading booking details...</p>
+					</div>
+				</PageLayout>
+			</BookingGuard>
+		}>
+			<BookingPageContent />
+		</Suspense>
 	)
 }
 
