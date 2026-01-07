@@ -105,10 +105,14 @@ class BookingService {
     try {
       const token = getToken()
       if (!token) {
+        console.error('❌ No auth token found for getUserBookings')
         return { success: false, data: [] }
       }
 
-      const response = await fetch(getApiUrl(`/bookings/user/${userId}`), {
+      const url = getApiUrl(`/bookings/user/${userId}`)
+      console.log('🔵 Fetching bookings from:', url)
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -116,19 +120,26 @@ class BookingService {
         },
       })
 
+      console.log('🔵 Response status:', response.status, response.statusText)
+      
       const result = await response.json()
+      console.log('🔵 Response data:', result)
 
       if (!response.ok) {
+        console.error('❌ API error response:', result)
         return { success: false, data: [] }
       }
 
+      const bookings = result.data || []
+      console.log('🔵 Parsed bookings:', bookings.length, 'bookings found')
+
       return {
         success: true,
-        data: result.data || [],
+        data: bookings,
         pagination: result.pagination,
       }
     } catch (error: any) {
-      console.error('Error fetching user bookings:', error)
+      console.error('❌ Error fetching user bookings:', error)
       return { success: false, data: [] }
     }
   }

@@ -199,16 +199,77 @@ function ProfilePageContent() {
 
       try {
         setBookingsLoading(true)
+        console.log('🔵 Fetching bookings for user:', user.id)
         const result = await bookingService.getUserBookings(user.id)
+        console.log('🔵 Bookings API result:', result)
+        
         if (result.success && result.data) {
+          console.log('🔵 Bookings data:', result.data)
           // Transform bookings to match frontend format
           const transformedBookings = result.data.map((booking: any) => {
-            const dinner = booking.dinner ? transformDinner(booking.dinner) : null
+            console.log('🔵 Processing booking:', booking.id, 'dinner:', booking.dinner)
+            
+            // Handle dinner data - backend already transforms it, but we need to ensure compatibility
+            let dinner = null
+            if (booking.dinner) {
+              try {
+                // The backend already provides a transformed dinner object
+                // We need to adapt it to work with transformDinner or use it directly
+                const backendDinner = booking.dinner
+                
+                // Use transformDinner if needed, or use the backend format directly
+                dinner = transformDinner({
+                  ...backendDinner,
+                  // Ensure required fields exist
+                  description: backendDinner.description || '',
+                  cuisine: backendDinner.cuisine || 'Other',
+                  capacity: backendDinner.capacity || 0,
+                  available: backendDinner.available || 0,
+                  instantBook: backendDinner.instantBook || false,
+                  rating: backendDinner.rating || 0,
+                  reviewCount: backendDinner.reviewCount || 0,
+                  // Images might already be an array from backend
+                  images: Array.isArray(backendDinner.images) ? backendDinner.images : (backendDinner.images || []),
+                  // Location might already be an object from backend
+                  location: typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                  // Host is already transformed
+                  host: backendDinner.host || {}
+                })
+              } catch (error) {
+                console.error('Error transforming dinner for booking:', booking.id, error)
+                // Fallback: use backend data directly if transform fails
+                dinner = {
+                  id: booking.dinner.id,
+                  title: booking.dinner.title || 'Unknown Dinner',
+                  date: booking.dinner.date ? (typeof booking.dinner.date === 'string' ? booking.dinner.date.split('T')[0] : new Date(booking.dinner.date).toISOString().split('T')[0]) : '',
+                  time: booking.dinner.time || '19:00',
+                  price: booking.dinner.price || 0,
+                  capacity: booking.dinner.capacity || 0,
+                  images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                  host: {
+                    id: booking.dinner.host?.id || '',
+                    name: booking.dinner.host?.name || 'Unknown Host',
+                    avatar: booking.dinner.host?.image || undefined,
+                    superhost: false,
+                    joinedDate: new Date().toISOString(),
+                    responseRate: 0,
+                    responseTime: 'within 24 hours'
+                  },
+                  location: typeof booking.dinner.location === 'object' ? booking.dinner.location : {
+                    address: '',
+                    city: '',
+                    state: '',
+                    neighborhood: ''
+                  }
+                }
+              }
+            }
+            
             return {
               id: booking.id,
               status: booking.status?.toLowerCase() || 'pending',
-              guests: booking.guests,
-              totalAmount: booking.totalPrice,
+              guests: booking.guests || 1,
+              totalAmount: booking.totalPrice || 0,
               dinner: dinner ? {
                 title: dinner.title,
                 host: {
@@ -216,7 +277,7 @@ function ProfilePageContent() {
                   avatar: dinner.host.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
                 },
                 image: dinner.images?.[0] || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
-                location: `${dinner.location.neighborhood}, ${dinner.location.city}`,
+                location: `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() || 'Location not available',
                 date: dinner.date,
                 time: dinner.time,
                 price: dinner.price,
@@ -225,12 +286,15 @@ function ProfilePageContent() {
               review: null // Reviews will be fetched separately if needed
             }
           })
+          
+          console.log('🔵 Transformed bookings:', transformedBookings)
           setBookings(transformedBookings)
         } else {
+          console.log('🔵 No bookings found or API returned error')
           setBookings([])
         }
       } catch (error) {
-        console.error('Error fetching bookings:', error)
+        console.error('❌ Error fetching bookings:', error)
         setBookings([])
       } finally {
         setBookingsLoading(false)
@@ -370,7 +434,7 @@ function ProfilePageContent() {
     router.replace(url)
   }
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -653,7 +717,7 @@ function ProfilePageContent() {
                         ) : (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            {profileData.phone}
+                            {profileData.phone ? profileData.phone : <span className="italic text-muted-foreground/70">Not added</span>}
                           </p>
                         )}
                       </div>
@@ -664,7 +728,7 @@ function ProfilePageContent() {
                         ) : (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            {profileData.country}
+                            {profileData.country ? profileData.country : <span className="italic text-muted-foreground/70">Not added</span>}
                           </p>
                         )}
                       </div>
@@ -678,15 +742,21 @@ function ProfilePageContent() {
                           rows={3}
                         />
                       ) : (
-                        <p className="text-sm text-muted-foreground">{profileData.bio}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profileData.bio ? profileData.bio : <span className="italic text-muted-foreground/70">Not added</span>}
+                        </p>
                       )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Languages</label>
                       <div className="flex flex-wrap gap-2">
-                        {profileData.languages.map((lang, index) => (
-                          <Badge key={index} variant="secondary">{lang}</Badge>
-                        ))}
+                        {profileData.languages && profileData.languages.length > 0 ? (
+                          profileData.languages.map((lang, index) => (
+                            <Badge key={index} variant="secondary">{lang}</Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm italic text-muted-foreground/70">Not added</span>
+                        )}
                       </div>
                     </div>
                     {isEditing && (
