@@ -11,6 +11,7 @@ const publicRoutes = [
   '/auth/error',
   '/auth/forgot-password',
   '/auth/callback',
+  '/auth/google/callback',
   '/auth/role-selection',
   '/terms-of-use',
   '/privacy-policy',

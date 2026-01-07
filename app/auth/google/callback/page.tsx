@@ -1,11 +1,15 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth-service'
+import { useAuth } from '@/contexts/auth-context'
+import { getRedirectUrl } from '@/lib/auth-utils'
 
 function GoogleCallbackContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const { refreshUser } = useAuth()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [message, setMessage] = useState('Authenticating with Google...')
 
@@ -31,7 +35,7 @@ function GoogleCallbackContent() {
       } else {
         // If not in popup, redirect to sign in
         setTimeout(() => {
-          window.location.href = '/auth/signin'
+          router.push('/auth/signin')
         }, 3000)
       }
       return
@@ -53,7 +57,7 @@ function GoogleCallbackContent() {
         }, 2000)
       } else {
         setTimeout(() => {
-          window.location.href = '/auth/signin'
+          router.push('/auth/signin')
         }, 3000)
       }
       return
@@ -62,11 +66,11 @@ function GoogleCallbackContent() {
     // Exchange code for token
     console.log('Exchanging Google OAuth code for token...')
     authService.exchangeGoogleCode(code)
-      .then((result) => {
-        if (result.success && result.data?.user) {
+      .then(async (result) => {
+        if (result.success && result.data?.user && result.data?.token) {
           console.log('Google authentication successful')
           setStatus('success')
-          setMessage('Authentication successful! Closing window...')
+          setMessage('Authentication successful! Redirecting...')
           
           // Notify parent window that authentication succeeded
           if (window.opener) {
@@ -84,10 +88,22 @@ function GoogleCallbackContent() {
               window.close()
             }, 500)
           } else {
-            // If not in popup, redirect to home or dashboard
-            setTimeout(() => {
+            // If not in popup, refresh auth context and redirect
+            try {
+              // Refresh user data in auth context
+              await refreshUser()
+              
+              // Get the stored user to determine redirect URL
+              const user = authService.getUser()
+              const redirectUrl = getRedirectUrl(user)
+              
+              // Use window.location for full page reload to ensure auth state is refreshed
+              window.location.href = redirectUrl
+            } catch (error) {
+              console.error('Error refreshing user after Google auth:', error)
+              // Fallback to home page
               window.location.href = '/'
-            }, 1000)
+            }
           }
         } else {
           console.error('Google authentication failed:', result.error)
@@ -104,7 +120,7 @@ function GoogleCallbackContent() {
             }, 2000)
           } else {
             setTimeout(() => {
-              window.location.href = '/auth/signin'
+              router.push('/auth/signin')
             }, 3000)
           }
         }
@@ -124,11 +140,11 @@ function GoogleCallbackContent() {
           }, 2000)
         } else {
           setTimeout(() => {
-            window.location.href = '/auth/signin'
+            router.push('/auth/signin')
           }, 3000)
         }
       })
-  }, [searchParams])
+  }, [searchParams, router, refreshUser])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted">

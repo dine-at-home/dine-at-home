@@ -58,10 +58,13 @@ export default function DinnerDetailPage() {
 
 	const handleNavigation = (page: string, navParams?: NavigationParams) => {
 		if (page === 'booking' && navParams?.dinner) {
-			router.push(`/booking?dinner=${navParams.dinner.id}`)
-		} else if (page === 'chat' && navParams?.host) {
-			// Handle chat navigation if needed
-			console.log('Chat navigation:', navParams)
+			// Build URL with dinner ID and guests parameter
+			const guests = navParams.guests || 2
+			router.push(`/booking?dinner=${navParams.dinner.id}&guests=${guests}`)
+		// Message host feature - commented out for now
+		// } else if (page === 'chat' && navParams?.host) {
+		// 	// Handle chat navigation if needed
+		// 	console.log('Chat navigation:', navParams)
 		} else if (page === 'booking-confirmed') {
 			router.push('/profile?tab=bookings')
 		}

@@ -90,7 +90,7 @@ function HomePageContent() {
 						</div>
 						<div className="ml-3">
 							<p className="text-sm font-medium text-green-800">
-								Booking created successfully! Your reservation has been confirmed.
+								Booking created successfully! Your reservation is pending host approval.
 							</p>
 						</div>
 						<div className="ml-auto pl-3">

@@ -16,6 +16,10 @@ export interface Dinner {
   host: Host
   location: Location
   reviews?: Review[]
+  menu?: string[]
+  included?: string[]
+  houseRules?: string[]
+  dietary?: string[]
 }
 
 export interface Host {

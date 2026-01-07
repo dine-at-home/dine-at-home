@@ -7,11 +7,11 @@ export async function POST(request: NextRequest) {
     const { name, email, password, role, phone, gender, country, languages } = body
 
     // Validate input
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Missing required fields',
+          error: 'Missing required fields: name, email, password, and phone are required',
           code: 'BAD_REQUEST'
         },
         { status: 400 }
@@ -29,6 +29,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!phone || phone.trim().length === 0) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Phone number is required',
+          code: 'BAD_REQUEST'
+        },
+        { status: 400 }
+      )
+    }
+
     // Call backend API with all fields
     const response = await fetch(getBackendUrl('/auth/register'), {
       method: 'POST',
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase(),
         password,
         role: role || 'guest',
-        phone: phone || undefined,
+        phone: phone,
         gender: gender || undefined,
         country: country || undefined,
         languages: languages || undefined,

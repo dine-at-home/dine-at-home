@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -18,8 +18,6 @@ import {
   Clock,
   Users,
   MapPin,
-  CreditCard,
-  Shield,
   CheckCircle,
   AlertCircle,
   Loader2
@@ -40,7 +38,6 @@ interface BookingProps {
 export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
   const { user } = useAuth()
   const router = useRouter()
-  const [step, setStep] = useState(1)
   const [guestDetails, setGuestDetails] = useState({
     firstName: '',
     lastName: '',
@@ -48,17 +45,50 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     phone: '',
     specialRequests: ''
   })
-  const [paymentMethod, setPaymentMethod] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Pre-fill guest details from user profile (only if fields are empty)
+  useEffect(() => {
+    if (user) {
+      setGuestDetails(prev => {
+        // Only pre-fill if all fields are currently empty (user hasn't started editing)
+        if (prev.firstName || prev.lastName || prev.email || prev.phone) {
+          return prev // Don't overwrite if user has already entered data
+        }
+
+        // Split name into first and last name
+        let firstName = ''
+        let lastName = ''
+        if (user.name) {
+          const nameParts = user.name.trim().split(/\s+/)
+          if (nameParts.length > 0) {
+            firstName = nameParts[0]
+            if (nameParts.length > 1) {
+              lastName = nameParts.slice(1).join(' ')
+            }
+          }
+        }
+
+        return {
+          firstName: firstName,
+          lastName: lastName,
+          email: user.email || '',
+          phone: user.phone || '',
+          specialRequests: prev.specialRequests // Preserve special requests if any
+        }
+      })
+    }
+  }, [user]) // Run when user object changes
 
   const subtotal = dinner.price * guests
   const serviceFee = Math.round(subtotal * 0.14)
   const total = subtotal + serviceFee
 
   const handleGuestDetailsSubmit = () => {
-    if (guestDetails.firstName && guestDetails.lastName && guestDetails.email) {
-      setStep(2)
+    if (guestDetails.firstName && guestDetails.lastName && guestDetails.email && guestDetails.phone) {
+      // Skip payment step and go directly to booking confirmation
+      handleBookingConfirm()
     }
   }
 
@@ -72,6 +102,13 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     setError(null)
 
     try {
+      // Validate phone number is provided
+      if (!guestDetails.phone || guestDetails.phone.trim() === '') {
+        setError('Phone number is required to complete the booking')
+        setIsSubmitting(false)
+        return
+      }
+
       // Create booking with all details
       const bookingData = {
         dinnerId: dinner.id,
@@ -80,7 +117,7 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
         contactInfo: {
           name: `${guestDetails.firstName} ${guestDetails.lastName}`,
           email: guestDetails.email,
-          phone: guestDetails.phone || undefined,
+          phone: guestDetails.phone.trim(),
         }
       }
 
@@ -131,28 +168,11 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
-        {/* Progress */}
-        <div className="flex items-center justify-center mb-4 sm:mb-6 overflow-x-auto">
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm flex-shrink-0 ${
-              step >= 1 ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'
-            }`}>
-              1
-            </div>
-            <div className={`w-8 sm:w-12 h-0.5 flex-shrink-0 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm flex-shrink-0 ${
-              step >= 2 ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'
-            }`}>
-              2
-            </div>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
           {/* Main Content */}
           <div className="space-y-4 sm:space-y-6">
-            {step === 1 ? (
-              <Card>
+            <Card>
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
                     <Users className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -193,13 +213,14 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                   </div>
                   
                   <div>
-                    <Label htmlFor="phone">Phone number</Label>
+                    <Label htmlFor="phone">Phone number *</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={guestDetails.phone}
                       onChange={(e) => setGuestDetails(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="+1 (555) 123-4567"
+                      required
                     />
                   </div>
                   
@@ -218,106 +239,24 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                   <Button 
                     onClick={handleGuestDetailsSubmit}
                     className="w-full bg-primary-600 hover:bg-primary-700"
-                    disabled={!guestDetails.firstName || !guestDetails.lastName || !guestDetails.email}
+                    disabled={!guestDetails.firstName || !guestDetails.lastName || !guestDetails.email || !guestDetails.phone || isSubmitting}
                   >
-                    Continue to Payment
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Booking...
+                      </>
+                    ) : (
+                      'Confirm Booking'
+                    )}
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CreditCard className="w-5 h-5" />
-                    <span>Payment</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label>Payment method</Label>
-                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose payment method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="card">Credit or Debit Card</SelectItem>
-                        <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="apple">Apple Pay</SelectItem>
-                        <SelectItem value="google">Google Pay</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {paymentMethod === 'card' && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="cardNumber">Card number</Label>
-                        <Input
-                          id="cardNumber"
-                          placeholder="1234 5678 9012 3456"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="expiry">Expiry</Label>
-                          <Input
-                            id="expiry"
-                            placeholder="MM/YY"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="cvv">CVV</Label>
-                          <Input
-                            id="cvv"
-                            placeholder="123"
-                          />
-                        </div>
-                      </div>
+                  {error && (
+                    <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                      <p className="text-sm text-destructive">{error}</p>
                     </div>
                   )}
-
-                  <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Shield className="w-4 h-4 text-success" />
-                      <span>Your payment is secure and encrypted</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-success" />
-                      <span>Free cancellation up to 24 hours before</span>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-3">
-                    <Button 
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="flex-1"
-                    >
-                      Back
-                    </Button>
-                    <Button 
-                      onClick={handleBookingConfirm}
-                      className="flex-1 bg-primary-600 hover:bg-primary-700"
-                      disabled={!paymentMethod || isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Creating Booking...
-                        </>
-                      ) : (
-                        'Confirm Booking'
-                      )}
-                    </Button>
-                    {error && (
-                      <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                        <p className="text-sm text-destructive">{error}</p>
-                      </div>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
-            )}
           </div>
 
           {/* Booking Summary */}

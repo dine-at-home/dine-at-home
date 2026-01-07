@@ -29,7 +29,7 @@ import {
   ChefHat,
   Utensils,
   Wine,
-  MessageSquare,
+  // MessageSquare, // Commented out - message host feature not needed for now
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -58,13 +58,6 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
 
   // Use reviews from dinner data if available, otherwise empty array
   const reviews = dinner.reviews || [];
-
-  const amenities = [
-    { icon: ChefHat, label: "Professional chef" },
-    { icon: Utensils, label: "All dietary restrictions accommodated" },
-    { icon: Wine, label: "Wine pairing available" },
-    { icon: Shield, label: "COVID safety measures" },
-  ];
 
   const handleBooking = () => {
     if (isHost) {
@@ -164,37 +157,47 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
           <div className="lg:col-span-2 space-y-8">
             {/* Image Gallery */}
             <div className="grid grid-cols-4 gap-2 rounded-xl overflow-hidden" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-              <div className="col-span-4 sm:col-span-2 sm:row-span-2 relative min-h-[400px]">
-                <Image
-                  src={dinner.images[0] || "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&h=800&fit=crop&crop=center"}
-                  alt={dinner.title}
-                  fill
-                  sizes="(max-width: 640px) 100vw, 50vw"
-                  className="object-cover cursor-pointer hover:brightness-90 transition-all"
-                  onClick={() => openCarousel(0)}
-                />
-              </div>
-              {dinner.images.slice(1, 5).map((image, index) => (
-                <div className="relative min-h-[200px]" key={index}>
-                  <Image
-                    src={image || "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop&crop=center"}
-                    alt={`${dinner.title} ${index + 2}`}
-                    fill
-                    sizes="(max-width: 640px) 50vw, 25vw"
-                    className="object-cover cursor-pointer hover:brightness-90 transition-all"
-                    onClick={() => openCarousel(index + 1)}
-                  />
+              {dinner.images && dinner.images.length > 0 ? (
+                <>
+                  <div className="col-span-4 sm:col-span-2 sm:row-span-2 relative min-h-[400px]">
+                    <Image
+                      src={dinner.images[0]}
+                      alt={dinner.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover cursor-pointer hover:brightness-90 transition-all"
+                      onClick={() => openCarousel(0)}
+                    />
+                  </div>
+                  {dinner.images.slice(1, 5).map((image, index) => (
+                    <div className="relative min-h-[200px]" key={index}>
+                      <Image
+                        src={image}
+                        alt={`${dinner.title} ${index + 2}`}
+                        fill
+                        sizes="(max-width: 640px) 50vw, 25vw"
+                        className="object-cover cursor-pointer hover:brightness-90 transition-all"
+                        onClick={() => openCarousel(index + 1)}
+                      />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="col-span-4 relative min-h-[400px] bg-muted flex items-center justify-center">
+                  <p className="text-muted-foreground">No images available</p>
                 </div>
-              ))}
+              )}
             </div>
 
             {/* Host Info */}
             <div className="flex items-start space-x-4">
               <Avatar className="w-16 h-16">
-                <AvatarImage
-                  src="https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face"
-                  alt={dinner.host.name}
-                />
+                {dinner.host.avatar && (
+                  <AvatarImage
+                    src={dinner.host.avatar}
+                    alt={dinner.host.name}
+                  />
+                )}
                 <AvatarFallback>{dinner.host.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -210,61 +213,110 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   )}
                 </div>
                 <p className="text-muted-foreground text-sm mb-3">
-                  Cooking for 5 years • 127 reviews • Usually responds within an
-                  hour
+                  {(() => {
+                    const joinedDate = new Date(dinner.host.joinedDate);
+                    const yearsSince = Math.floor((new Date().getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24 * 365));
+                    const yearsText = yearsSince > 0 ? `${yearsSince} year${yearsSince > 1 ? 's' : ''}` : 'Recently joined';
+                    return `${yearsText} • ${dinner.reviewCount} review${dinner.reviewCount !== 1 ? 's' : ''} • ${dinner.host.responseTime || 'Usually responds within 24 hours'}`;
+                  })()}
                 </p>
-                <p className="text-sm">
-                  "I'm passionate about sharing authentic Italian recipes that
-                  have been passed down through my family for generations. Food
-                  is love, and I can't wait to share that love with you!"
-                </p>
+                {dinner.host.bio && (
+                  <p className="text-sm">
+                    "{dinner.host.bio}"
+                  </p>
+                )}
               </div>
             </div>
 
             <Separator />
 
             {/* Description */}
-            <div>
-              <h3 className="font-semibold text-xl mb-4">
-                About this experience
-              </h3>
-              <div className="space-y-4 text-sm">
-                <p>
-                  Join me for an authentic Italian dinner experience in my cozy
-                  Brooklyn home. We'll start with a welcome aperitivo, followed
-                  by a 4-course meal featuring fresh handmade pasta, seasonal
-                  vegetables from my garden, and traditional desserts.
-                </p>
-                <p>
-                  This intimate dining experience is perfect for food lovers who
-                  want to learn about Italian cooking traditions while enjoying
-                  great company. I'll share stories about each dish and the
-                  family recipes behind them.
-                </p>
-                <p>
-                  Please let me know about any dietary restrictions when booking
-                  - I'm happy to accommodate vegetarian, vegan, and gluten-free
-                  guests with advance notice.
-                </p>
+            {dinner.description && (
+              <div>
+                <h3 className="font-semibold text-xl mb-4">
+                  About this experience
+                </h3>
+                <div className="space-y-4 text-sm whitespace-pre-line">
+                  {dinner.description.split('\n').map((paragraph, index) => (
+                    paragraph.trim() && (
+                      <p key={index}>{paragraph}</p>
+                    )
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <Separator />
+            {/* Menu */}
+            {dinner.menu && dinner.menu.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="font-semibold text-xl mb-4">Menu</h3>
+                  <ul className="space-y-2 text-sm">
+                    {dinner.menu.map((item, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
 
             {/* What's Included */}
-            <div>
-              <h3 className="font-semibold text-xl mb-4">What's included</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {amenities.map((amenity, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <amenity.icon className="w-5 h-5 text-primary" />
-                    <span className="text-sm">{amenity.label}</span>
+            {dinner.included && dinner.included.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="font-semibold text-xl mb-4">What's included</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {dinner.included.map((item, index) => (
+                      <div key={index} className="flex items-center space-x-3">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        <span className="text-sm">{item}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
 
-            <Separator />
+            {/* House Rules */}
+            {dinner.houseRules && dinner.houseRules.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="font-semibold text-xl mb-4">House rules</h3>
+                  <ul className="space-y-2 text-sm">
+                    {dinner.houseRules.map((rule, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <span className="text-muted-foreground">•</span>
+                        <span>{rule}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
+
+            {/* Dietary Accommodations */}
+            {dinner.dietary && dinner.dietary.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="font-semibold text-xl mb-4">Dietary accommodations</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {dinner.dietary.map((item, index) => (
+                      <Badge key={index} variant="outline">
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
 
             {/* Reviews */}
             <div>
@@ -447,14 +499,15 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                     </>
                   )}
 
-                  <Button
+                  {/* Message host feature - commented out for now */}
+                  {/* <Button
                     variant="outline"
                     className="w-full"
                     onClick={() => onNavigate("chat", { host: dinner.host })}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Message host
-                  </Button>
+                  </Button> */}
                 </div>
 
                 <div className="mt-4 text-center">
@@ -518,13 +571,19 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             className="relative max-w-7xl w-full h-full flex items-center justify-center px-16"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={dinner.images[carouselIndex]}
-              alt={`${dinner.title} - Image ${carouselIndex + 1}`}
-              width={1200}
-              height={800}
-              className="object-contain max-h-[90vh] max-w-full"
-            />
+            {dinner.images && dinner.images.length > 0 ? (
+              <Image
+                src={dinner.images[carouselIndex]}
+                alt={`${dinner.title} - Image ${carouselIndex + 1}`}
+                width={1200}
+                height={800}
+                className="object-contain max-h-[90vh] max-w-full"
+              />
+            ) : (
+              <div className="text-white text-center">
+                <p>No images available</p>
+              </div>
+            )}
           </div>
 
           {/* Next Button */}

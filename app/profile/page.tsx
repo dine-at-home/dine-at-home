@@ -12,6 +12,15 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { 
   User, 
   Mail, 
@@ -28,11 +37,16 @@ import {
   Shield,
   LogOut,
   Save,
-  X
+  X,
+  Eye,
+  EyeOff,
+  Loader2,
+  ChefHat
 } from 'lucide-react'
 import Image from 'next/image'
 import { bookingService } from '@/lib/booking-service'
 import { transformDinner } from '@/lib/dinner-utils'
+import { getApiUrl } from '@/lib/api-config'
 
 // Mock data for demonstration (fallback only)
 const mockBookings = [
@@ -92,29 +106,9 @@ const mockBookings = [
   }
 ]
 
-const mockReviews = [
-  {
-    id: '1',
-    dinner: 'Authentic Italian Pasta Making',
-    host: 'Marco Rossi',
-    rating: 5,
-    comment: 'Amazing experience! Marco was a fantastic teacher and the pasta was incredible.',
-    date: '2024-01-16',
-    hostAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-  },
-  {
-    id: '2',
-    dinner: 'French Wine Tasting',
-    host: 'Pierre Dubois',
-    rating: 4,
-    comment: 'Great wine selection and knowledgeable host. Would definitely recommend!',
-    date: '2024-01-09',
-    hostAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-  }
-]
 
 function ProfilePageContent() {
-  const { user, loading } = useAuth()
+  const { user, loading, refreshUser } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'overview'
@@ -122,26 +116,75 @@ function ProfilePageContent() {
   const [isEditing, setIsEditing] = useState(false)
   const [bookings, setBookings] = useState<any[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(true)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  })
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    phone: '+1 (555) 123-4567',
-    bio: 'Food enthusiast and travel lover. Always excited to try new cuisines and meet amazing people!',
-    gender: 'male',
-    country: 'United States',
-    languages: ['English', 'Spanish'],
+    phone: '',
+    bio: '',
+    gender: '',
+    country: '',
+    languages: [] as string[],
     profileImage: '',
-    memberSince: 'January 2023'
+    memberSince: ''
   })
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   // Update profile data when user loads
   useEffect(() => {
     if (user) {
+      // Parse languages if it's an array or JSON string
+      let languagesArray: string[] = []
+      if (user.languages) {
+        if (Array.isArray(user.languages)) {
+          languagesArray = user.languages
+        } else if (typeof user.languages === 'string') {
+          try {
+            const parsed = JSON.parse(user.languages)
+            languagesArray = Array.isArray(parsed) ? parsed : []
+          } catch {
+            languagesArray = []
+          }
+        }
+      }
+
+      // Format member since date
+      let memberSince = ''
+      if (user.createdAt) {
+        const date = new Date(user.createdAt)
+        // Validate date
+        if (!isNaN(date.getTime())) {
+          memberSince = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        }
+      }
+
       setProfileData(prev => ({
         ...prev,
         name: user.name || '',
         email: user.email || '',
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+        phone: user.phone || '',
+        country: user.country || '',
+        gender: user.gender || '',
+        languages: languagesArray,
+        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        memberSince: memberSince
       }))
     }
   }, [user])
@@ -163,7 +206,7 @@ function ProfilePageContent() {
             const dinner = booking.dinner ? transformDinner(booking.dinner) : null
             return {
               id: booking.id,
-              status: booking.status?.toLowerCase() || 'confirmed',
+              status: booking.status?.toLowerCase() || 'pending',
               guests: booking.guests,
               totalAmount: booking.totalPrice,
               dinner: dinner ? {
@@ -196,6 +239,129 @@ function ProfilePageContent() {
 
     fetchBookings()
   }, [user?.id])
+
+  // Fetch reviews when user is available
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!user?.id) {
+        setReviewsLoading(false)
+        return
+      }
+
+      try {
+        setReviewsLoading(true)
+        const token = localStorage.getItem('auth_token')
+        if (!token) {
+          setReviewsLoading(false)
+          return
+        }
+
+        const response = await fetch(getApiUrl(`/users/${user.id}/reviews`), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          setReviews(result.data)
+        } else {
+          setReviews([])
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error)
+        setReviews([])
+      } finally {
+        setReviewsLoading(false)
+      }
+    }
+
+    fetchReviews()
+  }, [user?.id])
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError(null)
+    setPasswordSuccess(false)
+    setPasswordLoading(true)
+
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('All fields are required')
+      setPasswordLoading(false)
+      return
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters')
+      setPasswordLoading(false)
+      return
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match')
+      setPasswordLoading(false)
+      return
+    }
+
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      setPasswordError('New password must be different from current password')
+      setPasswordLoading(false)
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token || !user?.id) {
+        setPasswordError('Authentication required. Please sign in again.')
+        setPasswordLoading(false)
+        return
+      }
+
+      const response = await fetch(getApiUrl(`/users/${user.id}/change-password`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setPasswordError(result.error || 'Failed to change password. Please try again.')
+        setPasswordLoading(false)
+        return
+      }
+
+      // Success
+      setPasswordSuccess(true)
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+      
+      // Close dialog after 2 seconds
+      setTimeout(() => {
+        setShowChangePasswordDialog(false)
+        setPasswordSuccess(false)
+      }, 2000)
+    } catch (error: any) {
+      console.error('Error changing password:', error)
+      setPasswordError('An unexpected error occurred. Please try again.')
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
 
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
@@ -232,14 +398,108 @@ function ProfilePageContent() {
     return null
   }
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    setIsEditing(false)
+  const handleSave = async () => {
+    if (!user?.id) {
+      setSaveError('User not found. Please sign in again.')
+      return
+    }
+
+    setIsSaving(true)
+    setSaveError(null)
+    setSaveSuccess(false)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setSaveError('Authentication required. Please sign in again.')
+        setIsSaving(false)
+        return
+      }
+
+      // Prepare languages array
+      const languagesArray = Array.isArray(profileData.languages) 
+        ? profileData.languages 
+        : []
+
+      const response = await fetch(getApiUrl(`/users/${user.id}`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: profileData.name || undefined,
+          phone: profileData.phone || null,
+          country: profileData.country || undefined,
+          gender: profileData.gender || undefined,
+          languages: languagesArray.length > 0 ? languagesArray : undefined,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setSaveError(result.error || 'Failed to save profile. Please try again.')
+        setIsSaving(false)
+        return
+      }
+
+      // Success - refresh user data
+      setSaveSuccess(true)
+      setIsEditing(false)
+      
+      // Refresh user from auth context
+      await refreshUser()
+
+      // Clear success message after 2 seconds
+      setTimeout(() => {
+        setSaveSuccess(false)
+      }, 2000)
+    } catch (error: any) {
+      console.error('Error saving profile:', error)
+      setSaveError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
     setIsEditing(false)
-    // Reset form data
+    setSaveError(null)
+    setSaveSuccess(false)
+    // Reset form data to user's current data
+    if (user) {
+      const languagesArray = Array.isArray(user.languages) 
+        ? user.languages 
+        : (typeof user.languages === 'string' 
+            ? (() => {
+                try {
+                  const parsed = JSON.parse(user.languages)
+                  return Array.isArray(parsed) ? parsed : []
+                } catch {
+                  return []
+                }
+              })()
+            : [])
+      
+      let memberSince = ''
+      if (user.createdAt) {
+        const date = new Date(user.createdAt)
+        memberSince = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      }
+
+      setProfileData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        country: user.country || '',
+        gender: user.gender || '',
+        languages: languagesArray,
+        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        bio: '',
+        memberSince: memberSince
+      })
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -302,8 +562,17 @@ function ProfilePageContent() {
                   <h2 className="text-xl font-semibold mb-1">{profileData.name || 'Loading...'}</h2>
                   <p className="text-muted-foreground text-sm mb-4">{profileData.email || 'Loading...'}</p>
                   <Badge variant="secondary" className="mb-4">
-                    <User className="w-3 h-3 mr-1" />
-                    Guest Member
+                    {user.role === 'host' ? (
+                      <>
+                        <ChefHat className="w-3 h-3 mr-1" />
+                        Host Member
+                      </>
+                    ) : (
+                      <>
+                        <User className="w-3 h-3 mr-1" />
+                        Guest Member
+                      </>
+                    )}
                   </Badge>
                   <p className="text-xs text-muted-foreground">Member since {profileData.memberSince}</p>
                 </div>
@@ -351,6 +620,16 @@ function ProfilePageContent() {
                     </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {saveError && (
+                      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                        {saveError}
+                      </div>
+                    )}
+                    {saveSuccess && (
+                      <div className="bg-green-100 text-green-800 text-sm p-3 rounded-md">
+                        Profile updated successfully!
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">Full Name</label>
@@ -442,7 +721,9 @@ function ProfilePageContent() {
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-primary-600">
-                        {mockReviews.reduce((acc, review) => acc + review.rating, 0) / mockReviews.length || 0}
+                        {reviews.length > 0 
+                          ? (reviews.reduce((acc: number, review: any) => acc + review.rating, 0) / reviews.length).toFixed(1)
+                          : '0.0'}
                       </div>
                       <div className="text-sm text-muted-foreground">Average Rating Given</div>
                     </CardContent>
@@ -535,7 +816,9 @@ function ProfilePageContent() {
                                             ? 'Review available after completion'
                                             : booking.status === 'cancelled' || booking.status === 'CANCELLED'
                                               ? 'Booking was cancelled'
-                                              : 'Pending review'
+                                              : booking.status === 'pending' || booking.status === 'PENDING'
+                                                ? 'Waiting for host approval'
+                                                : 'Pending review'
                                         }
                                       </span>
                                       {(booking.status === 'completed' || booking.status === 'COMPLETED') && (
@@ -567,25 +850,58 @@ function ProfilePageContent() {
                     <CardDescription>Reviews you've written for hosts and dinners</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {mockReviews.map((review) => (
-                      <div key={review.id} className="border rounded-lg p-4">
-                        <div className="flex items-start gap-4">
-                          <Avatar className="w-12 h-12">
-                            <AvatarImage src={review.hostAvatar} alt={review.host} />
-                            <AvatarFallback>{review.host.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{review.dinner}</h3>
-                              <div className="flex">{renderStars(review.rating)}</div>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2">Host: {review.host}</p>
-                            <p className="text-sm mb-2">{review.comment}</p>
-                            <p className="text-xs text-muted-foreground">{review.date}</p>
-                          </div>
-                        </div>
+                    {reviewsLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">Loading reviews...</p>
                       </div>
-                    ))}
+                    ) : reviews.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">You haven't written any reviews yet.</p>
+                      </div>
+                    ) : (
+                      reviews.map((review: any) => {
+                        const dinner = review.dinner
+                        const reviewDate = review.createdAt ? new Date(review.createdAt) : null
+                        return (
+                          <div key={review.id} className="border rounded-lg p-4">
+                            <div className="flex items-start gap-4">
+                              {dinner?.host?.image ? (
+                                <Avatar className="w-12 h-12">
+                                  <AvatarImage src={dinner.host.image} alt={dinner.host?.name || 'Host'} />
+                                  <AvatarFallback>{(dinner.host?.name || 'H').charAt(0)}</AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                <Avatar className="w-12 h-12">
+                                  <AvatarFallback>{(dinner?.host?.name || 'H').charAt(0)}</AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-semibold">{dinner?.title || 'Unknown Dinner'}</h3>
+                                  <div className="flex">{renderStars(review.rating)}</div>
+                                </div>
+                                {dinner?.host?.name && (
+                                  <p className="text-sm text-muted-foreground mb-2">Host: {dinner.host.name}</p>
+                                )}
+                                {review.comment && (
+                                  <p className="text-sm mb-2">{review.comment}</p>
+                                )}
+                                {reviewDate && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {reviewDate.toLocaleDateString('en-US', { 
+                                      year: 'numeric', 
+                                      month: 'long', 
+                                      day: 'numeric' 
+                                    })}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -607,7 +923,11 @@ function ProfilePageContent() {
                         Security
                       </h3>
                       <div className="space-y-3">
-                        <Button variant="outline" className="w-full justify-start">
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => setShowChangePasswordDialog(true)}
+                        >
                           Change Password
                         </Button>
                         <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -673,6 +993,144 @@ function ProfilePageContent() {
           </div>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new password. Make sure it's at least 8 characters long.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showPasswords.current ? 'text' : 'password'}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  placeholder="Enter current password"
+                  required
+                  disabled={passwordLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                >
+                  {showPasswords.current ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPasswords.new ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  placeholder="Enter new password (min 8 characters)"
+                  required
+                  disabled={passwordLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                >
+                  {showPasswords.new ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPasswords.confirm ? 'text' : 'password'}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                  required
+                  disabled={passwordLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                >
+                  {showPasswords.confirm ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {passwordError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{passwordError}</p>
+              </div>
+            )}
+
+            {passwordSuccess && (
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <p className="text-sm text-green-600">Password changed successfully!</p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowChangePasswordDialog(false)
+                  setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+                  setPasswordError(null)
+                  setPasswordSuccess(false)
+                }}
+                disabled={passwordLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={passwordLoading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+              >
+                {passwordLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Changing...
+                  </>
+                ) : (
+                  'Change Password'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   )
 }

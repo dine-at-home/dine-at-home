@@ -66,4 +66,17 @@
   small {
     @apply text-sm leading-normal;
   }
+
+  /* Fix text selection in input fields */
+  input::selection,
+  textarea::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+
+  input::-moz-selection,
+  textarea::-moz-selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
 }

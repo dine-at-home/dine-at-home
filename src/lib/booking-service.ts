@@ -18,7 +18,7 @@ export interface CreateBookingRequest {
   contactInfo: {
     name: string
     email: string
-    phone?: string
+    phone: string // Required field
   }
 }
 
@@ -165,6 +165,47 @@ class BookingService {
     } catch (error: any) {
       console.error('Error fetching host bookings:', error)
       return { success: false, data: [] }
+    }
+  }
+
+  /**
+   * Update booking status (for hosts to accept/decline bookings)
+   */
+  async updateBookingStatus(bookingId: string, status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'): Promise<{ success: boolean; data?: BookingResponse; error?: string }> {
+    try {
+      const token = getToken()
+      if (!token) {
+        return { success: false, error: 'Authentication required' }
+      }
+
+      const response = await fetch(getApiUrl(`/bookings/${bookingId}/status`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || result.message || 'Failed to update booking status',
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      }
+    } catch (error: any) {
+      console.error('Error updating booking status:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to update booking status',
+      }
     }
   }
 }

@@ -18,6 +18,7 @@ export interface User {
   emailVerified: boolean;
   needsRoleSelection?: boolean;
   needsProfileCompletion?: boolean;
+  createdAt?: string;
 }
 
 export interface AuthResponse {

@@ -61,6 +61,12 @@ export default function SignUpPage() {
       return
     }
 
+    if (!formData.phone || formData.phone.trim().length === 0) {
+      setError('Phone number is required')
+      setFormLoading(false)
+      return
+    }
+
     if (!formData.email.includes('@')) {
       setError('Please enter a valid email address')
       setFormLoading(false)
@@ -109,7 +115,7 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         role: formData.userType,
-        phone: formData.phone || undefined,
+        phone: formData.phone,
         gender: formData.gender,
         country: formData.country,
         languages: [formData.language],
@@ -201,13 +207,14 @@ export default function SignUpPage() {
 
               {/* Phone Number Field */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Phone Number</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Phone Number *</label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
                   placeholder="Enter your phone number"
+                  required
                 />
               </div>
 

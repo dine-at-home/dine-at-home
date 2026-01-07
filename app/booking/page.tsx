@@ -64,10 +64,12 @@ function BookingPageContent() {
 			router.push(`/dinners/${params.dinner.id}`)
 		} else if (page === 'booking-confirmed') {
 			router.push('/profile?tab=bookings')
-		} else if (page === 'chat') {
-			// Handle chat navigation if needed
-			console.log('Chat navigation:', params)
 		}
+		// Message host feature - commented out for now
+		// else if (page === 'chat') {
+		// 	// Handle chat navigation if needed
+		// 	console.log('Chat navigation:', params)
+		// }
 	}
 
 	const guests = guestsParam ? parseInt(guestsParam, 10) : 2

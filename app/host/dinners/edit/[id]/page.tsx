@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,29 +22,24 @@ import {
   ArrowLeft,
   ChefHat,
   Image as ImageIcon,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
+import { transformDinner } from '@/lib/dinner-utils'
 
-export default function CreateDinnerPage() {
+export default function EditDinnerPage() {
   const router = useRouter()
+  const params = useParams()
+  const dinnerId = Array.isArray(params?.id) ? params?.id[0] : (params?.id as string)
+  
+  const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
-  
-  // Sample data for development mode
-  const getDefaultDinnerData = () => {
-    // Check if we're in development mode
-    // In Next.js, NODE_ENV is available in client components
-    const isDev = typeof window !== 'undefined' 
-      ? (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      : process.env.NODE_ENV === 'development'
-    
-    if (!isDev) {
-      // Return empty form for production
-      return {
+  const [dinnerData, setDinnerData] = useState({
     title: '',
     description: '',
     cuisineType: '',
@@ -65,59 +60,97 @@ export default function CreateDinnerPage() {
     pricePerPerson: 85,
     minGuests: 2,
     images: [] as string[],
-        experienceLevel: 'beginner',
+    experienceLevel: 'beginner',
     includesDrinks: false,
     includesDessert: false,
     cancellationPolicy: 'flexible'
+  })
+
+  // Fetch dinner data
+  useEffect(() => {
+    const fetchDinner = async () => {
+      if (!dinnerId) {
+        setError('Invalid dinner ID')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+
+        const token = localStorage.getItem('auth_token')
+        const response = await fetch(getApiUrl(`/dinners/${dinnerId}`), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        })
+
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          const rawDinner = result.data // Get raw data before transformation
+          const dinner = transformDinner(result.data)
+          
+          // Parse menu array to string
+          const menuString = Array.isArray(dinner.menu) 
+            ? dinner.menu.join(', ') 
+            : dinner.menu || ''
+          
+          // Parse houseRules array to string
+          const houseRulesString = Array.isArray(dinner.houseRules) 
+            ? dinner.houseRules.join(', ') 
+            : dinner.houseRules?.[0] || ''
+          
+          // Parse duration from minutes to hours (from raw backend response)
+          const durationHours = rawDinner.duration ? Math.floor(rawDinner.duration / 60) : 3
+
+          // Get location data from raw response (it has zipCode)
+          const locationData = rawDinner.location 
+            ? (typeof rawDinner.location === 'string' ? JSON.parse(rawDinner.location) : rawDinner.location)
+            : {}
+
+          setDinnerData({
+            title: dinner.title || '',
+            description: dinner.description || '',
+            cuisineType: dinner.cuisine || '',
+            dietaryAccommodations: Array.isArray(dinner.dietary) ? dinner.dietary : [],
+            menu: menuString,
+            ingredients: '',
+            specialInstructions: houseRulesString,
+            address: locationData.address || dinner.location?.address || '',
+            city: locationData.city || dinner.location?.city || '',
+            state: locationData.state || dinner.location?.state || '',
+            zipCode: locationData.zipCode || '',
+            directions: '',
+            accessibility: '',
+            date: dinner.date || '',
+            time: dinner.time || '',
+            duration: durationHours,
+            maxCapacity: dinner.capacity || 8,
+            pricePerPerson: dinner.price || 85,
+            minGuests: 2,
+            images: Array.isArray(dinner.images) ? dinner.images : [],
+            experienceLevel: 'beginner',
+            includesDrinks: false,
+            includesDessert: false,
+            cancellationPolicy: 'flexible'
+          })
+        } else {
+          setError(result.error || 'Dinner not found')
+        }
+      } catch (err: any) {
+        console.error('Error fetching dinner:', err)
+        setError('Failed to load dinner. Please try again later.')
+      } finally {
+        setLoading(false)
       }
     }
-    
-    // Auto-fill with sample data for development
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const dateStr = tomorrow.toISOString().split('T')[0]
-    
-    return {
-      title: 'Authentic Italian Pasta Making Workshop',
-      description: 'Join me for an authentic Italian dinner experience in my cozy home. We\'ll start with a welcome aperitivo, followed by a 4-course meal featuring fresh handmade pasta, seasonal vegetables from my garden, and traditional desserts.\n\nThis intimate dining experience is perfect for food lovers who want to learn about Italian cooking traditions while enjoying great company. I\'ll share stories about each dish and the family recipes behind them.\n\nPlease let me know about any dietary restrictions when booking - I\'m happy to accommodate vegetarian, vegan, and gluten-free guests with advance notice.',
-      cuisineType: 'Italian',
-      dietaryAccommodations: ['Vegetarian', 'Gluten-Free'] as string[],
-      menu: 'The Menu will consist of 3 dishes Chicken Muglai, Chicken Karahi and Gajar ka Halwa',
-      ingredients: 'Fresh pasta, tomatoes, basil, olive oil, parmesan cheese, seasonal vegetables',
-      specialInstructions: 'Please arrive on time. Let us know about dietary restrictions in advance. No smoking indoors. Children welcome with advance notice.',
-      address: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      directions: 'Take the subway to 14th Street station, walk 2 blocks north',
-      accessibility: 'Wheelchair accessible entrance and restroom available',
-      date: dateStr,
-      time: '19:00',
-      duration: 3,
-      maxCapacity: 8,
-      pricePerPerson: 85,
-      minGuests: 2,
-      images: [] as string[],
-      experienceLevel: 'beginner',
-      includesDrinks: true,
-      includesDessert: true,
-      cancellationPolicy: 'flexible'
-    }
-  }
-  
-  const [dinnerData, setDinnerData] = useState(getDefaultDinnerData())
 
-  // Log in dev mode to confirm auto-fill is working
-  useEffect(() => {
-    const isDev = typeof window !== 'undefined' 
-      ? (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      : process.env.NODE_ENV === 'development'
-    
-    if (isDev) {
-      console.log('🔧 Development mode: Dinner form auto-filled with sample data')
-      console.log('📝 Pre-filled data:', dinnerData)
-    }
-  }, [])
+    fetchDinner()
+  }, [dinnerId])
 
   const cuisineTypes = [
     'Italian', 'French', 'Japanese', 'Chinese', 'Indian', 'Mexican', 
@@ -152,7 +185,6 @@ export default function CreateDinnerPage() {
 
     const newFiles = Array.from(files)
     
-    // Validate file types
     const validFiles = newFiles.filter(file => file.type.startsWith('image/'))
     if (validFiles.length !== newFiles.length) {
       setError('Only image files are allowed')
@@ -160,7 +192,6 @@ export default function CreateDinnerPage() {
       return
     }
 
-    // Validate file sizes (5MB max)
     const sizeValidFiles = validFiles.filter(file => file.size <= 5 * 1024 * 1024)
     if (sizeValidFiles.length !== validFiles.length) {
       setError('Images must be smaller than 5MB each')
@@ -168,14 +199,12 @@ export default function CreateDinnerPage() {
       return
     }
 
-    // Add to selected files (will upload when form is submitted)
     setSelectedImageFiles(prev => [...prev, ...sizeValidFiles])
     e.target.value = ''
   }
 
   const removeImage = (index: number) => {
     setSelectedImageFiles(prev => prev.filter((_, i) => i !== index))
-    // Also remove from dinnerData.images if it exists
     setDinnerData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
@@ -199,7 +228,6 @@ export default function CreateDinnerPage() {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
-        // DON'T set Content-Type - browser will set it with boundary
       },
       body: formData
     })
@@ -223,15 +251,14 @@ export default function CreateDinnerPage() {
     setError('')
 
     try {
-      // Get auth token
       const token = localStorage.getItem('auth_token')
       if (!token) {
-        setError('You must be logged in to create a dinner')
+        setError('You must be logged in to update a dinner')
         setIsSubmitting(false)
         return
       }
 
-      // Step 1: Upload images first (if any)
+      // Upload new images if any
       let imageUrls: string[] = []
       if (selectedImageFiles.length > 0) {
         setUploadingImages(true)
@@ -246,7 +273,10 @@ export default function CreateDinnerPage() {
         }
       }
 
-      // Parse menu from string (assuming it's comma-separated or newline-separated)
+      // Combine existing images with new ones
+      const allImages = [...dinnerData.images, ...imageUrls]
+
+      // Parse menu from string
       const menuItems = dinnerData.menu
         ? dinnerData.menu.split(/[,\n]/).map(item => item.trim()).filter(item => item)
         : []
@@ -257,10 +287,10 @@ export default function CreateDinnerPage() {
         city: dinnerData.city,
         state: dinnerData.state,
         zipCode: dinnerData.zipCode,
-        neighborhood: dinnerData.city, // Using city as neighborhood if not separate field
+        neighborhood: dinnerData.city,
         coordinates: {
-          lat: 0, // TODO: Get from geocoding service
-          lng: 0  // TODO: Get from geocoding service
+          lat: 0,
+          lng: 0
         }
       }
 
@@ -269,7 +299,7 @@ export default function CreateDinnerPage() {
         ? new Date(`${dinnerData.date}T${dinnerData.time}:00`).toISOString()
         : new Date(dinnerData.date).toISOString()
 
-      // Prepare request body according to API specification
+      // Prepare request body
       const requestBody = {
         title: dinnerData.title,
         description: dinnerData.description,
@@ -277,23 +307,21 @@ export default function CreateDinnerPage() {
         currency: 'USD',
         date: dateTime,
         time: dinnerData.time,
-        duration: dinnerData.duration * 60, // Convert hours to minutes
+        duration: dinnerData.duration * 60,
         capacity: dinnerData.maxCapacity,
-        images: imageUrls, // Use uploaded image URLs
+        images: allImages,
         cuisine: dinnerData.cuisineType,
         dietary: dinnerData.dietaryAccommodations,
-        instantBook: false, // Default value
         menu: menuItems,
-        included: [], // Can be extended later
         houseRules: dinnerData.specialInstructions 
           ? [dinnerData.specialInstructions] 
           : [],
         location: location
       }
 
-      // Send to backend API
-      const response = await fetch(getApiUrl('/dinners'), {
-        method: 'POST',
+      // Send PATCH request
+      const response = await fetch(getApiUrl(`/dinners/${dinnerId}`), {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -304,7 +332,7 @@ export default function CreateDinnerPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result.error || 'Failed to create dinner. Please try again.')
+        setError(result.error || 'Failed to update dinner. Please try again.')
         setIsSubmitting(false)
         return
       }
@@ -313,10 +341,23 @@ export default function CreateDinnerPage() {
       router.push('/host/dashboard?tab=dinners')
       router.refresh()
     } catch (err: any) {
-      console.error('Error creating dinner:', err)
+      console.error('Error updating dinner:', err)
       setError('An unexpected error occurred. Please try again.')
       setIsSubmitting(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <HostGuard>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading dinner details...</p>
+          </div>
+        </div>
+      </HostGuard>
+    )
   }
 
   return (
@@ -335,8 +376,8 @@ export default function CreateDinnerPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Create New Dinner</h1>
-              <p className="text-muted-foreground mt-1">Share your culinary passion with guests</p>
+              <h1 className="text-3xl font-bold text-foreground">Edit Dinner</h1>
+              <p className="text-muted-foreground mt-1">Update your dining experience details</p>
             </div>
             <Button variant="outline" onClick={() => router.push('/host/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -599,7 +640,7 @@ export default function CreateDinnerPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Duration (hours)</label>
-                  <Select value={dinnerData.duration?.toString() || '3'} onValueChange={(value) => handleInputChange('duration', parseInt(value) || 3)}>
+                  <Select value={dinnerData.duration.toString()} onValueChange={(value) => handleInputChange('duration', parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -613,7 +654,7 @@ export default function CreateDinnerPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Max Capacity *</label>
-                  <Select value={dinnerData.maxCapacity?.toString() || '8'} onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value) || 8)}>
+                  <Select value={dinnerData.maxCapacity.toString()} onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -628,7 +669,7 @@ export default function CreateDinnerPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Min Guests</label>
-                  <Select value={dinnerData.minGuests?.toString() || '2'} onValueChange={(value) => handleInputChange('minGuests', parseInt(value) || 2)}>
+                  <Select value={dinnerData.minGuests.toString()} onValueChange={(value) => handleInputChange('minGuests', parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -641,6 +682,7 @@ export default function CreateDinnerPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Price Per Person *</label>
                   <div className="relative">
@@ -648,11 +690,12 @@ export default function CreateDinnerPage() {
                     <Input 
                       type="number"
                       value={dinnerData.pricePerPerson}
-                    onChange={(e) => handleInputChange('pricePerPerson', e.target.value ? parseInt(e.target.value) || 0 : 0)}
+                      onChange={(e) => handleInputChange('pricePerPerson', parseInt(e.target.value))}
                       placeholder="85"
                       className="pl-10"
                       required
                     />
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -692,9 +735,39 @@ export default function CreateDinnerPage() {
                 </div>
               </div>
 
+              {/* Existing Images */}
+              {dinnerData.images.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Current Photos ({dinnerData.images.length})</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {dinnerData.images.map((imageUrl, index) => (
+                      <div key={index} className="relative">
+                        <Image
+                          src={imageUrl}
+                          alt={`Dinner image ${index + 1}`}
+                          width={200}
+                          height={150}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2 w-6 h-6 p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* New Selected Images */}
               {selectedImageFiles.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Selected Photos ({selectedImageFiles.length})</h3>
+                  <h3 className="text-sm font-medium mb-2">New Photos ({selectedImageFiles.length})</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {selectedImageFiles.map((file, index) => (
                       <div key={index} className="relative">
@@ -710,7 +783,9 @@ export default function CreateDinnerPage() {
                           size="sm"
                           variant="destructive"
                           className="absolute top-2 right-2 w-6 h-6 p-0"
-                          onClick={() => removeImage(index)}
+                          onClick={() => {
+                            setSelectedImageFiles(prev => prev.filter((_, i) => i !== index))
+                          }}
                         >
                           <X className="w-3 h-3" />
                         </Button>
@@ -762,18 +837,18 @@ export default function CreateDinnerPage() {
             >
               {uploadingImages ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Uploading images...
                 </>
               ) : isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Create Dinner
+                  Update Dinner
                 </>
               )}
             </Button>
@@ -784,3 +859,4 @@ export default function CreateDinnerPage() {
     </HostGuard>
   )
 }
+

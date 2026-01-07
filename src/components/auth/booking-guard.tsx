@@ -51,20 +51,31 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
       return <>{fallback}</>
     }
 
+    const needsPhone = user.role === 'guest' && (!user.phone || user.phone.trim().length === 0)
+    const redirectUrl = getRoleBasedRedirect(user)
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <Alert className="border-orange-200 bg-orange-50">
-            <AlertCircle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
+          <Alert className={needsPhone ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"}>
+            <AlertCircle className={`h-4 w-4 ${needsPhone ? 'text-blue-600' : 'text-orange-600'}`} />
+            <AlertDescription className={needsPhone ? "text-blue-800" : "text-orange-800"}>
               {getAccessDeniedMessage(user)}
             </AlertDescription>
           </Alert>
           <div className="mt-6 text-center">
+            {needsPhone ? (
+              <Button 
+                onClick={() => router.push('/profile?tab=overview')}
+                className="mr-4"
+              >
+                Add Phone Number
+              </Button>
+            ) : null}
             <Button 
-              onClick={() => router.push(getRoleBasedRedirect(user))}
+              onClick={() => router.push(redirectUrl)}
               variant="outline"
-              className="mr-4"
+              className={needsPhone ? "" : "mr-4"}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -73,11 +84,6 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
         </div>
       </div>
     )
-  }
-
-  // Show children if user is authenticated and can book
-  if (isAuthenticated && user && canBookDinners(user)) {
-    return <>{children}</>
   }
 
   // If not authenticated, show loading (will redirect in useEffect)
@@ -92,7 +98,12 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
     )
   }
 
-  // Fallback for any other case
+  // Show children if user is authenticated and can book
+  if (isAuthenticated && user && canBookDinners(user)) {
+    return <>{children}</>
+  }
+
+  // Fallback for any other case (still loading or edge case)
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">

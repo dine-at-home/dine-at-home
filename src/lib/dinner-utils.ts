@@ -59,6 +59,43 @@ export function transformDinner(dinner: any): Dinner {
     ? dinner.date.split('T')[0] 
     : new Date(dinner.date).toISOString().split('T')[0]
 
+  // Parse menu, included, and houseRules
+  let menu: string[] = []
+  try {
+    menu = typeof dinner.menu === 'string' 
+      ? JSON.parse(dinner.menu) 
+      : dinner.menu || []
+  } catch (e) {
+    menu = []
+  }
+
+  let included: string[] = []
+  try {
+    included = typeof dinner.included === 'string' 
+      ? JSON.parse(dinner.included) 
+      : dinner.included || []
+  } catch (e) {
+    included = []
+  }
+
+  let houseRules: string[] = []
+  try {
+    houseRules = typeof dinner.houseRules === 'string' 
+      ? JSON.parse(dinner.houseRules) 
+      : dinner.houseRules || []
+  } catch (e) {
+    houseRules = []
+  }
+
+  let dietary: string[] = []
+  try {
+    dietary = typeof dinner.dietary === 'string' 
+      ? JSON.parse(dinner.dietary) 
+      : dinner.dietary || []
+  } catch (e) {
+    dietary = []
+  }
+
   return {
     id: dinner.id,
     title: dinner.title,
@@ -72,11 +109,13 @@ export function transformDinner(dinner: any): Dinner {
     instantBook: dinner.instantBook || false,
     rating: dinner.rating || 0,
     reviewCount: dinner.reviewCount || 0,
-    images: validImages.length > 0 
-      ? validImages 
-      : ['https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=600&fit=crop&crop=center'], // Fallback image
+    images: validImages.length > 0 ? validImages : [], // No hardcoded fallback
     host,
-    location
+    location,
+    menu,
+    included,
+    houseRules,
+    dietary
   }
 }
 
