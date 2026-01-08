@@ -51,7 +51,9 @@ class BookingService {
   /**
    * Create a new booking
    */
-  async createBooking(data: CreateBookingRequest): Promise<{ success: boolean; data?: BookingResponse; error?: string }> {
+  async createBooking(
+    data: CreateBookingRequest
+  ): Promise<{ success: boolean; data?: BookingResponse; error?: string }> {
     try {
       const token = getToken()
       if (!token) {
@@ -62,7 +64,7 @@ class BookingService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       })
@@ -111,17 +113,17 @@ class BookingService {
 
       const url = getApiUrl(`/bookings/user/${userId}`)
       console.log('🔵 Fetching bookings from:', url)
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       })
 
       console.log('🔵 Response status:', response.status, response.statusText)
-      
+
       const result = await response.json()
       console.log('🔵 Response data:', result)
 
@@ -158,7 +160,7 @@ class BookingService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       })
 
@@ -182,7 +184,10 @@ class BookingService {
   /**
    * Update booking status (for hosts to accept/decline bookings)
    */
-  async updateBookingStatus(bookingId: string, status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'): Promise<{ success: boolean; data?: BookingResponse; error?: string }> {
+  async updateBookingStatus(
+    bookingId: string,
+    status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+  ): Promise<{ success: boolean; data?: BookingResponse; error?: string }> {
     try {
       const token = getToken()
       if (!token) {
@@ -193,7 +198,7 @@ class BookingService {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status }),
       })
@@ -222,4 +227,3 @@ class BookingService {
 }
 
 export const bookingService = new BookingService()
-

@@ -8,16 +8,65 @@ import { getRedirectUrl } from '@/lib/auth-utils'
 import { getApiUrl } from '@/lib/api-config'
 
 const COUNTRIES = [
-  'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Italy', 'Spain',
-  'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Sweden', 'Norway', 'Denmark', 'Finland',
-  'Poland', 'Portugal', 'Greece', 'Ireland', 'New Zealand', 'Japan', 'South Korea', 'Singapore',
-  'India', 'China', 'Brazil', 'Mexico', 'Argentina', 'Chile', 'South Africa', 'Other'
+  'United States',
+  'United Kingdom',
+  'Canada',
+  'Australia',
+  'Germany',
+  'France',
+  'Italy',
+  'Spain',
+  'Netherlands',
+  'Belgium',
+  'Switzerland',
+  'Austria',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Finland',
+  'Poland',
+  'Portugal',
+  'Greece',
+  'Ireland',
+  'New Zealand',
+  'Japan',
+  'South Korea',
+  'Singapore',
+  'India',
+  'China',
+  'Brazil',
+  'Mexico',
+  'Argentina',
+  'Chile',
+  'South Africa',
+  'Other',
 ]
 
 const LANGUAGE_OPTIONS = [
-  'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch', 'Chinese',
-  'Japanese', 'Korean', 'Arabic', 'Hindi', 'Russian', 'Turkish', 'Polish', 'Swedish',
-  'Norwegian', 'Danish', 'Finnish', 'Greek', 'Czech', 'Hungarian', 'Romanian', 'Other'
+  'English',
+  'Spanish',
+  'French',
+  'German',
+  'Italian',
+  'Portuguese',
+  'Dutch',
+  'Chinese',
+  'Japanese',
+  'Korean',
+  'Arabic',
+  'Hindi',
+  'Russian',
+  'Turkish',
+  'Polish',
+  'Swedish',
+  'Norwegian',
+  'Danish',
+  'Finnish',
+  'Greek',
+  'Czech',
+  'Hungarian',
+  'Romanian',
+  'Other',
 ]
 
 export default function CompleteProfilePage() {
@@ -79,7 +128,7 @@ export default function CompleteProfilePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           role: formData.role,
@@ -98,7 +147,7 @@ export default function CompleteProfilePage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           gender: formData.gender,
@@ -117,13 +166,13 @@ export default function CompleteProfilePage() {
 
       // Refresh user data
       await refreshUser()
-      
+
       // Get updated user and redirect
       const updatedUser = await fetch(getApiUrl('/auth/current-user'), {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      }).then(res => res.json())
+      }).then((res) => res.json())
 
       if (updatedUser.success && updatedUser.data) {
         const redirectUrl = getRedirectUrl(updatedUser.data)
@@ -139,7 +188,6 @@ export default function CompleteProfilePage() {
       setFormLoading(false)
     }
   }
-
 
   if (loading) {
     return (
@@ -179,7 +227,9 @@ export default function CompleteProfilePage() {
                   name="role"
                   value="guest"
                   checked={formData.role === 'guest'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'guest' | 'host' }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, role: e.target.value as 'guest' | 'host' }))
+                  }
                   className="mr-3 text-primary-600"
                   required
                 />
@@ -192,7 +242,9 @@ export default function CompleteProfilePage() {
                   name="role"
                   value="host"
                   checked={formData.role === 'host'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'guest' | 'host' }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, role: e.target.value as 'guest' | 'host' }))
+                  }
                   className="mr-3 text-primary-600"
                   required
                 />
@@ -204,12 +256,10 @@ export default function CompleteProfilePage() {
 
           {/* Gender Field */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Gender *
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-2">Gender *</label>
             <select
               value={formData.gender}
-              onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, gender: e.target.value }))}
               className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
               required
             >
@@ -229,13 +279,15 @@ export default function CompleteProfilePage() {
             </label>
             <select
               value={formData.country}
-              onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
               className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
               required
             >
               <option value="">Select country</option>
-              {COUNTRIES.map(country => (
-                <option key={country} value={country}>{country}</option>
+              {COUNTRIES.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
               ))}
             </select>
           </div>
@@ -248,13 +300,15 @@ export default function CompleteProfilePage() {
             </label>
             <select
               value={formData.language}
-              onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, language: e.target.value }))}
               className="w-full px-4 py-3 bg-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
               required
             >
               <option value="">Select language</option>
-              {LANGUAGE_OPTIONS.map(language => (
-                <option key={language} value={language}>{language}</option>
+              {LANGUAGE_OPTIONS.map((language) => (
+                <option key={language} value={language}>
+                  {language}
+                </option>
               ))}
             </select>
           </div>
@@ -279,4 +333,3 @@ export default function CompleteProfilePage() {
     </div>
   )
 }
-

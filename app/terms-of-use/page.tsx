@@ -13,12 +13,8 @@ export default function TermsOfUsePage() {
           <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Terms of Use
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Last updated: October 23, 2024
-          </p>
+          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Terms of Use</h1>
+          <p className="text-xl text-muted-foreground">Last updated: October 23, 2024</p>
         </div>
 
         {/* Introduction */}
@@ -28,10 +24,14 @@ export default function TermsOfUsePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              Welcome to DineWithUs! These Terms of Use ("Terms") govern your use of our platform and services. By accessing or using our service, you agree to be bound by these Terms and our Privacy Policy.
+              Welcome to DineWithUs! These Terms of Use ("Terms") govern your use of our platform
+              and services. By accessing or using our service, you agree to be bound by these Terms
+              and our Privacy Policy.
             </p>
             <p>
-              If you do not agree to these Terms, please do not use our service. We reserve the right to modify these Terms at any time, and your continued use of the service constitutes acceptance of any changes.
+              If you do not agree to these Terms, please do not use our service. We reserve the
+              right to modify these Terms at any time, and your continued use of the service
+              constitutes acceptance of any changes.
             </p>
           </CardContent>
         </Card>
@@ -43,7 +43,8 @@ export default function TermsOfUsePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              DineWithUs is a platform that connects guests with local hosts for authentic dining experiences. We facilitate:
+              DineWithUs is a platform that connects guests with local hosts for authentic dining
+              experiences. We facilitate:
             </p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>Discovery and booking of dining experiences</li>
@@ -53,7 +54,8 @@ export default function TermsOfUsePage() {
               <li>Customer support and assistance</li>
             </ul>
             <p>
-              We act as an intermediary between guests and hosts and are not responsible for the actual dining experiences provided by hosts.
+              We act as an intermediary between guests and hosts and are not responsible for the
+              actual dining experiences provided by hosts.
             </p>
           </CardContent>
         </Card>
@@ -162,9 +164,7 @@ export default function TermsOfUsePage() {
             <CardTitle className="text-2xl">Disclaimers and Limitations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>
-              DineWithUs provides the platform "as is" and makes no warranties regarding:
-            </p>
+            <p>DineWithUs provides the platform "as is" and makes no warranties regarding:</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>The quality or safety of dining experiences</li>
               <li>The accuracy of host information or listings</li>
@@ -172,7 +172,8 @@ export default function TermsOfUsePage() {
               <li>The conduct of other users on the platform</li>
             </ul>
             <p>
-              We are not liable for any damages arising from your use of the service, including but not limited to food allergies, illness, property damage, or personal injury.
+              We are not liable for any damages arising from your use of the service, including but
+              not limited to food allergies, illness, property damage, or personal injury.
             </p>
           </CardContent>
         </Card>
@@ -184,7 +185,8 @@ export default function TermsOfUsePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              The DineWithUs platform, including its design, functionality, and content, is protected by intellectual property laws. You may not:
+              The DineWithUs platform, including its design, functionality, and content, is
+              protected by intellectual property laws. You may not:
             </p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>Copy, modify, or distribute our platform or content</li>
@@ -201,18 +203,14 @@ export default function TermsOfUsePage() {
             <CardTitle className="text-2xl">Account Termination</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>
-              We reserve the right to suspend or terminate your account at any time for:
-            </p>
+            <p>We reserve the right to suspend or terminate your account at any time for:</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>Violation of these Terms of Use</li>
               <li>Fraudulent or illegal activity</li>
               <li>Misrepresentation or false information</li>
               <li>Abuse of other users or the platform</li>
             </ul>
-            <p>
-              You may also terminate your account at any time by contacting our support team.
-            </p>
+            <p>You may also terminate your account at any time by contacting our support team.</p>
           </CardContent>
         </Card>
 
@@ -226,10 +224,12 @@ export default function TermsOfUsePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              These Terms are governed by the laws of [Your Jurisdiction]. Any disputes arising from these Terms or your use of the service will be resolved through binding arbitration.
+              These Terms are governed by the laws of [Your Jurisdiction]. Any disputes arising from
+              these Terms or your use of the service will be resolved through binding arbitration.
             </p>
             <p>
-              We encourage users to resolve disputes amicably through our customer support team before pursuing legal action.
+              We encourage users to resolve disputes amicably through our customer support team
+              before pursuing legal action.
             </p>
           </CardContent>
         </Card>
@@ -240,13 +240,17 @@ export default function TermsOfUsePage() {
             <CardTitle className="text-2xl">Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>
-              If you have any questions about these Terms of Use, please contact us:
-            </p>
+            <p>If you have any questions about these Terms of Use, please contact us:</p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> legal@dinewithus.com</p>
-              <p><strong>Phone:</strong> +1 (555) 123-4567</p>
-              <p><strong>Address:</strong> 123 Food Street, Culinary City, CC 12345</p>
+              <p>
+                <strong>Email:</strong> legal@dinewithus.com
+              </p>
+              <p>
+                <strong>Phone:</strong> +1 (555) 123-4567
+              </p>
+              <p>
+                <strong>Address:</strong> 123 Food Street, Culinary City, CC 12345
+              </p>
             </div>
           </CardContent>
         </Card>

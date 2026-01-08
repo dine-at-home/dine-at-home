@@ -52,14 +52,14 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
   }
 
   return (
-    <div 
+    <div
       className={`group cursor-pointer transform transition-transform duration-200 hover:scale-[1.02] ${className}`}
       onClick={handleCardClick}
     >
       <div className="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-hover transition-shadow duration-300">
         {/* Image Container */}
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {(dinner.thumbnail || (dinner.images && dinner.images.length > 0)) ? (
+          {dinner.thumbnail || (dinner.images && dinner.images.length > 0) ? (
             <Image
               key={currentImageIndex}
               src={
@@ -77,7 +77,7 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
               <p className="text-muted-foreground text-sm">No image</p>
             </div>
           )}
-          
+
           {/* Image Navigation */}
           {dinner.images && dinner.images.length > 1 && (
             <>
@@ -136,9 +136,7 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
           {/* Superhost Badge */}
           {dinner.host.superhost && (
             <div className="absolute top-12 left-3">
-              <Badge className="bg-primary text-white hover:bg-primary border-0">
-                Superhost
-              </Badge>
+              <Badge className="bg-primary text-white hover:bg-primary border-0">Superhost</Badge>
             </div>
           )}
         </div>
@@ -148,34 +146,42 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
           {/* Host Info */}
           <div className="flex items-center space-x-2">
             <Avatar className="w-6 h-6">
-              <AvatarImage src={`https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face`} alt={dinner.host.name} />
+              <AvatarImage
+                src={`https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face`}
+                alt={dinner.host.name}
+              />
               <AvatarFallback>{dinner.host.name[0]}</AvatarFallback>
             </Avatar>
             <span className="text-sm text-muted-foreground">Hosted by {dinner.host.name}</span>
           </div>
 
           {/* Title */}
-          <h3 className="font-semibold text-lg line-clamp-2 leading-tight">
-            {dinner.title}
-          </h3>
+          <h3 className="font-semibold text-lg line-clamp-2 leading-tight">{dinner.title}</h3>
 
           {/* Details */}
           <div className="space-y-2">
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <div className="flex items-center space-x-1">
                 <Calendar className="w-4 h-4" />
-                <span>{new Date(dinner.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span>
+                  {new Date(dinner.date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
               </div>
               <div className="flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
                 <span>{dinner.time}</span>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <div className="flex items-center space-x-1">
                 <MapPin className="w-4 h-4" />
-                <span>{dinner.location.neighborhood}, {dinner.location.city}</span>
+                <span>
+                  {dinner.location.neighborhood}, {dinner.location.city}
+                </span>
               </div>
               <div className="flex items-center space-x-1">
                 <Users className="w-4 h-4" />
@@ -199,7 +205,7 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
           {/* Quick Book Button */}
           <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             {isHost ? (
-              <Button 
+              <Button
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg cursor-not-allowed opacity-60"
                 onClick={handleQuickBook}
                 disabled
@@ -208,7 +214,7 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
                 Host can't book
               </Button>
             ) : (
-              <Button 
+              <Button
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
                 onClick={handleQuickBook}
               >

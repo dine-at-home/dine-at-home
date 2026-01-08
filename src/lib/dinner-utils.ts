@@ -8,27 +8,30 @@ export function transformDinner(dinner: any): Dinner {
   const images: string[] = Array.isArray(dinner.images) ? dinner.images : []
 
   // Filter out invalid blob URLs
-  const validImages = images.filter((img: string) => 
-    img && 
-    typeof img === 'string' && 
-    (img.startsWith('http://') || img.startsWith('https://'))
+  const validImages = images.filter(
+    (img: string) =>
+      img && typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
   )
 
   let location: Location = {
     address: '',
     city: '',
     state: '',
-    neighborhood: ''
+    neighborhood: '',
   }
   // Location is now stored as object directly
-  if (typeof dinner.location === 'object' && dinner.location !== null && !Array.isArray(dinner.location)) {
+  if (
+    typeof dinner.location === 'object' &&
+    dinner.location !== null &&
+    !Array.isArray(dinner.location)
+  ) {
     const locationData = dinner.location as any
     location = {
       address: locationData.address || '',
       city: locationData.city || '',
       state: locationData.state || '',
       neighborhood: locationData.neighborhood || locationData.city || '',
-      coordinates: locationData.coordinates
+      coordinates: locationData.coordinates,
     }
   }
 
@@ -41,13 +44,14 @@ export function transformDinner(dinner: any): Dinner {
     joinedDate: dinner.host?.createdAt || dinner.host?.joinedDate || new Date().toISOString(),
     responseRate: dinner.host?.responseRate || 0,
     responseTime: dinner.host?.responseTime || 'within 24 hours',
-    bio: dinner.host?.bio
+    bio: dinner.host?.bio,
   }
 
   // Format date
-  const dateStr = typeof dinner.date === 'string' 
-    ? dinner.date.split('T')[0] 
-    : new Date(dinner.date).toISOString().split('T')[0]
+  const dateStr =
+    typeof dinner.date === 'string'
+      ? dinner.date.split('T')[0]
+      : new Date(dinner.date).toISOString().split('T')[0]
 
   // Menu, included, houseRules, and dietary are stored as arrays directly
   const menu: string[] = Array.isArray(dinner.menu) ? dinner.menu : []
@@ -75,7 +79,6 @@ export function transformDinner(dinner: any): Dinner {
     menu,
     included,
     houseRules,
-    dietary
+    dietary,
   }
 }
-

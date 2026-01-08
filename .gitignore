@@ -45,7 +45,9 @@ lerna-debug.log*
 .env.production.local
 
 # IDE and Editor files
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo

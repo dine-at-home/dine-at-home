@@ -4,12 +4,12 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  HelpCircle, 
-  Search, 
-  MessageCircle, 
-  Phone, 
-  Mail, 
+import {
+  HelpCircle,
+  Search,
+  MessageCircle,
+  Phone,
+  Mail,
   Clock,
   BookOpen,
   Shield,
@@ -18,7 +18,7 @@ import {
   ChefHat,
   Star,
   Calendar,
-  MapPin
+  MapPin,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -27,101 +27,113 @@ export default function HelpCenterPage() {
 
   const faqCategories = [
     {
-      title: "Getting Started",
+      title: 'Getting Started',
       icon: <BookOpen className="w-5 h-5" />,
       questions: [
         {
-          question: "How do I create an account?",
-          answer: "Click 'Sign Up' on our homepage and choose to register as either a guest or host. Fill in your details and verify your email address to get started."
+          question: 'How do I create an account?',
+          answer:
+            "Click 'Sign Up' on our homepage and choose to register as either a guest or host. Fill in your details and verify your email address to get started.",
         },
         {
           question: "What's the difference between a guest and host account?",
-          answer: "Guests can browse and book dining experiences, while hosts can create and manage their own dining experiences to share with guests."
+          answer:
+            'Guests can browse and book dining experiences, while hosts can create and manage their own dining experiences to share with guests.',
         },
         {
-          question: "How do I verify my account?",
-          answer: "We'll send you a verification email after signup. Click the link in the email to verify your account and unlock all features."
-        }
-      ]
+          question: 'How do I verify my account?',
+          answer:
+            "We'll send you a verification email after signup. Click the link in the email to verify your account and unlock all features.",
+        },
+      ],
     },
     {
-      title: "Booking & Payments",
+      title: 'Booking & Payments',
       icon: <CreditCard className="w-5 h-5" />,
       questions: [
         {
-          question: "How do I book a dining experience?",
-          answer: "Search for experiences, select your preferred date and time, and complete the booking process. You'll receive instant confirmation and all details."
+          question: 'How do I book a dining experience?',
+          answer:
+            "Search for experiences, select your preferred date and time, and complete the booking process. You'll receive instant confirmation and all details.",
         },
         {
-          question: "What payment methods do you accept?",
-          answer: "We accept all major credit cards (Visa, MasterCard, American Express) and digital wallets like PayPal and Apple Pay."
+          question: 'What payment methods do you accept?',
+          answer:
+            'We accept all major credit cards (Visa, MasterCard, American Express) and digital wallets like PayPal and Apple Pay.',
         },
         {
-          question: "Can I cancel my booking?",
-          answer: "Yes! You can cancel bookings up to 24 hours in advance for a full refund. Cancellations within 24 hours may be subject to different policies."
-        }
-      ]
+          question: 'Can I cancel my booking?',
+          answer:
+            'Yes! You can cancel bookings up to 24 hours in advance for a full refund. Cancellations within 24 hours may be subject to different policies.',
+        },
+      ],
     },
     {
-      title: "Hosting",
+      title: 'Hosting',
       icon: <ChefHat className="w-5 h-5" />,
       questions: [
         {
-          question: "How do I become a host?",
-          answer: "Sign up as a host, complete your profile with your culinary background, and create your first dining experience listing."
+          question: 'How do I become a host?',
+          answer:
+            'Sign up as a host, complete your profile with your culinary background, and create your first dining experience listing.',
         },
         {
-          question: "What are the requirements to host?",
-          answer: "You need a safe kitchen space, food safety knowledge, and a passion for sharing your culinary skills. We'll guide you through the verification process."
+          question: 'What are the requirements to host?',
+          answer:
+            "You need a safe kitchen space, food safety knowledge, and a passion for sharing your culinary skills. We'll guide you through the verification process.",
         },
         {
-          question: "How do I get paid?",
-          answer: "Hosts receive payments within 24-48 hours after each completed dining experience, minus our service fee."
-        }
-      ]
+          question: 'How do I get paid?',
+          answer:
+            'Hosts receive payments within 24-48 hours after each completed dining experience, minus our service fee.',
+        },
+      ],
     },
     {
-      title: "Safety & Trust",
+      title: 'Safety & Trust',
       icon: <Shield className="w-5 h-5" />,
       questions: [
         {
-          question: "How do you verify hosts?",
-          answer: "All hosts undergo identity verification, background checks, and food safety assessments before they can start hosting."
+          question: 'How do you verify hosts?',
+          answer:
+            'All hosts undergo identity verification, background checks, and food safety assessments before they can start hosting.',
         },
         {
-          question: "What if I have a problem with my experience?",
-          answer: "Contact our support team immediately. We have a dedicated team to resolve issues and ensure your safety and satisfaction."
+          question: 'What if I have a problem with my experience?',
+          answer:
+            'Contact our support team immediately. We have a dedicated team to resolve issues and ensure your safety and satisfaction.',
         },
         {
-          question: "Are the dining experiences safe?",
-          answer: "Yes! All hosts are verified, and we have safety guidelines in place. You can also read reviews from other guests before booking."
-        }
-      ]
-    }
+          question: 'Are the dining experiences safe?',
+          answer:
+            'Yes! All hosts are verified, and we have safety guidelines in place. You can also read reviews from other guests before booking.',
+        },
+      ],
+    },
   ]
 
   const contactMethods = [
     {
-      title: "Live Chat",
-      description: "Get instant help from our support team",
+      title: 'Live Chat',
+      description: 'Get instant help from our support team',
       icon: <MessageCircle className="w-6 h-6" />,
-      action: "Start Chat",
-      available: "Available 24/7"
+      action: 'Start Chat',
+      available: 'Available 24/7',
     },
     {
-      title: "Email Support",
-      description: "Send us a detailed message",
+      title: 'Email Support',
+      description: 'Send us a detailed message',
       icon: <Mail className="w-6 h-6" />,
-      action: "Send Email",
-      available: "Response within 24 hours"
+      action: 'Send Email',
+      available: 'Response within 24 hours',
     },
     {
-      title: "Phone Support",
-      description: "Speak directly with our team",
+      title: 'Phone Support',
+      description: 'Speak directly with our team',
       icon: <Phone className="w-6 h-6" />,
-      action: "Call Now",
-      available: "Mon-Fri 9AM-6PM EST"
-    }
+      action: 'Call Now',
+      available: 'Mon-Fri 9AM-6PM EST',
+    },
   ]
 
   return (
@@ -132,9 +144,7 @@ export default function HelpCenterPage() {
           <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <HelpCircle className="w-8 h-8 text-primary-600" />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Help Center
-          </h1>
+          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Help Center</h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Find answers to your questions or get in touch with our support team
           </p>
@@ -242,7 +252,9 @@ export default function HelpCenterPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">How to Book a Dining Experience</h3>
-                    <p className="text-sm text-muted-foreground">Step-by-step guide to booking your first experience</p>
+                    <p className="text-sm text-muted-foreground">
+                      Step-by-step guide to booking your first experience
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -256,7 +268,9 @@ export default function HelpCenterPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Getting Started as a Host</h3>
-                    <p className="text-sm text-muted-foreground">Everything you need to know to start hosting</p>
+                    <p className="text-sm text-muted-foreground">
+                      Everything you need to know to start hosting
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -270,7 +284,9 @@ export default function HelpCenterPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Payment & Refund Policy</h3>
-                    <p className="text-sm text-muted-foreground">Understanding payments, fees, and refunds</p>
+                    <p className="text-sm text-muted-foreground">
+                      Understanding payments, fees, and refunds
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -298,7 +314,9 @@ export default function HelpCenterPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Safety Guidelines</h3>
-                    <p className="text-sm text-muted-foreground">Keeping yourself safe during experiences</p>
+                    <p className="text-sm text-muted-foreground">
+                      Keeping yourself safe during experiences
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -312,7 +330,9 @@ export default function HelpCenterPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Finding Experiences</h3>
-                    <p className="text-sm text-muted-foreground">Tips for discovering great dining experiences</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tips for discovering great dining experiences
+                    </p>
                   </div>
                 </div>
               </CardContent>

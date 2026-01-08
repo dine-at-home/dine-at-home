@@ -18,7 +18,7 @@ function AuthCallbackContent() {
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
     const token = searchParams.get('token')
-    
+
     if (errorParam) {
       setError(errorParam)
       setTimeout(() => {
@@ -29,46 +29,58 @@ function AuthCallbackContent() {
 
     // Handle Google OAuth code exchange
     if (code) {
-      authService.exchangeGoogleCode(code).then((result) => {
-        if (result.success && result.data?.user) {
-          // Token and user are already stored by exchangeGoogleCode
-          // If opened in a popup, close it and notify parent window
-          if (window.opener) {
-            // Notify parent window that authentication succeeded
-            window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', user: result.data.user }, window.location.origin);
-            // Close the popup
-            window.close();
+      authService
+        .exchangeGoogleCode(code)
+        .then((result) => {
+          if (result.success && result.data?.user) {
+            // Token and user are already stored by exchangeGoogleCode
+            // If opened in a popup, close it and notify parent window
+            if (window.opener) {
+              // Notify parent window that authentication succeeded
+              window.opener.postMessage(
+                { type: 'GOOGLE_AUTH_SUCCESS', user: result.data.user },
+                window.location.origin
+              )
+              // Close the popup
+              window.close()
+            } else {
+              // Opened in new tab, redirect will happen in next useEffect
+              // Redirect will happen in next useEffect
+            }
           } else {
-            // Opened in new tab, redirect will happen in next useEffect
-            // Redirect will happen in next useEffect
+            setError(result.error || 'Google authentication failed')
+            if (window.opener) {
+              window.opener.postMessage(
+                { type: 'GOOGLE_AUTH_ERROR', error: result.error },
+                window.location.origin
+              )
+              setTimeout(() => {
+                window.close()
+              }, 2000)
+            } else {
+              setTimeout(() => {
+                router.push('/auth/signin')
+              }, 3000)
+            }
           }
-        } else {
-          setError(result.error || 'Google authentication failed')
+        })
+        .catch((err) => {
+          console.error('Error exchanging Google code:', err)
+          setError('Failed to authenticate with Google')
           if (window.opener) {
-            window.opener.postMessage({ type: 'GOOGLE_AUTH_ERROR', error: result.error }, window.location.origin);
+            window.opener.postMessage(
+              { type: 'GOOGLE_AUTH_ERROR', error: err.message },
+              window.location.origin
+            )
             setTimeout(() => {
-              window.close();
+              window.close()
             }, 2000)
           } else {
             setTimeout(() => {
               router.push('/auth/signin')
             }, 3000)
           }
-        }
-      }).catch((err) => {
-        console.error('Error exchanging Google code:', err)
-        setError('Failed to authenticate with Google')
-        if (window.opener) {
-          window.opener.postMessage({ type: 'GOOGLE_AUTH_ERROR', error: err.message }, window.location.origin);
-          setTimeout(() => {
-            window.close();
-          }, 2000)
-        } else {
-          setTimeout(() => {
-            router.push('/auth/signin')
-          }, 3000)
-        }
-      })
+        })
       return
     }
 
@@ -77,15 +89,17 @@ function AuthCallbackContent() {
       // Store token from Google OAuth
       authService.setToken(token)
       // Fetch user data
-      refreshUser().then(() => {
-        // User will be set by refreshUser, redirect will happen in next useEffect
-      }).catch((err) => {
-        console.error('Error refreshing user:', err)
-        setError('Failed to authenticate')
-        setTimeout(() => {
-          router.push('/auth/signin')
-        }, 3000)
-      })
+      refreshUser()
+        .then(() => {
+          // User will be set by refreshUser, redirect will happen in next useEffect
+        })
+        .catch((err) => {
+          console.error('Error refreshing user:', err)
+          setError('Failed to authenticate')
+          setTimeout(() => {
+            router.push('/auth/signin')
+          }, 3000)
+        })
       return
     }
 
@@ -115,7 +129,7 @@ function AuthCallbackContent() {
 
   const checkUserRoleSelection = () => {
     setCheckingRole(true)
-    
+
     // Check if user needs role selection
     if (user?.needsRoleSelection) {
       console.log('User needs role selection, redirecting to role selection page')
@@ -126,7 +140,7 @@ function AuthCallbackContent() {
       const redirectUrl = getRedirectUrl(user)
       router.push(redirectUrl)
     }
-    
+
     setCheckingRole(false)
   }
 
@@ -154,14 +168,16 @@ function AuthCallbackContent() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <AuthCallbackContent />
     </Suspense>
   )

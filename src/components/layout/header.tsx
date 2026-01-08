@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/auth-context'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from '../ui/dropdown-menu'
 import {
   Search,
   Menu,
@@ -24,32 +24,30 @@ import {
   HelpCircle,
   LogOut,
   ChefHat,
-} from "lucide-react";
-import { SearchParams } from "@/types";
+} from 'lucide-react'
+import { SearchParams } from '@/types'
 
 interface HeaderProps {
-  onSearch?: (params: SearchParams) => void;
+  onSearch?: (params: SearchParams) => void
 }
 
 export function Header({ onSearch }: HeaderProps = {}) {
-  const router = useRouter();
-  const { user, logout } = useAuth();
-  const [isScrolled, setIsScrolled] = useState(false);
+  const router = useRouter()
+  const { user, logout } = useAuth()
+  const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+      setIsScrolled(window.scrollY > 0)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-background shadow-sm border-b border-border"
-          : "bg-transparent"
+        isScrolled ? 'bg-background shadow-sm border-b border-border' : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,9 +58,7 @@ export function Header({ onSearch }: HeaderProps = {}) {
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">D</span>
               </div>
-              <span className="hidden sm:block font-bold text-xl text-primary">
-                DineWithUs
-              </span>
+              <span className="hidden sm:block font-bold text-xl text-primary">DineWithUs</span>
             </a>
           </div>
 
@@ -77,10 +73,7 @@ export function Header({ onSearch }: HeaderProps = {}) {
                 >
                   <Menu className="w-4 h-4" />
                   <Avatar className="w-8 h-8">
-                    <AvatarImage
-                      src={user?.image || ""}
-                      alt={user?.name || "User avatar"}
-                    />
+                    <AvatarImage src={user?.image || ''} alt={user?.name || 'User avatar'} />
                     <AvatarFallback>
                       {user?.name ? (
                         user.name.charAt(0).toUpperCase()
@@ -97,57 +90,69 @@ export function Header({ onSearch }: HeaderProps = {}) {
                     <DropdownMenuItem className="font-semibold">
                       {user?.name || user?.email}
                     </DropdownMenuItem>
-                    {user?.role === "host" ? (
+                    {user?.role === 'host' ? (
                       <>
-                        <DropdownMenuItem onClick={() => router.push("/host/dashboard")}>
+                        <DropdownMenuItem onClick={() => router.push('/host/dashboard')}>
                           <ChefHat className="w-4 h-4 mr-2" />
                           Host Dashboard
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/host/dashboard?tab=dinners")}>
+                        <DropdownMenuItem
+                          onClick={() => router.push('/host/dashboard?tab=dinners')}
+                        >
                           <Calendar className="w-4 h-4 mr-2" />
                           My Dinners
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/host/dashboard?tab=bookings")}>
+                        <DropdownMenuItem
+                          onClick={() => router.push('/host/dashboard?tab=bookings')}
+                        >
                           <Calendar className="w-4 h-4 mr-2" />
                           Bookings
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/host/dashboard?tab=reviews")}>
+                        <DropdownMenuItem
+                          onClick={() => router.push('/host/dashboard?tab=reviews')}
+                        >
                           <Heart className="w-4 h-4 mr-2" />
                           Reviews
                         </DropdownMenuItem>
                       </>
                     ) : (
                       <>
-                        <DropdownMenuItem onClick={() => router.push("/profile")}>
+                        <DropdownMenuItem onClick={() => router.push('/profile')}>
                           <User className="w-4 h-4 mr-2" />
                           My Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/profile?tab=bookings")}>
+                        <DropdownMenuItem onClick={() => router.push('/profile?tab=bookings')}>
                           <Calendar className="w-4 h-4 mr-2" />
                           My bookings
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/profile?tab=reviews")}>
+                        <DropdownMenuItem onClick={() => router.push('/profile?tab=reviews')}>
                           <Heart className="w-4 h-4 mr-2" />
                           My reviews
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/favorites")}>
+                        <DropdownMenuItem onClick={() => router.push('/favorites')}>
                           <Heart className="w-4 h-4 mr-2" />
                           My Favorites
                         </DropdownMenuItem>
                       </>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push("/help-center")}>
+                    <DropdownMenuItem onClick={() => router.push('/help-center')}>
                       <HelpCircle className="w-4 h-4 mr-2" />
                       Help Center
                     </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push(user?.role === "host" ? "/host/dashboard?tab=settings" : "/profile?tab=settings")}>
-          <Settings className="w-4 h-4 mr-2" />
-          Settings
-        </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => logout()}
+                      onClick={() =>
+                        router.push(
+                          user?.role === 'host'
+                            ? '/host/dashboard?tab=settings'
+                            : '/profile?tab=settings'
+                        )
+                      }
                     >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => logout()}>
                       <LogOut className="w-4 h-4 mr-2" />
                       Logout
                     </DropdownMenuItem>
@@ -156,17 +161,15 @@ export function Header({ onSearch }: HeaderProps = {}) {
                   <>
                     <DropdownMenuItem
                       className="font-semibold"
-                      onClick={() => router.push("/auth/signup")}
+                      onClick={() => router.push('/auth/signup')}
                     >
                       Sign up
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => router.push("/auth/signin")}
-                    >
+                    <DropdownMenuItem onClick={() => router.push('/auth/signin')}>
                       Log in
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push("/help-center")}>
+                    <DropdownMenuItem onClick={() => router.push('/help-center')}>
                       <HelpCircle className="w-4 h-4 mr-2" />
                       Help Center
                     </DropdownMenuItem>
@@ -178,5 +181,5 @@ export function Header({ onSearch }: HeaderProps = {}) {
         </div>
       </div>
     </header>
-  );
+  )
 }

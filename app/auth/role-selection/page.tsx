@@ -18,7 +18,7 @@ export default function RoleSelectionPage() {
     if (!loading && !isAuthenticated) {
       router.push('/auth/signin')
     }
-    
+
     // If user already has a role and doesn't need role selection, redirect
     if (user && !user.needsRoleSelection && user.role !== 'guest') {
       router.push(user.role === 'host' ? '/host/dashboard' : '/')
@@ -27,7 +27,7 @@ export default function RoleSelectionPage() {
 
   const handleRoleSelection = async (role: 'guest' | 'host') => {
     setUpdating(true)
-    
+
     try {
       const result = await updateRole(role)
 
@@ -71,9 +71,7 @@ export default function RoleSelectionPage() {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-2xl w-full">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-4">
-              Welcome to DineWithUs!
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground mb-4">Welcome to DineWithUs!</h1>
             <p className="text-lg text-muted-foreground">
               Please choose how you'd like to use our platform
             </p>
@@ -98,8 +96,8 @@ export default function RoleSelectionPage() {
                   <li>• Leave reviews and ratings</li>
                   <li>• Save favorite experiences</li>
                 </ul>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   variant="outline"
                   onClick={() => handleRoleSelection('guest')}
                   disabled={updating}
@@ -117,9 +115,7 @@ export default function RoleSelectionPage() {
                   <ChefHat className="w-8 h-8 text-primary-600" />
                 </div>
                 <CardTitle className="text-xl">I'm a Host</CardTitle>
-                <CardDescription>
-                  I want to share my culinary skills and earn money
-                </CardDescription>
+                <CardDescription>I want to share my culinary skills and earn money</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="text-sm text-muted-foreground space-y-2 mb-6">
@@ -128,8 +124,8 @@ export default function RoleSelectionPage() {
                   <li>• Earn money from bookings</li>
                   <li>• Build your culinary reputation</li>
                 </ul>
-                <Button 
-                  className="w-full bg-primary-600 hover:bg-primary-700" 
+                <Button
+                  className="w-full bg-primary-600 hover:bg-primary-700"
                   onClick={() => handleRoleSelection('host')}
                   disabled={updating}
                 >

@@ -9,15 +9,15 @@ interface AuthContextType {
   loading: boolean
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<AuthResponse>
-  register: (data: { 
-    email: string; 
-    password: string; 
-    name: string; 
-    role?: 'guest' | 'host';
-    phone?: string;
-    gender?: string;
-    country?: string;
-    languages?: string[];
+  register: (data: {
+    email: string
+    password: string
+    name: string
+    role?: 'guest' | 'host'
+    phone?: string
+    gender?: string
+    country?: string
+    languages?: string[]
   }) => Promise<AuthResponse>
   verifyOTP: (email: string, otp: string) => Promise<AuthResponse>
   resendOTP: (email: string) => Promise<{ success: boolean; error?: string }>
@@ -87,15 +87,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: { 
-    email: string; 
-    password: string; 
-    name: string; 
-    role?: 'guest' | 'host';
-    phone?: string;
-    gender?: string;
-    country?: string;
-    languages?: string[];
+  const register = async (data: {
+    email: string
+    password: string
+    name: string
+    role?: 'guest' | 'host'
+    phone?: string
+    gender?: string
+    country?: string
+    languages?: string[]
   }) => {
     try {
       const result = await authService.register(data)
@@ -185,9 +185,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

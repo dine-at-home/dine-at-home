@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!name || !email || !password || !phone) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Missing required fields: name, email, password, and phone are required',
-          code: 'BAD_REQUEST'
+          code: 'BAD_REQUEST',
         },
         { status: 400 }
       )
@@ -20,10 +20,10 @@ export async function POST(request: NextRequest) {
 
     if (password.length < 8) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Password must be at least 8 characters',
-          code: 'BAD_REQUEST'
+          code: 'BAD_REQUEST',
         },
         { status: 400 }
       )
@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
 
     if (!phone || phone.trim().length === 0) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Phone number is required',
-          code: 'BAD_REQUEST'
+          code: 'BAD_REQUEST',
         },
         { status: 400 }
       )
@@ -85,10 +85,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Registration error:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Internal server error',
-        code: 'INTERNAL_SERVER_ERROR'
+        code: 'INTERNAL_SERVER_ERROR',
       },
       { status: 500 }
     )

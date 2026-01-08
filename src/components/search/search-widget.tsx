@@ -20,7 +20,11 @@ interface SearchWidgetProps {
   }
 }
 
-export function SearchWidget({ variant = 'hero', className = '', initialParams }: SearchWidgetProps) {
+export function SearchWidget({
+  variant = 'hero',
+  className = '',
+  initialParams,
+}: SearchWidgetProps) {
   const router = useRouter()
   const [location, setLocation] = useState(initialParams?.location || '')
   const [date, setDate] = useState<Date | undefined>(initialParams?.date)
@@ -36,17 +40,17 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
     }
   }, [initialParams])
 
-  const incrementGuests = () => setGuests(prev => Math.min(prev + 1, 20))
-  const decrementGuests = () => setGuests(prev => Math.max(prev - 1, 1))
+  const incrementGuests = () => setGuests((prev) => Math.min(prev + 1, 20))
+  const decrementGuests = () => setGuests((prev) => Math.max(prev - 1, 1))
 
   const handleSearch = () => {
     // Create search params
     const searchParams = new URLSearchParams()
-    
+
     if (location) searchParams.set('location', location)
     if (date) searchParams.set('date', date.toISOString())
     if (guests) searchParams.set('guests', guests.toString())
-    
+
     // Navigate to search page with query parameters
     const queryString = searchParams.toString()
     router.push(`/search${queryString ? `?${queryString}` : ''}`)
@@ -83,10 +87,15 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
             <label className="block text-xs font-semibold text-gray-800 mb-2 ml-4">When</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl"
+                >
                   <CalendarIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                   <span className="text-sm text-foreground">
-                    {date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Add dates'}
+                    {date
+                      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : 'Add dates'}
                   </span>
                 </Button>
               </PopoverTrigger>
@@ -113,7 +122,10 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
             <label className="block text-xs font-semibold text-gray-800 mb-2 ml-4">Guests</label>
             <Popover open={showGuestSelector} onOpenChange={setShowGuestSelector}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl"
+                >
                   <Users className="w-4 h-4 mr-3 text-muted-foreground" />
                   <span className="text-sm text-foreground">
                     {guests} {guests === 1 ? 'guest' : 'guests'}
@@ -156,8 +168,8 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
 
           {/* Search Button */}
           <div className="flex items-end pt-6">
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="rounded-full w-12 h-12 p-0 bg-primary-600 hover:bg-primary-700"
               onClick={handleSearch}
             >
@@ -170,7 +182,9 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
   }
 
   return (
-    <div className={`bg-white rounded-2xl shadow-modal border border-border p-4 relative z-50 ${className}`}>
+    <div
+      className={`bg-white rounded-2xl shadow-modal border border-border p-4 relative z-50 ${className}`}
+    >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Location */}
         <div className="relative">
@@ -192,10 +206,15 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
           <label className="block text-xs font-semibold text-gray-800 mb-2 ml-4">When</label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl">
+              <Button
+                variant="ghost"
+                className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl"
+              >
                 <CalendarIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                 <span className="text-sm text-foreground">
-                  {date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Add dates'}
+                  {date
+                    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : 'Add dates'}
                 </span>
               </Button>
             </PopoverTrigger>
@@ -222,7 +241,10 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
           <label className="block text-xs font-semibold text-gray-800 mb-2 ml-4">Guests</label>
           <Popover open={showGuestSelector} onOpenChange={setShowGuestSelector}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl">
+              <Button
+                variant="ghost"
+                className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl"
+              >
                 <Users className="w-4 h-4 mr-3 text-muted-foreground" />
                 <span className="text-sm text-foreground">
                   {guests} {guests === 1 ? 'guest' : 'guests'}
@@ -265,7 +287,7 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
 
         {/* Search Button */}
         <div className="flex items-end">
-          <Button 
+          <Button
             className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2"
             onClick={handleSearch}
           >

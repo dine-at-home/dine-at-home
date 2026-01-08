@@ -7,7 +7,13 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,15 +27,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Star, 
-  Edit3, 
-  Camera, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Star,
+  Edit3,
+  Camera,
   Settings,
   History,
   CreditCard,
@@ -41,7 +47,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ChefHat
+  ChefHat,
 } from 'lucide-react'
 import Image from 'next/image'
 import { bookingService } from '@/lib/booking-service'
@@ -54,58 +60,72 @@ const mockBookings = [
     id: '1',
     dinner: {
       title: 'Authentic Italian Pasta Making',
-      host: { name: 'Marco Rossi', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face' },
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
+      host: {
+        name: 'Marco Rossi',
+        avatar:
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+      },
+      image:
+        'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
       location: 'Rome, Italy',
       date: '2024-01-15',
       time: '19:00',
       price: 85,
-      capacity: 8
+      capacity: 8,
     },
     status: 'completed',
     guests: 2,
     totalAmount: 170,
     paymentStatus: 'paid',
-    review: { rating: 5, comment: 'Amazing experience! Marco was a fantastic teacher.' }
+    review: { rating: 5, comment: 'Amazing experience! Marco was a fantastic teacher.' },
   },
   {
     id: '2',
     dinner: {
       title: 'Japanese Sushi Workshop',
-      host: { name: 'Yuki Tanaka', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face' },
-      image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
+      host: {
+        name: 'Yuki Tanaka',
+        avatar:
+          'https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face',
+      },
+      image:
+        'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
       location: 'Tokyo, Japan',
       date: '2024-02-20',
       time: '18:30',
       price: 120,
-      capacity: 6
+      capacity: 6,
     },
     status: 'confirmed',
     guests: 1,
     totalAmount: 120,
     paymentStatus: 'paid',
-    review: null
+    review: null,
   },
   {
     id: '3',
     dinner: {
       title: 'French Wine Tasting',
-      host: { name: 'Pierre Dubois', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face' },
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
+      host: {
+        name: 'Pierre Dubois',
+        avatar:
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+      },
+      image:
+        'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
       location: 'Paris, France',
       date: '2024-01-08',
       time: '20:00',
       price: 95,
-      capacity: 10
+      capacity: 10,
     },
     status: 'cancelled',
     guests: 2,
     totalAmount: 190,
     paymentStatus: 'refunded',
-    review: null
-  }
+    review: null,
+  },
 ]
-
 
 function ProfilePageContent() {
   const { user, loading, refreshUser } = useAuth()
@@ -122,12 +142,12 @@ function ProfilePageContent() {
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   })
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   })
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
@@ -141,7 +161,7 @@ function ProfilePageContent() {
     country: '',
     languages: [] as string[],
     profileImage: '',
-    memberSince: ''
+    memberSince: '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -175,7 +195,7 @@ function ProfilePageContent() {
         }
       }
 
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         name: user.name || '',
         email: user.email || '',
@@ -183,8 +203,10 @@ function ProfilePageContent() {
         country: user.country || '',
         gender: user.gender || '',
         languages: languagesArray,
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
-        memberSince: memberSince
+        profileImage:
+          user.image ||
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        memberSince: memberSince,
       }))
     }
   }, [user])
@@ -202,13 +224,13 @@ function ProfilePageContent() {
         console.log('🔵 Fetching bookings for user:', user.id)
         const result = await bookingService.getUserBookings(user.id)
         console.log('🔵 Bookings API result:', result)
-        
+
         if (result.success && result.data) {
           console.log('🔵 Bookings data:', result.data)
           // Transform bookings to match frontend format
           const transformedBookings = result.data.map((booking: any) => {
             console.log('🔵 Processing booking:', booking.id, 'dinner:', booking.dinner)
-            
+
             // Handle dinner data - backend already transforms it, but we need to ensure compatibility
             let dinner = null
             if (booking.dinner) {
@@ -216,7 +238,7 @@ function ProfilePageContent() {
                 // The backend already provides a transformed dinner object
                 // We need to adapt it to work with transformDinner or use it directly
                 const backendDinner = booking.dinner
-                
+
                 // Use transformDinner if needed, or use the backend format directly
                 dinner = transformDinner({
                   ...backendDinner,
@@ -229,11 +251,14 @@ function ProfilePageContent() {
                   rating: backendDinner.rating || 0,
                   reviewCount: backendDinner.reviewCount || 0,
                   // Images might already be an array from backend
-                  images: Array.isArray(backendDinner.images) ? backendDinner.images : (backendDinner.images || []),
+                  images: Array.isArray(backendDinner.images)
+                    ? backendDinner.images
+                    : backendDinner.images || [],
                   // Location might already be an object from backend
-                  location: typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                  location:
+                    typeof backendDinner.location === 'object' ? backendDinner.location : {},
                   // Host is already transformed
-                  host: backendDinner.host || {}
+                  host: backendDinner.host || {},
                 })
               } catch (error) {
                 console.error('Error transforming dinner for booking:', booking.id, error)
@@ -241,7 +266,11 @@ function ProfilePageContent() {
                 dinner = {
                   id: booking.dinner.id,
                   title: booking.dinner.title || 'Unknown Dinner',
-                  date: booking.dinner.date ? (typeof booking.dinner.date === 'string' ? booking.dinner.date.split('T')[0] : new Date(booking.dinner.date).toISOString().split('T')[0]) : '',
+                  date: booking.dinner.date
+                    ? typeof booking.dinner.date === 'string'
+                      ? booking.dinner.date.split('T')[0]
+                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                    : '',
                   time: booking.dinner.time || '19:00',
                   price: booking.dinner.price || 0,
                   capacity: booking.dinner.capacity || 0,
@@ -253,40 +282,49 @@ function ProfilePageContent() {
                     superhost: false,
                     joinedDate: new Date().toISOString(),
                     responseRate: 0,
-                    responseTime: 'within 24 hours'
+                    responseTime: 'within 24 hours',
                   },
-                  location: typeof booking.dinner.location === 'object' ? booking.dinner.location : {
-                    address: '',
-                    city: '',
-                    state: '',
-                    neighborhood: ''
-                  }
+                  location:
+                    typeof booking.dinner.location === 'object'
+                      ? booking.dinner.location
+                      : {
+                          address: '',
+                          city: '',
+                          state: '',
+                          neighborhood: '',
+                        },
                 }
               }
             }
-            
+
             return {
               id: booking.id,
               status: booking.status?.toLowerCase() || 'pending',
               guests: booking.guests || 1,
               totalAmount: booking.totalPrice || 0,
-              dinner: dinner ? {
-                title: dinner.title,
-                host: {
-                  name: dinner.host.name,
-                  avatar: dinner.host.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-                },
-                image: dinner.thumbnail || dinner.images?.[0] || null,
-                location: `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() || 'Location not available',
-                date: dinner.date,
-                time: dinner.time,
-                price: dinner.price,
-                capacity: dinner.capacity
-              } : null,
-              review: null // Reviews will be fetched separately if needed
+              dinner: dinner
+                ? {
+                    title: dinner.title,
+                    host: {
+                      name: dinner.host.name,
+                      avatar:
+                        dinner.host.avatar ||
+                        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                    },
+                    image: dinner.thumbnail || dinner.images?.[0] || null,
+                    location:
+                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                      'Location not available',
+                    date: dinner.date,
+                    time: dinner.time,
+                    price: dinner.price,
+                    capacity: dinner.capacity,
+                  }
+                : null,
+              review: null, // Reviews will be fetched separately if needed
             }
           })
-          
+
           console.log('🔵 Transformed bookings:', transformedBookings)
           setBookings(transformedBookings)
         } else {
@@ -324,7 +362,7 @@ function ProfilePageContent() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         })
 
@@ -353,7 +391,11 @@ function ProfilePageContent() {
     setPasswordLoading(true)
 
     // Validation
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       setPasswordError('All fields are required')
       setPasswordLoading(false)
       return
@@ -389,7 +431,7 @@ function ProfilePageContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
@@ -411,9 +453,9 @@ function ProfilePageContent() {
       setPasswordData({
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
       })
-      
+
       // Close dialog after 2 seconds
       setTimeout(() => {
         setShowChangePasswordDialog(false)
@@ -481,15 +523,13 @@ function ProfilePageContent() {
       }
 
       // Prepare languages array
-      const languagesArray = Array.isArray(profileData.languages) 
-        ? profileData.languages 
-        : []
+      const languagesArray = Array.isArray(profileData.languages) ? profileData.languages : []
 
       const response = await fetch(getApiUrl(`/users/${user.id}`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: profileData.name || undefined,
@@ -511,7 +551,7 @@ function ProfilePageContent() {
       // Success - refresh user data
       setSaveSuccess(true)
       setIsEditing(false)
-      
+
       // Refresh user from auth context
       await refreshUser()
 
@@ -533,19 +573,19 @@ function ProfilePageContent() {
     setSaveSuccess(false)
     // Reset form data to user's current data
     if (user) {
-      const languagesArray = Array.isArray(user.languages) 
-        ? user.languages 
-        : (typeof user.languages === 'string' 
-            ? (() => {
-                try {
-                  const parsed = JSON.parse(user.languages)
-                  return Array.isArray(parsed) ? parsed : []
-                } catch {
-                  return []
-                }
-              })()
-            : [])
-      
+      const languagesArray = Array.isArray(user.languages)
+        ? user.languages
+        : typeof user.languages === 'string'
+          ? (() => {
+              try {
+                const parsed = JSON.parse(user.languages)
+                return Array.isArray(parsed) ? parsed : []
+              } catch {
+                return []
+              }
+            })()
+          : []
+
       let memberSince = ''
       if (user.createdAt) {
         const date = new Date(user.createdAt)
@@ -559,20 +599,27 @@ function ProfilePageContent() {
         country: user.country || '',
         gender: user.gender || '',
         languages: languagesArray,
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        profileImage:
+          user.image ||
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
         bio: '',
-        memberSince: memberSince
+        memberSince: memberSince,
       })
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'confirmed': return 'bg-blue-100 text-blue-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -580,9 +627,7 @@ function ProfilePageContent() {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-4 h-4 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
+        className={`w-4 h-4 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
       />
     ))
   }
@@ -595,7 +640,9 @@ function ProfilePageContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
-              <p className="text-muted-foreground mt-1">Manage your account and view your dining history</p>
+              <p className="text-muted-foreground mt-1">
+                Manage your account and view your dining history
+              </p>
             </div>
             <Button variant="outline" onClick={() => router.push('/')}>
               Back to Home
@@ -624,7 +671,9 @@ function ProfilePageContent() {
                     )}
                   </div>
                   <h2 className="text-xl font-semibold mb-1">{profileData.name || 'Loading...'}</h2>
-                  <p className="text-muted-foreground text-sm mb-4">{profileData.email || 'Loading...'}</p>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {profileData.email || 'Loading...'}
+                  </p>
                   <Badge variant="secondary" className="mb-4">
                     {user.role === 'host' ? (
                       <>
@@ -638,7 +687,9 @@ function ProfilePageContent() {
                       </>
                     )}
                   </Badge>
-                  <p className="text-xs text-muted-foreground">Member since {profileData.memberSince}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Member since {profileData.memberSince}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -666,9 +717,9 @@ function ProfilePageContent() {
                       <CardDescription>Your profile details and preferences</CardDescription>
                     </div>
                     <Button
-                      variant={isEditing ? "default" : "outline"}
+                      variant={isEditing ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                      onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
                     >
                       {isEditing ? (
                         <>
@@ -698,9 +749,16 @@ function ProfilePageContent() {
                       <div>
                         <label className="block text-sm font-medium mb-2">Full Name</label>
                         {isEditing ? (
-                          <Input value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} />
+                          <Input
+                            value={profileData.name}
+                            onChange={(e) =>
+                              setProfileData({ ...profileData, name: e.target.value })
+                            }
+                          />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{profileData.name || 'Loading...'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {profileData.name || 'Loading...'}
+                          </p>
                         )}
                       </div>
                       <div>
@@ -713,22 +771,40 @@ function ProfilePageContent() {
                       <div>
                         <label className="block text-sm font-medium mb-2">Phone</label>
                         {isEditing ? (
-                          <Input value={profileData.phone} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} />
+                          <Input
+                            value={profileData.phone}
+                            onChange={(e) =>
+                              setProfileData({ ...profileData, phone: e.target.value })
+                            }
+                          />
                         ) : (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            {profileData.phone ? profileData.phone : <span className="italic text-muted-foreground/70">Not added</span>}
+                            {profileData.phone ? (
+                              profileData.phone
+                            ) : (
+                              <span className="italic text-muted-foreground/70">Not added</span>
+                            )}
                           </p>
                         )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">Country</label>
                         {isEditing ? (
-                          <Input value={profileData.country} onChange={(e) => setProfileData({...profileData, country: e.target.value})} />
+                          <Input
+                            value={profileData.country}
+                            onChange={(e) =>
+                              setProfileData({ ...profileData, country: e.target.value })
+                            }
+                          />
                         ) : (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            {profileData.country ? profileData.country : <span className="italic text-muted-foreground/70">Not added</span>}
+                            {profileData.country ? (
+                              profileData.country
+                            ) : (
+                              <span className="italic text-muted-foreground/70">Not added</span>
+                            )}
                           </p>
                         )}
                       </div>
@@ -736,14 +812,18 @@ function ProfilePageContent() {
                     <div>
                       <label className="block text-sm font-medium mb-2">Bio</label>
                       {isEditing ? (
-                        <Textarea 
-                          value={profileData.bio} 
-                          onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                        <Textarea
+                          value={profileData.bio}
+                          onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                           rows={3}
                         />
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          {profileData.bio ? profileData.bio : <span className="italic text-muted-foreground/70">Not added</span>}
+                          {profileData.bio ? (
+                            profileData.bio
+                          ) : (
+                            <span className="italic text-muted-foreground/70">Not added</span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -752,7 +832,9 @@ function ProfilePageContent() {
                       <div className="flex flex-wrap gap-2">
                         {profileData.languages && profileData.languages.length > 0 ? (
                           profileData.languages.map((lang, index) => (
-                            <Badge key={index} variant="secondary">{lang}</Badge>
+                            <Badge key={index} variant="secondary">
+                              {lang}
+                            </Badge>
                           ))
                         ) : (
                           <span className="text-sm italic text-muted-foreground/70">Not added</span>
@@ -784,15 +866,24 @@ function ProfilePageContent() {
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary-600">{bookings.filter(b => b.status === 'completed' || b.status === 'COMPLETED').length}</div>
+                      <div className="text-2xl font-bold text-primary-600">
+                        {
+                          bookings.filter(
+                            (b) => b.status === 'completed' || b.status === 'COMPLETED'
+                          ).length
+                        }
+                      </div>
                       <div className="text-sm text-muted-foreground">Completed Dinners</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-primary-600">
-                        {reviews.length > 0 
-                          ? (reviews.reduce((acc: number, review: any) => acc + review.rating, 0) / reviews.length).toFixed(1)
+                        {reviews.length > 0
+                          ? (
+                              reviews.reduce((acc: number, review: any) => acc + review.rating, 0) /
+                              reviews.length
+                            ).toFixed(1)
                           : '0.0'}
                       </div>
                       <div className="text-sm text-muted-foreground">Average Rating Given</div>
@@ -819,13 +910,18 @@ function ProfilePageContent() {
                       </div>
                     ) : bookings.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">No bookings yet. Start exploring dinners!</p>
+                        <p className="text-muted-foreground">
+                          No bookings yet. Start exploring dinners!
+                        </p>
                       </div>
                     ) : (
                       bookings.map((booking) => {
                         if (!booking.dinner) return null
                         return (
-                          <div key={booking.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                          <div
+                            key={booking.id}
+                            className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                          >
                             <div className="flex gap-4">
                               <div className="relative flex-shrink-0 w-36 self-stretch min-h-[140px] bg-muted rounded-lg">
                                 {booking.dinner.image ? (
@@ -840,7 +936,7 @@ function ProfilePageContent() {
                                     <p className="text-muted-foreground text-xs">No image</p>
                                   </div>
                                 )}
-                                <Badge 
+                                <Badge
                                   className={`absolute -top-2 -right-2 text-xs ${getStatusColor(booking.status)}`}
                                 >
                                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -849,7 +945,9 @@ function ProfilePageContent() {
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
-                                    <h3 className="font-semibold text-lg">{booking.dinner.title}</h3>
+                                    <h3 className="font-semibold text-lg">
+                                      {booking.dinner.title}
+                                    </h3>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <User className="w-4 h-4" />
                                       {booking.dinner.host.name}
@@ -872,32 +970,40 @@ function ProfilePageContent() {
                                     </div>
                                   </div>
                                 </div>
-                                
+
                                 {/* Review Section - Always present for consistency */}
                                 <div className="mt-4">
                                   {booking.review ? (
                                     <div className="p-3 bg-muted rounded-lg">
                                       <div className="flex items-center gap-2 mb-2">
-                                        <div className="flex">{renderStars(booking.review.rating)}</div>
+                                        <div className="flex">
+                                          {renderStars(booking.review.rating)}
+                                        </div>
                                         <span className="text-sm font-medium">Your Review</span>
                                       </div>
-                                      <p className="text-sm text-muted-foreground">{booking.review.comment}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {booking.review.comment}
+                                      </p>
                                     </div>
                                   ) : (
                                     <div className="flex items-center justify-between">
                                       <span className="text-sm text-muted-foreground">
-                                        {booking.status === 'completed' || booking.status === 'COMPLETED'
-                                          ? 'No review written yet' 
-                                          : booking.status === 'confirmed' || booking.status === 'CONFIRMED'
+                                        {booking.status === 'completed' ||
+                                        booking.status === 'COMPLETED'
+                                          ? 'No review written yet'
+                                          : booking.status === 'confirmed' ||
+                                              booking.status === 'CONFIRMED'
                                             ? 'Review available after completion'
-                                            : booking.status === 'cancelled' || booking.status === 'CANCELLED'
+                                            : booking.status === 'cancelled' ||
+                                                booking.status === 'CANCELLED'
                                               ? 'Booking was cancelled'
-                                              : booking.status === 'pending' || booking.status === 'PENDING'
+                                              : booking.status === 'pending' ||
+                                                  booking.status === 'PENDING'
                                                 ? 'Waiting for host approval'
-                                                : 'Pending review'
-                                        }
+                                                : 'Pending review'}
                                       </span>
-                                      {(booking.status === 'completed' || booking.status === 'COMPLETED') && (
+                                      {(booking.status === 'completed' ||
+                                        booking.status === 'COMPLETED') && (
                                         <Button size="sm" variant="outline">
                                           Write Review
                                         </Button>
@@ -933,7 +1039,9 @@ function ProfilePageContent() {
                       </div>
                     ) : reviews.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">You haven't written any reviews yet.</p>
+                        <p className="text-muted-foreground">
+                          You haven't written any reviews yet.
+                        </p>
                       </div>
                     ) : (
                       reviews.map((review: any) => {
@@ -944,31 +1052,40 @@ function ProfilePageContent() {
                             <div className="flex items-start gap-4">
                               {dinner?.host?.image ? (
                                 <Avatar className="w-12 h-12">
-                                  <AvatarImage src={dinner.host.image} alt={dinner.host?.name || 'Host'} />
-                                  <AvatarFallback>{(dinner.host?.name || 'H').charAt(0)}</AvatarFallback>
+                                  <AvatarImage
+                                    src={dinner.host.image}
+                                    alt={dinner.host?.name || 'Host'}
+                                  />
+                                  <AvatarFallback>
+                                    {(dinner.host?.name || 'H').charAt(0)}
+                                  </AvatarFallback>
                                 </Avatar>
                               ) : (
                                 <Avatar className="w-12 h-12">
-                                  <AvatarFallback>{(dinner?.host?.name || 'H').charAt(0)}</AvatarFallback>
+                                  <AvatarFallback>
+                                    {(dinner?.host?.name || 'H').charAt(0)}
+                                  </AvatarFallback>
                                 </Avatar>
                               )}
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="font-semibold">{dinner?.title || 'Unknown Dinner'}</h3>
+                                  <h3 className="font-semibold">
+                                    {dinner?.title || 'Unknown Dinner'}
+                                  </h3>
                                   <div className="flex">{renderStars(review.rating)}</div>
                                 </div>
                                 {dinner?.host?.name && (
-                                  <p className="text-sm text-muted-foreground mb-2">Host: {dinner.host.name}</p>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Host: {dinner.host.name}
+                                  </p>
                                 )}
-                                {review.comment && (
-                                  <p className="text-sm mb-2">{review.comment}</p>
-                                )}
+                                {review.comment && <p className="text-sm mb-2">{review.comment}</p>}
                                 {reviewDate && (
                                   <p className="text-xs text-muted-foreground">
-                                    {reviewDate.toLocaleDateString('en-US', { 
-                                      year: 'numeric', 
-                                      month: 'long', 
-                                      day: 'numeric' 
+                                    {reviewDate.toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric',
                                     })}
                                   </p>
                                 )}
@@ -999,8 +1116,8 @@ function ProfilePageContent() {
                         Security
                       </h3>
                       <div className="space-y-3">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="w-full justify-start"
                           onClick={() => setShowChangePasswordDialog(true)}
                         >
@@ -1032,16 +1149,22 @@ function ProfilePageContent() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">Email Notifications</p>
-                            <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                            <p className="text-sm text-muted-foreground">
+                              Receive updates via email
+                            </p>
                           </div>
-                          <Button variant="outline" size="sm">Enabled</Button>
+                          <Button variant="outline" size="sm">
+                            Enabled
+                          </Button>
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">SMS Notifications</p>
                             <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
                           </div>
-                          <Button variant="outline" size="sm">Disabled</Button>
+                          <Button variant="outline" size="sm">
+                            Disabled
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -1076,7 +1199,8 @@ function ProfilePageContent() {
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
-              Enter your current password and choose a new password. Make sure it's at least 8 characters long.
+              Enter your current password and choose a new password. Make sure it's at least 8
+              characters long.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleChangePassword} className="space-y-4">
@@ -1087,7 +1211,9 @@ function ProfilePageContent() {
                   id="currentPassword"
                   type={showPasswords.current ? 'text' : 'password'}
                   value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
+                  }
                   placeholder="Enter current password"
                   required
                   disabled={passwordLoading}
@@ -1097,7 +1223,7 @@ function ProfilePageContent() {
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                  onClick={() => setShowPasswords((prev) => ({ ...prev, current: !prev.current }))}
                 >
                   {showPasswords.current ? (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1115,7 +1241,9 @@ function ProfilePageContent() {
                   id="newPassword"
                   type={showPasswords.new ? 'text' : 'password'}
                   value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
+                  }
                   placeholder="Enter new password (min 8 characters)"
                   required
                   disabled={passwordLoading}
@@ -1125,7 +1253,7 @@ function ProfilePageContent() {
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                  onClick={() => setShowPasswords((prev) => ({ ...prev, new: !prev.new }))}
                 >
                   {showPasswords.new ? (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1143,7 +1271,9 @@ function ProfilePageContent() {
                   id="confirmPassword"
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                  }
                   placeholder="Confirm new password"
                   required
                   disabled={passwordLoading}
@@ -1153,7 +1283,7 @@ function ProfilePageContent() {
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                  onClick={() => setShowPasswords((prev) => ({ ...prev, confirm: !prev.confirm }))}
                 >
                   {showPasswords.confirm ? (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1192,7 +1322,12 @@ function ProfilePageContent() {
               </Button>
               <Button
                 type="submit"
-                disabled={passwordLoading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                disabled={
+                  passwordLoading ||
+                  !passwordData.currentPassword ||
+                  !passwordData.newPassword ||
+                  !passwordData.confirmPassword
+                }
               >
                 {passwordLoading ? (
                   <>
@@ -1213,16 +1348,18 @@ function ProfilePageContent() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={
-      <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
+    <Suspense
+      fallback={
+        <MainLayout>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
           </div>
-        </div>
-      </MainLayout>
-    }>
+        </MainLayout>
+      }
+    >
       <ProfilePageContent />
     </Suspense>
   )

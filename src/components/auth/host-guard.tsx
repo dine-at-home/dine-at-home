@@ -2,7 +2,10 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { canAccessHostDashboard, getAccessDeniedMessageForHostDashboard } from '@/lib/access-control'
+import {
+  canAccessHostDashboard,
+  getAccessDeniedMessageForHostDashboard,
+} from '@/lib/access-control'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '../ui/button'

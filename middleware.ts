@@ -20,17 +20,13 @@ const publicRoutes = [
 ]
 
 // Protected routes that require authentication
-const protectedRoutes = [
-  '/profile',
-  '/booking',
-  '/host',
-]
+const protectedRoutes = ['/profile', '/booking', '/host']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Check if route is public
-  const isPublicRoute = publicRoutes.some(route => {
+  const isPublicRoute = publicRoutes.some((route) => {
     if (route.includes('/dinners')) {
       return pathname.startsWith('/dinners')
     }
@@ -43,14 +39,13 @@ export function middleware(request: NextRequest) {
   }
 
   // Check if route is protected
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  )
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
 
   if (isProtectedRoute) {
     // Check for JWT token in cookies or Authorization header
-    const token = request.cookies.get('auth_token')?.value || 
-                  request.headers.get('authorization')?.replace('Bearer ', '')
+    const token =
+      request.cookies.get('auth_token')?.value ||
+      request.headers.get('authorization')?.replace('Bearer ', '')
 
     if (!token) {
       // Redirect to sign in if no token

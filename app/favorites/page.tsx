@@ -32,7 +32,7 @@ export default function FavoritesPage() {
       setLoading(true)
       setError(null)
       const result = await favoriteService.getFavorites(1, 100) // Get all favorites
-      
+
       if (result.success && result.data) {
         const transformedDinners = result.data.map((dinner: any) => transformDinner(dinner))
         setFavorites(transformedDinners)
@@ -53,11 +53,7 @@ export default function FavoritesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => router.back()}
-              className="mb-4"
-            >
+            <Button variant="ghost" onClick={() => router.back()} className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -68,10 +64,9 @@ export default function FavoritesPage() {
               <div>
                 <h1 className="text-3xl font-bold text-foreground">My Favorites</h1>
                 <p className="text-muted-foreground mt-1">
-                  {favorites.length > 0 
+                  {favorites.length > 0
                     ? `${favorites.length} saved ${favorites.length === 1 ? 'dinner' : 'dinners'}`
-                    : 'Dinners you save will appear here'
-                  }
+                    : 'Dinners you save will appear here'}
                 </p>
               </div>
             </div>
@@ -91,12 +86,7 @@ export default function FavoritesPage() {
           {error && !loading && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 mb-6">
               <p className="text-destructive text-sm">{error}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchFavorites}
-                className="mt-2"
-              >
+              <Button variant="outline" size="sm" onClick={fetchFavorites} className="mt-2">
                 Try Again
               </Button>
             </div>
@@ -112,9 +102,7 @@ export default function FavoritesPage() {
               <p className="text-muted-foreground mb-4">
                 Start exploring and save dinners you love
               </p>
-              <Button onClick={() => router.push('/search')}>
-                Explore Dinners
-              </Button>
+              <Button onClick={() => router.push('/search')}>Explore Dinners</Button>
             </div>
           )}
 
@@ -131,4 +119,3 @@ export default function FavoritesPage() {
     </PageLayout>
   )
 }
-

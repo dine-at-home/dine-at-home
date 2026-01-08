@@ -29,11 +29,14 @@ export function HostCTASection() {
                   <span>Get paid within 24 hours after each dinner</span>
                 </li>
               </ul>
-              <Button size="lg" className="px-10 py-4 rounded-xl bg-primary-600 hover:bg-primary-700">
+              <Button
+                size="lg"
+                className="px-10 py-4 rounded-xl bg-primary-600 hover:bg-primary-700"
+              >
                 Start Hosting Today
               </Button>
             </div>
-            
+
             <div className="h-64 lg:h-96 relative">
               <Image
                 src="https://images.unsplash.com/photo-1569435998017-abb5d562dedf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb29raW5nJTIwdG9nZXRoZXIlMjBraXRjaGVuJTIwZnJpZW5kc3xlbnwxfHx8fDE3NTg1NDgyNjR8MA&ixlib=rb-4.1.0&q=80&w=1080"
