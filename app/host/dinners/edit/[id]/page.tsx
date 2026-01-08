@@ -112,6 +112,19 @@ export default function EditDinnerPage() {
             ? (typeof rawDinner.location === 'string' ? JSON.parse(rawDinner.location) : rawDinner.location)
             : {}
 
+          // Format date for HTML date input (YYYY-MM-DD)
+          let formattedDate = ''
+          if (dinner.date) {
+            try {
+              const dateObj = new Date(dinner.date)
+              if (!isNaN(dateObj.getTime())) {
+                formattedDate = dateObj.toISOString().split('T')[0]
+              }
+            } catch (e) {
+              console.error('Error parsing date:', e)
+            }
+          }
+
           setDinnerData({
             title: dinner.title || '',
             description: dinner.description || '',
@@ -126,13 +139,15 @@ export default function EditDinnerPage() {
             zipCode: locationData.zipCode || '',
             directions: '',
             accessibility: '',
-            date: dinner.date || '',
+            date: formattedDate,
             time: dinner.time || '',
             duration: durationHours,
             maxCapacity: dinner.capacity || 8,
             pricePerPerson: dinner.price || 85,
             minGuests: 2,
-            images: Array.isArray(dinner.images) ? dinner.images : [],
+            images: Array.isArray(dinner.images) 
+              ? dinner.images.filter((img: any) => img && typeof img === 'string')
+              : [],
             experienceLevel: 'beginner',
             includesDrinks: false,
             includesDessert: false,
@@ -185,6 +200,15 @@ export default function EditDinnerPage() {
 
     const newFiles = Array.from(files)
     
+    // Check total image count (max 5) - existing images + new files
+    const existingImageCount = dinnerData.images.length
+    const totalAfterAdd = existingImageCount + selectedImageFiles.length + newFiles.length
+    if (totalAfterAdd > 5) {
+      setError(`Maximum 5 images allowed. You have ${existingImageCount} existing image${existingImageCount !== 1 ? 's' : ''} and ${selectedImageFiles.length} new image${selectedImageFiles.length !== 1 ? 's' : ''} selected.`)
+      e.target.value = ''
+      return
+    }
+    
     const validFiles = newFiles.filter(file => file.type.startsWith('image/'))
     if (validFiles.length !== newFiles.length) {
       setError('Only image files are allowed')
@@ -199,7 +223,15 @@ export default function EditDinnerPage() {
       return
     }
 
-    setSelectedImageFiles(prev => [...prev, ...sizeValidFiles])
+    // Limit to 5 total images (existing + new)
+    const remainingSlots = 5 - existingImageCount - selectedImageFiles.length
+    const filesToAdd = sizeValidFiles.slice(0, remainingSlots)
+    
+    if (filesToAdd.length < sizeValidFiles.length) {
+      setError(`Maximum 5 images allowed. Only ${filesToAdd.length} image${filesToAdd.length !== 1 ? 's' : ''} added.`)
+    }
+
+    setSelectedImageFiles(prev => [...prev, ...filesToAdd])
     e.target.value = ''
   }
 
@@ -247,6 +279,7 @@ export default function EditDinnerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Form submitted', { dinnerData, selectedImageFiles })
     setIsSubmitting(true)
     setError('')
 
@@ -275,6 +308,13 @@ export default function EditDinnerPage() {
 
       // Combine existing images with new ones
       const allImages = [...dinnerData.images, ...imageUrls]
+      
+      // Validate total images don't exceed 5
+      if (allImages.length > 5) {
+        setError('Maximum 5 images allowed per dinner')
+        setIsSubmitting(false)
+        return
+      }
 
       // Parse menu from string
       const menuItems = dinnerData.menu
@@ -294,10 +334,22 @@ export default function EditDinnerPage() {
         }
       }
 
+      // Validate date and time are provided
+      if (!dinnerData.date || !dinnerData.time) {
+        setError('Date and time are required')
+        setIsSubmitting(false)
+        return
+      }
+
       // Combine date and time into ISO date string
-      const dateTime = dinnerData.date && dinnerData.time
-        ? new Date(`${dinnerData.date}T${dinnerData.time}:00`).toISOString()
-        : new Date(dinnerData.date).toISOString()
+      const dateTime = new Date(`${dinnerData.date}T${dinnerData.time}:00`).toISOString()
+      
+      // Validate date is valid
+      if (isNaN(new Date(dateTime).getTime())) {
+        setError('Invalid date or time format')
+        setIsSubmitting(false)
+        return
+      }
 
       // Prepare request body
       const requestBody = {
@@ -332,10 +384,13 @@ export default function EditDinnerPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result.error || 'Failed to update dinner. Please try again.')
+        console.error('Update failed:', result)
+        setError(result.error || result.message || 'Failed to update dinner. Please try again.')
         setIsSubmitting(false)
         return
       }
+
+      console.log('Update successful:', result)
 
       // Success - redirect to dashboard
       router.push('/host/dashboard?tab=dinners')
@@ -716,8 +771,13 @@ export default function EditDinnerPage() {
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                   <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground mb-2">
-                    Upload photos of your dishes, kitchen, or dining space
+                    Upload additional photos (maximum 5 images total)
                   </p>
+                  {(dinnerData.images.length > 0 || selectedImageFiles.length > 0) && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {dinnerData.images.length} existing + {selectedImageFiles.length} new = {dinnerData.images.length + selectedImageFiles.length} of 5 images
+                    </p>
+                  )}
                   <input
                     type="file"
                     multiple

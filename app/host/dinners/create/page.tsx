@@ -152,6 +152,14 @@ export default function CreateDinnerPage() {
 
     const newFiles = Array.from(files)
     
+    // Check total image count (max 5)
+    const totalAfterAdd = selectedImageFiles.length + newFiles.length
+    if (totalAfterAdd > 5) {
+      setError(`Maximum 5 images allowed. You already have ${selectedImageFiles.length} image${selectedImageFiles.length !== 1 ? 's' : ''} selected.`)
+      e.target.value = ''
+      return
+    }
+    
     // Validate file types
     const validFiles = newFiles.filter(file => file.type.startsWith('image/'))
     if (validFiles.length !== newFiles.length) {
@@ -168,8 +176,16 @@ export default function CreateDinnerPage() {
       return
     }
 
+    // Limit to 5 total images
+    const remainingSlots = 5 - selectedImageFiles.length
+    const filesToAdd = sizeValidFiles.slice(0, remainingSlots)
+    
+    if (filesToAdd.length < sizeValidFiles.length) {
+      setError(`Maximum 5 images allowed. Only ${filesToAdd.length} image${filesToAdd.length !== 1 ? 's' : ''} added.`)
+    }
+
     // Add to selected files (will upload when form is submitted)
-    setSelectedImageFiles(prev => [...prev, ...sizeValidFiles])
+    setSelectedImageFiles(prev => [...prev, ...filesToAdd])
     e.target.value = ''
   }
 
@@ -231,19 +247,24 @@ export default function CreateDinnerPage() {
         return
       }
 
-      // Step 1: Upload images first (if any)
+      // Step 1: Validate that at least one image is provided
+      if (selectedImageFiles.length === 0) {
+        setError('Please upload at least one image for your dinner listing')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Step 2: Upload images
       let imageUrls: string[] = []
-      if (selectedImageFiles.length > 0) {
-        setUploadingImages(true)
-        try {
-          imageUrls = await uploadImages(selectedImageFiles)
-          setUploadingImages(false)
-        } catch (uploadError: any) {
-          setUploadingImages(false)
-          setError(uploadError.message || 'Failed to upload images. Please try again.')
-          setIsSubmitting(false)
-          return
-        }
+      setUploadingImages(true)
+      try {
+        imageUrls = await uploadImages(selectedImageFiles)
+        setUploadingImages(false)
+      } catch (uploadError: any) {
+        setUploadingImages(false)
+        setError(uploadError.message || 'Failed to upload images. Please try again.')
+        setIsSubmitting(false)
+        return
       }
 
       // Parse menu from string (assuming it's comma-separated or newline-separated)
@@ -669,12 +690,19 @@ export default function CreateDinnerPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Upload Photos</label>
+                <label className="block text-sm font-medium mb-2">
+                  Upload Photos <span className="text-destructive">*</span>
+                </label>
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                   <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground mb-2">
-                    Upload photos of your dishes, kitchen, or dining space
+                    Upload at least one photo (maximum 5 images) of your dishes, kitchen, or dining space
                   </p>
+                  {selectedImageFiles.length > 0 && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {selectedImageFiles.length} of 5 images selected
+                    </p>
+                  )}
                   <input
                     type="file"
                     multiple

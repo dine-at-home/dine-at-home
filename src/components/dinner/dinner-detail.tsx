@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -38,6 +38,7 @@ import {
 
 import { Dinner, NavigationParams } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
+import { favoriteService } from "@/lib/favorite-service";
 
 interface DinnerDetailProps {
   dinner: Dinner;
@@ -53,11 +54,67 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const dinnerDate = new Date(dinner.date);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
   // Use reviews from dinner data if available, otherwise empty array
   const reviews = dinner.reviews || [];
+
+  // Check if dinner is favorited on mount
+  useEffect(() => {
+    if (user) {
+      favoriteService.checkFavorite(dinner.id).then(result => {
+        if (result.success && result.data) {
+          setIsFavorited(result.data.isFavorited)
+        }
+      })
+    }
+  }, [dinner.id, user])
+
+  const handleFavoriteToggle = async () => {
+    if (!user) {
+      onNavigate('signin')
+      return
+    }
+
+    if (isToggling) return
+
+    const wasFavorited = isFavorited
+    const newFavoritedState = !wasFavorited
+
+    // Immediately update UI for instant feedback
+    // React 18 will batch this update and render it synchronously
+    setIsFavorited(newFavoritedState)
+    
+    // Use a microtask to ensure state update is processed before API call
+    // This ensures the UI updates immediately while the API call happens in background
+    Promise.resolve().then(async () => {
+      setIsToggling(true)
+      
+      try {
+        if (wasFavorited) {
+          const result = await favoriteService.removeFavorite(dinner.id)
+          if (!result.success) {
+            // Revert on error
+            setIsFavorited(wasFavorited)
+          }
+        } else {
+          const result = await favoriteService.addFavorite(dinner.id)
+          if (!result.success) {
+            // Revert on error
+            setIsFavorited(wasFavorited)
+          }
+        }
+      } catch (error) {
+        // Revert on error
+        setIsFavorited(wasFavorited)
+        console.error('Error toggling favorite:', error)
+      } finally {
+        setIsToggling(false)
+      }
+    })
+  }
 
   const handleBooking = () => {
     if (isHost) {
@@ -139,15 +196,16 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsFavorited(!isFavorited)}
-              className="flex items-center space-x-2"
+              onClick={handleFavoriteToggle}
+              disabled={isToggling}
+              className="flex items-center space-x-2 transition-all duration-150"
             >
               <Heart
-                className={`w-4 h-4 ${
-                  isFavorited ? "fill-red-500 text-red-500" : ""
+                className={`w-4 h-4 transition-all duration-150 ${
+                  isFavorited ? "fill-red-500 text-red-500" : "text-gray-600"
                 }`}
               />
-              <span>Save</span>
+              <span className="transition-all duration-150">{isFavorited ? "Saved" : "Save"}</span>
             </Button>
           </div>
         </div>
@@ -161,7 +219,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 <>
                   <div className="col-span-4 sm:col-span-2 sm:row-span-2 relative min-h-[400px]">
                     <Image
-                      src={dinner.images[0]}
+                      src={dinner.thumbnail || dinner.images[0]}
                       alt={dinner.title}
                       fill
                       sizes="(max-width: 640px) 100vw, 50vw"

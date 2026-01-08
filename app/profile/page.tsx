@@ -276,7 +276,7 @@ function ProfilePageContent() {
                   name: dinner.host.name,
                   avatar: dinner.host.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
                 },
-                image: dinner.images?.[0] || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
+                image: dinner.thumbnail || dinner.images?.[0] || null,
                 location: `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() || 'Location not available',
                 date: dinner.date,
                 time: dinner.time,
@@ -827,13 +827,19 @@ function ProfilePageContent() {
                         return (
                           <div key={booking.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                             <div className="flex gap-4">
-                              <div className="relative flex-shrink-0 w-36 self-stretch min-h-[140px]">
-                                <Image
-                                  src={booking.dinner.image}
-                                  alt={booking.dinner.title}
-                                  fill
-                                  className="rounded-lg object-cover"
-                                />
+                              <div className="relative flex-shrink-0 w-36 self-stretch min-h-[140px] bg-muted rounded-lg">
+                                {booking.dinner.image ? (
+                                  <Image
+                                    src={booking.dinner.image}
+                                    alt={booking.dinner.title}
+                                    fill
+                                    className="rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <p className="text-muted-foreground text-xs">No image</p>
+                                  </div>
+                                )}
                                 <Badge 
                                   className={`absolute -top-2 -right-2 text-xs ${getStatusColor(booking.status)}`}
                                 >
