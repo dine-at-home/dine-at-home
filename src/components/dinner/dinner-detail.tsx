@@ -268,6 +268,49 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   })()}
                 </p>
                 {dinner.host.bio && <p className="text-sm">"{dinner.host.bio}"</p>}
+                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                  <span>Response Rate: {dinner.host.responseRate}%</span>
+                  <span>•</span>
+                  <span>{dinner.host.responseTime}</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Key Details */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <Utensils className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Cuisine</p>
+                  <p className="text-sm text-muted-foreground">{dinner.cuisine}</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <Clock className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Duration</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(dinner.duration || 0) / 60} hours
+                  </p>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <Users className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Capacity</p>
+                  <p className="text-sm text-muted-foreground">{dinner.capacity} guests</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Location</p>
+                  <p className="text-sm text-muted-foreground">
+                    {dinner.location.address}, {dinner.location.city}
+                  </p>
+                </div>
               </div>
             </div>
 

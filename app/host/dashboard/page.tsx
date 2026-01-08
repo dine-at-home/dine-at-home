@@ -593,7 +593,9 @@ function HostDashboardContent() {
       }
     } catch (error: any) {
       console.error('Error uploading image:', error)
-      setProfileSaveError('An unexpected error occurred while uploading the image. Please try again.')
+      setProfileSaveError(
+        'An unexpected error occurred while uploading the image. Please try again.'
+      )
     } finally {
       setIsUploadingImage(false)
       // Reset file input
@@ -1682,16 +1684,16 @@ function HostDashboardContent() {
                   <Avatar className="w-24 h-24">
                     <AvatarImage
                       src={
-                        (profileData.profileImage && profileData.profileImage.trim() !== '')
+                        profileData.profileImage && profileData.profileImage.trim() !== ''
                           ? profileData.profileImage
-                          : (user?.image && user.image.trim() !== '')
-                          ? (user.image || '')
-                          : ''
+                          : user?.image && user.image.trim() !== ''
+                            ? user.image || ''
+                            : ''
                       }
                       alt={profileData.name || user?.name || 'Host profile'}
                     />
                     <AvatarFallback>
-                      {(profileData.name || user?.name)
+                      {profileData.name || user?.name
                         ? (profileData.name || user?.name || '').charAt(0).toUpperCase()
                         : 'H'}
                     </AvatarFallback>

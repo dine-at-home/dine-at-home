@@ -31,10 +31,9 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
       return
     }
 
-    if (user && !canBookDinners(user)) {
-      const redirectUrl = getRoleBasedRedirect(user)
-      router.push(redirectUrl)
-    }
+    // We no longer automatically redirect here if user can't book.
+    // Instead, we let the component render the specific access denied message below.
+    // This allows users to see "Why" they can't book (e.g. missing phone number).
   }, [user, loading, isAuthenticated, router])
 
   // Show loading while checking auth

@@ -205,7 +205,7 @@ function ProfilePageContent() {
         gender: user.gender || '',
         languages: languagesArray,
         profileImage:
-          (user.image && user.image.trim() !== '') 
+          user.image && user.image.trim() !== ''
             ? user.image
             : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
         memberSince: memberSince,
@@ -603,7 +603,7 @@ function ProfilePageContent() {
         gender: user.gender || '',
         languages: languagesArray,
         profileImage:
-          (user.image && user.image.trim() !== '') 
+          user.image && user.image.trim() !== ''
             ? user.image
             : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
         bio: '',
@@ -760,16 +760,18 @@ function ProfilePageContent() {
                 <div className="text-center">
                   <div className="relative inline-block mb-4">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage 
-                        src={user?.image && user.image.trim() !== '' 
-                          ? user.image 
-                          : profileData.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
-                        } 
-                        alt={profileData.name || user?.name || 'Profile'} 
+                      <AvatarImage
+                        src={
+                          user?.image && user.image.trim() !== ''
+                            ? user.image
+                            : profileData.profileImage ||
+                              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+                        }
+                        alt={profileData.name || user?.name || 'Profile'}
                       />
                       <AvatarFallback>
-                        {(profileData.name || user?.name) 
-                          ? (profileData.name || user?.name || '').charAt(0).toUpperCase() 
+                        {profileData.name || user?.name
+                          ? (profileData.name || user?.name || '').charAt(0).toUpperCase()
                           : 'U'}
                       </AvatarFallback>
                     </Avatar>

@@ -64,6 +64,7 @@ export function transformDinner(dinner: any): Dinner {
     title: dinner.title,
     description: dinner.description || '',
     price: dinner.price,
+    duration: dinner.duration,
     cuisine: dinner.cuisine || 'Other',
     date: dateStr,
     time: dinner.time || '19:00',

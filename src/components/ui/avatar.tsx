@@ -42,7 +42,8 @@ function AvatarImage({ className, src, alt, ...props }: AvatarImageProps) {
   }
 
   // Check if this is a DigitalOcean Spaces or S3 URL - use unoptimized for better compatibility
-  const isExternalStorage = src.includes('digitaloceanspaces.com') || src.includes('s3.amazonaws.com')
+  const isExternalStorage =
+    src.includes('digitaloceanspaces.com') || src.includes('s3.amazonaws.com')
 
   return (
     <Image

@@ -12,7 +12,7 @@ interface FeaturedDinnersSectionProps {
 
 export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps) {
   const router = useRouter()
-  const featuredDinners = dinners.slice(0, 3)
+  const featuredDinners = [...dinners].reverse().slice(0, 3)
 
   const handleViewAll = () => {
     router.push('/search')

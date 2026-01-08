@@ -69,8 +69,9 @@ export default function CreateDinnerPage() {
         dietaryAccommodations: [] as string[],
         menu: '',
         ingredients: '',
-        specialInstructions: '',
+
         address: '',
+
         city: '',
         state: '',
         zipCode: '',
@@ -103,7 +104,8 @@ export default function CreateDinnerPage() {
       dietaryAccommodations: ['Vegetarian', 'Gluten-Free'] as string[],
       menu: 'The Menu will consist of 3 dishes Chicken Muglai, Chicken Karahi and Gajar ka Halwa',
       ingredients: 'Fresh pasta, tomatoes, basil, olive oil, parmesan cheese, seasonal vegetables',
-      specialInstructions:
+
+      houseRules:
         'Please arrive on time. Let us know about dietary restrictions in advance. No smoking indoors. Children welcome with advance notice.',
       address: '123 Main Street',
       city: 'New York',
@@ -362,7 +364,7 @@ export default function CreateDinnerPage() {
         instantBook: false, // Default value
         menu: menuItems,
         included: [], // Can be extended later
-        houseRules: dinnerData.specialInstructions ? [dinnerData.specialInstructions] : [],
+        houseRules: dinnerData.houseRules ? [dinnerData.houseRules] : [],
         location: location,
       }
 
@@ -541,16 +543,6 @@ export default function CreateDinnerPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Special Instructions</label>
-                  <Textarea
-                    value={dinnerData.specialInstructions}
-                    onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-                    placeholder="Any special preparation methods, cooking techniques, or guest participation details..."
-                    rows={3}
-                  />
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
                     <input
@@ -715,10 +707,17 @@ export default function CreateDinnerPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="1">1 guest</SelectItem>
+                        <SelectItem value="2">2 guests</SelectItem>
+                        <SelectItem value="3">3 guests</SelectItem>
                         <SelectItem value="4">4 guests</SelectItem>
+                        <SelectItem value="5">5 guests</SelectItem>
                         <SelectItem value="6">6 guests</SelectItem>
+                        <SelectItem value="7">7 guests</SelectItem>
                         <SelectItem value="8">8 guests</SelectItem>
+                        <SelectItem value="9">9 guests</SelectItem>
                         <SelectItem value="10">10 guests</SelectItem>
+                        <SelectItem value="11">11 guests</SelectItem>
                         <SelectItem value="12">12 guests</SelectItem>
                       </SelectContent>
                     </Select>
@@ -735,9 +734,14 @@ export default function CreateDinnerPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="1">1 guest</SelectItem>
                         <SelectItem value="2">2 guests</SelectItem>
+                        <SelectItem value="3">3 guests</SelectItem>
                         <SelectItem value="4">4 guests</SelectItem>
+                        <SelectItem value="5">5 guests</SelectItem>
                         <SelectItem value="6">6 guests</SelectItem>
+                        <SelectItem value="7">7 guests</SelectItem>
+                        <SelectItem value="8">8 guests</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -799,7 +803,10 @@ export default function CreateDinnerPage() {
                       id="photo-upload"
                     />
                     <Button type="button" variant="outline" asChild>
-                      <label htmlFor="photo-upload" className="cursor-pointer">
+                      <label
+                        htmlFor="photo-upload"
+                        className="cursor-pointer flex items-center justify-center"
+                      >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Photos
                       </label>
@@ -863,6 +870,16 @@ export default function CreateDinnerPage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">House Rules</label>
+                  <Textarea
+                    value={dinnerData.houseRules}
+                    onChange={(e) => handleInputChange('houseRules', e.target.value)}
+                    placeholder="No smoking, no pets, shoes off, etc..."
+                    rows={3}
+                  />
                 </div>
               </CardContent>
             </Card>
