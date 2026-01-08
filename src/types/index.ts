@@ -12,6 +12,7 @@ export interface Dinner {
   instantBook: boolean
   rating: number
   reviewCount: number
+  thumbnail?: string | null
   images: string[]
   host: Host
   location: Location

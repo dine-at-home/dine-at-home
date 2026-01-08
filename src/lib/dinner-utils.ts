@@ -4,15 +4,8 @@ import { Dinner, Host, Location } from '@/types'
  * Transform backend dinner object to frontend Dinner type
  */
 export function transformDinner(dinner: any): Dinner {
-  // Parse JSON fields
-  let images: string[] = []
-  try {
-    images = typeof dinner.images === 'string' 
-      ? JSON.parse(dinner.images) 
-      : dinner.images || []
-  } catch (e) {
-    images = []
-  }
+  // Images are stored as array directly
+  const images: string[] = Array.isArray(dinner.images) ? dinner.images : []
 
   // Filter out invalid blob URLs
   const validImages = images.filter((img: string) => 
@@ -27,10 +20,9 @@ export function transformDinner(dinner: any): Dinner {
     state: '',
     neighborhood: ''
   }
-  try {
-    const locationData = typeof dinner.location === 'string' 
-      ? JSON.parse(dinner.location) 
-      : dinner.location || {}
+  // Location is now stored as object directly
+  if (typeof dinner.location === 'object' && dinner.location !== null && !Array.isArray(dinner.location)) {
+    const locationData = dinner.location as any
     location = {
       address: locationData.address || '',
       city: locationData.city || '',
@@ -38,8 +30,6 @@ export function transformDinner(dinner: any): Dinner {
       neighborhood: locationData.neighborhood || locationData.city || '',
       coordinates: locationData.coordinates
     }
-  } catch (e) {
-    // Use defaults
   }
 
   // Transform host data
@@ -59,42 +49,11 @@ export function transformDinner(dinner: any): Dinner {
     ? dinner.date.split('T')[0] 
     : new Date(dinner.date).toISOString().split('T')[0]
 
-  // Parse menu, included, and houseRules
-  let menu: string[] = []
-  try {
-    menu = typeof dinner.menu === 'string' 
-      ? JSON.parse(dinner.menu) 
-      : dinner.menu || []
-  } catch (e) {
-    menu = []
-  }
-
-  let included: string[] = []
-  try {
-    included = typeof dinner.included === 'string' 
-      ? JSON.parse(dinner.included) 
-      : dinner.included || []
-  } catch (e) {
-    included = []
-  }
-
-  let houseRules: string[] = []
-  try {
-    houseRules = typeof dinner.houseRules === 'string' 
-      ? JSON.parse(dinner.houseRules) 
-      : dinner.houseRules || []
-  } catch (e) {
-    houseRules = []
-  }
-
-  let dietary: string[] = []
-  try {
-    dietary = typeof dinner.dietary === 'string' 
-      ? JSON.parse(dinner.dietary) 
-      : dinner.dietary || []
-  } catch (e) {
-    dietary = []
-  }
+  // Menu, included, houseRules, and dietary are stored as arrays directly
+  const menu: string[] = Array.isArray(dinner.menu) ? dinner.menu : []
+  const included: string[] = Array.isArray(dinner.included) ? dinner.included : []
+  const houseRules: string[] = Array.isArray(dinner.houseRules) ? dinner.houseRules : []
+  const dietary: string[] = Array.isArray(dinner.dietary) ? dinner.dietary : []
 
   return {
     id: dinner.id,
@@ -109,6 +68,7 @@ export function transformDinner(dinner: any): Dinner {
     instantBook: dinner.instantBook || false,
     rating: dinner.rating || 0,
     reviewCount: dinner.reviewCount || 0,
+    thumbnail: dinner.thumbnail || (validImages.length > 0 ? validImages[0] : null),
     images: validImages.length > 0 ? validImages : [], // No hardcoded fallback
     host,
     location,

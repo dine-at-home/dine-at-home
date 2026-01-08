@@ -525,15 +525,8 @@ function HostDashboardContent() {
               // Use the new status logic: completed if booked OR past time
               const status = getDinnerStatus(dinnerTransformed, dinner.isActive !== false)
 
-              // Parse images (assuming it's a JSON string or array)
-              let images = []
-              try {
-                images = typeof dinner.images === 'string' 
-                  ? JSON.parse(dinner.images) 
-                  : dinner.images || []
-              } catch (e) {
-                images = []
-              }
+              // Images are stored as array directly
+              const images = Array.isArray(dinner.images) ? dinner.images : []
 
               // Filter out invalid blob URLs (they don't work after page reload)
               const validImages = images.filter((img: string) => 
@@ -555,7 +548,7 @@ function HostDashboardContent() {
                 revenue: (dinner.capacity - dinner.available) * dinner.price,
                 rating: dinner.rating || 0,
                 reviews: dinner.reviewCount || 0,
-                image: validImages[0] || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center'
+                image: dinner.thumbnail || validImages[0] || null
               }
             })
             setDinners(transformedDinners)
@@ -1045,14 +1038,20 @@ function HostDashboardContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredDinners.map((dinner) => (
           <Card key={dinner.id} className="overflow-hidden">
-            <div className="relative">
-              <Image
-                src={dinner.image}
-                alt={dinner.title}
-                width={400}
-                height={200}
-                className="w-full h-48 object-cover"
-              />
+            <div className="relative bg-muted">
+              {dinner.image ? (
+                <Image
+                  src={dinner.image}
+                  alt={dinner.title}
+                  width={400}
+                  height={200}
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 flex items-center justify-center">
+                  <p className="text-muted-foreground text-sm">No image</p>
+                </div>
+              )}
               <Badge className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}>
                 {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
               </Badge>

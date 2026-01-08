@@ -95,7 +95,13 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
                   mode="single"
                   selected={date}
                   onSelect={setDate}
-                  disabled={(date) => date < new Date()}
+                  disabled={(date) => {
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+                    const dateToCheck = new Date(date)
+                    dateToCheck.setHours(0, 0, 0, 0)
+                    return dateToCheck < today
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -198,7 +204,13 @@ export function SearchWidget({ variant = 'hero', className = '', initialParams }
                 mode="single"
                 selected={date}
                 onSelect={setDate}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const dateToCheck = new Date(date)
+                  dateToCheck.setHours(0, 0, 0, 0)
+                  return dateToCheck < today
+                }}
                 initialFocus
               />
             </PopoverContent>

@@ -130,6 +130,10 @@ export function Header({ onSearch }: HeaderProps = {}) {
                           <Heart className="w-4 h-4 mr-2" />
                           My reviews
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/favorites")}>
+                          <Heart className="w-4 h-4 mr-2" />
+                          My Favorites
+                        </DropdownMenuItem>
                       </>
                     )}
                     <DropdownMenuSeparator />

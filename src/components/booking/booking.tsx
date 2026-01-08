@@ -265,14 +265,20 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
               <CardContent className="p-4 sm:p-6">
                 {/* Dinner Info */}
                 <div className="flex space-x-3 sm:space-x-4 mb-4 sm:mb-6">
-                  <div className="relative w-16 h-12 sm:w-20 sm:h-16">
-                    <Image
-                      src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200&h=160&fit=crop&crop=center"
-                      alt={dinner.title}
-                      fill
-                      sizes="80px"
-                      className="object-cover rounded-lg"
-                    />
+                  <div className="relative w-16 h-12 sm:w-20 sm:h-16 bg-muted rounded-lg">
+                    {(dinner.thumbnail || (dinner.images && dinner.images.length > 0)) ? (
+                      <Image
+                        src={dinner.thumbnail || dinner.images[0]}
+                        alt={dinner.title}
+                        fill
+                        sizes="80px"
+                        className="object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <p className="text-muted-foreground text-xs">No image</p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-xs sm:text-sm line-clamp-2">{dinner.title}</h3>

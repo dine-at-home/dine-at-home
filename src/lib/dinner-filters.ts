@@ -2,6 +2,8 @@ import { Dinner } from '@/types'
 
 /**
  * Check if a dinner date/time has passed
+ * A dinner is considered "past" if the current time is at or after the dinner start time
+ * This ensures bookings are allowed until the start time
  */
 export function isDinnerPast(dinner: Dinner): boolean {
   // Parse date string (format: YYYY-MM-DD) and create date in local timezone
@@ -9,11 +11,13 @@ export function isDinnerPast(dinner: Dinner): boolean {
   const dinnerDate = new Date(year, month - 1, day) // month is 0-indexed
   
   // Parse time (format: HH:MM or HH:MM:SS)
-  const [hours, minutes] = dinner.time.split(':').map(Number)
-  dinnerDate.setHours(hours, minutes || 0, 0, 0)
+  const [hours, minutes, seconds] = dinner.time.split(':').map(Number)
+  dinnerDate.setHours(hours || 0, minutes || 0, seconds || 0, 0)
   
   const now = new Date()
-  return dinnerDate < now
+  // Return true if current time is at or after the dinner start time
+  // This means bookings are allowed until the start time
+  return dinnerDate <= now
 }
 
 /**
