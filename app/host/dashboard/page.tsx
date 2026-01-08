@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { MainLayout } from '@/components/layout/main-layout'
@@ -49,6 +49,7 @@ import {
   Loader2,
   Save,
   X,
+  Camera,
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
@@ -185,6 +186,8 @@ function HostDashboardContent() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null)
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null)
   const [guestProfile, setGuestProfile] = useState<any>(null)
   const [guestProfileLoading, setGuestProfileLoading] = useState(false)
@@ -247,9 +250,7 @@ function HostDashboardContent() {
         country: user.country || '',
         languages: languagesString,
         joinedDate: joinedDate,
-        profileImage:
-          user.image ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        profileImage: user.image || '', // No placeholder - show initial fallback instead
       }))
     }
   }, [user])
@@ -393,6 +394,7 @@ function HostDashboardContent() {
           country: profileData.country || undefined,
           gender: profileData.gender || undefined,
           languages: languagesArray.length > 0 ? languagesArray : undefined,
+          image: profileData.profileImage || undefined,
         }),
       })
 
@@ -500,10 +502,104 @@ function HostDashboardContent() {
         country: user.country || '',
         languages: languagesString,
         joinedDate: joinedDate,
-        profileImage:
-          user.image ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        profileImage: user.image || '', // No placeholder - show initial fallback instead
       }))
+    }
+  }
+
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setProfileSaveError('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      setProfileSaveError('Image size must be less than 10MB.')
+      return
+    }
+
+    setIsUploadingImage(true)
+    setProfileSaveError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setProfileSaveError('Authentication required. Please sign in again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData()
+      formData.append('image', file)
+
+      // Upload image
+      const uploadResponse = await fetch(getApiUrl('/upload/image'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      const uploadResult = await uploadResponse.json()
+
+      if (!uploadResponse.ok) {
+        setProfileSaveError(uploadResult.error || 'Failed to upload image. Please try again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Update profile data with new image URL
+      if (uploadResult.data?.url) {
+        setProfileData((prev) => ({
+          ...prev,
+          profileImage: uploadResult.data.url,
+        }))
+
+        // Automatically save the profile with the new image
+        if (user?.id) {
+          const saveResponse = await fetch(getApiUrl(`/users/${user.id}`), {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              image: uploadResult.data.url,
+            }),
+          })
+
+          if (saveResponse.ok) {
+            setProfileSaveSuccess(true)
+            setTimeout(() => {
+              setProfileSaveSuccess(false)
+            }, 2000)
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      setProfileSaveError('An unexpected error occurred while uploading the image. Please try again.')
+    } finally {
+      setIsUploadingImage(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -1585,13 +1681,42 @@ function HostDashboardContent() {
                 <div className="relative inline-block mb-4">
                   <Avatar className="w-24 h-24">
                     <AvatarImage
-                      src={profileData.profileImage}
-                      alt={profileData.name || 'Host profile'}
+                      src={
+                        (profileData.profileImage && profileData.profileImage.trim() !== '')
+                          ? profileData.profileImage
+                          : (user?.image && user.image.trim() !== '')
+                          ? (user.image || '')
+                          : ''
+                      }
+                      alt={profileData.name || user?.name || 'Host profile'}
                     />
                     <AvatarFallback>
-                      {profileData.name ? profileData.name.charAt(0).toUpperCase() : 'H'}
+                      {(profileData.name || user?.name)
+                        ? (profileData.name || user?.name || '').charAt(0).toUpperCase()
+                        : 'H'}
                     </AvatarFallback>
                   </Avatar>
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <Button
+                      size="sm"
+                      className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                      onClick={handleImageClick}
+                      disabled={isUploadingImage}
+                    >
+                      {isUploadingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </>
                 </div>
                 <h2 className="text-xl font-semibold mb-1">{profileData.name || 'Loading...'}</h2>
                 <p className="text-muted-foreground text-sm mb-4">

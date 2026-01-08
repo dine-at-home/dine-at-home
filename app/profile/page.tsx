@@ -1,19 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -166,6 +160,8 @@ function ProfilePageContent() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Update profile data when user loads
   useEffect(() => {
@@ -195,6 +191,11 @@ function ProfilePageContent() {
         }
       }
 
+      // Debug: Log the user image URL
+      if (user.image) {
+        console.log('Profile image URL:', user.image)
+      }
+
       setProfileData((prev) => ({
         ...prev,
         name: user.name || '',
@@ -204,8 +205,9 @@ function ProfilePageContent() {
         gender: user.gender || '',
         languages: languagesArray,
         profileImage:
-          user.image ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+          (user.image && user.image.trim() !== '') 
+            ? user.image
+            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
         memberSince: memberSince,
       }))
     }
@@ -537,6 +539,7 @@ function ProfilePageContent() {
           country: profileData.country || undefined,
           gender: profileData.gender || undefined,
           languages: languagesArray.length > 0 ? languagesArray : undefined,
+          image: profileData.profileImage || undefined,
         }),
       })
 
@@ -600,11 +603,110 @@ function ProfilePageContent() {
         gender: user.gender || '',
         languages: languagesArray,
         profileImage:
-          user.image ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+          (user.image && user.image.trim() !== '') 
+            ? user.image
+            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
         bio: '',
         memberSince: memberSince,
       })
+    }
+  }
+
+  const handleImageClick = () => {
+    if (isEditing && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setSaveError('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      setSaveError('Image size must be less than 10MB.')
+      return
+    }
+
+    setIsUploadingImage(true)
+    setSaveError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setSaveError('Authentication required. Please sign in again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('type', 'profile') // Indicate this is a profile image
+
+      // Upload image
+      const uploadResponse = await fetch(getApiUrl('/upload/image'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      const uploadResult = await uploadResponse.json()
+
+      if (!uploadResponse.ok) {
+        setSaveError(uploadResult.error || 'Failed to upload image. Please try again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Update profile data with new image URL
+      if (uploadResult.data?.url) {
+        setProfileData((prev) => ({
+          ...prev,
+          profileImage: uploadResult.data.url,
+        }))
+
+        // Automatically save the profile with the new image
+        if (user?.id) {
+          const saveResponse = await fetch(getApiUrl(`/users/${user.id}`), {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              image: uploadResult.data.url,
+            }),
+          })
+
+          if (saveResponse.ok) {
+            setSaveSuccess(true)
+            await refreshUser()
+            setTimeout(() => {
+              setSaveSuccess(false)
+            }, 2000)
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      setSaveError('An unexpected error occurred while uploading the image. Please try again.')
+    } finally {
+      setIsUploadingImage(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -658,17 +760,40 @@ function ProfilePageContent() {
                 <div className="text-center">
                   <div className="relative inline-block mb-4">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={profileData.profileImage} alt={profileData.name} />
-                      <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage 
+                        src={user?.image && user.image.trim() !== '' 
+                          ? user.image 
+                          : profileData.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+                        } 
+                        alt={profileData.name || user?.name || 'Profile'} 
+                      />
+                      <AvatarFallback>
+                        {(profileData.name || user?.name) 
+                          ? (profileData.name || user?.name || '').charAt(0).toUpperCase() 
+                          : 'U'}
+                      </AvatarFallback>
                     </Avatar>
-                    {isEditing && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
                       <Button
                         size="sm"
                         className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                        onClick={handleImageClick}
+                        disabled={isUploadingImage}
                       >
-                        <Camera className="w-4 h-4" />
+                        {isUploadingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Camera className="w-4 h-4" />
+                        )}
                       </Button>
-                    )}
+                    </>
                   </div>
                   <h2 className="text-xl font-semibold mb-1">{profileData.name || 'Loading...'}</h2>
                   <p className="text-muted-foreground text-sm mb-4">
