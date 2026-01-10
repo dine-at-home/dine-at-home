@@ -27,7 +27,9 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
     }
 
     if (!isAuthenticated) {
-      router.push('/auth/signin')
+      // Preserve the current URL as callback URL
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`)
       return
     }
 

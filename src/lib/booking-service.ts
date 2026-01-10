@@ -186,7 +186,7 @@ class BookingService {
    */
   async updateBookingStatus(
     bookingId: string,
-    status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+    status: 'PENDING' | 'CONFIRMED' | 'ONGOING' | 'CANCELLED' | 'COMPLETED'
   ): Promise<{ success: boolean; data?: BookingResponse; error?: string }> {
     try {
       const token = getToken()

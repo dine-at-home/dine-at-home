@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/auth-context'
 import { getRedirectUrl } from '@/lib/auth-utils'
 
-export default function SignInPage() {
+function SignInPageContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -16,15 +16,20 @@ export default function SignInPage() {
   const [formLoading, setFormLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, user, signInWithGoogle, loading } = useAuth()
+
+  // Get callback URL from query params
+  const callbackUrl = searchParams.get('callbackUrl')
 
   // Redirect if already logged in (wait for loading to complete)
   useEffect(() => {
     if (!loading && user) {
-      const redirectUrl = getRedirectUrl(user)
+      // If there's a callback URL, use it; otherwise use default redirect
+      const redirectUrl = callbackUrl || getRedirectUrl(user)
       router.push(redirectUrl)
     }
-  }, [user, loading, router])
+  }, [user, loading, router, callbackUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,10 +57,10 @@ export default function SignInPage() {
         const errorMessage = result.error || 'Invalid email or password. Please try again.'
         setError(errorMessage)
       } else {
-        // Redirect based on user role
+        // Redirect to callback URL if provided, otherwise use default redirect based on user role
         // Use user from result if available, otherwise use user from context (which should be updated)
         const userForRedirect = result.data?.user || user
-        const redirectUrl = getRedirectUrl(userForRedirect || null)
+        const redirectUrl = callbackUrl || getRedirectUrl(userForRedirect || null)
         router.push(redirectUrl)
         router.refresh()
       }
@@ -252,5 +257,22 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <SignInPageContent />
+    </Suspense>
   )
 }

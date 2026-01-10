@@ -160,12 +160,9 @@ export default function SignUpPage() {
       })
 
       if (result.success) {
-        // Registration successful - user is automatically verified and logged in
-        // Get user from result or wait for auth context to update
-        const user = result.data?.user || null
-        const redirectUrl = getRedirectUrl(user || ({ role: formData.userType } as any))
-        router.push(redirectUrl)
-        router.refresh()
+        // Registration successful - redirect to OTP verification page
+        const userEmail = result.data?.user?.email || formData.email
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(userEmail)}`)
       } else {
         // Display specific error message from backend
         const errorMessage = result.error || 'Registration failed. Please try again.'

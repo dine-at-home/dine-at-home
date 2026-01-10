@@ -25,7 +25,10 @@ export function ProtectedRoute({
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push(redirectTo)
+      // Preserve the current URL as callback URL
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      const signInUrl = `${redirectTo}?callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.push(signInUrl)
     }
   }, [loading, isAuthenticated, router, redirectTo])
 

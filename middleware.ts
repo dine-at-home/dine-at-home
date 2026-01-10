@@ -49,8 +49,10 @@ export function middleware(request: NextRequest) {
 
     if (!token) {
       // Redirect to sign in if no token
+      // Preserve the full URL including query parameters as callback
+      const fullUrl = request.nextUrl.pathname + request.nextUrl.search
       const signInUrl = new URL('/auth/signin', request.url)
-      signInUrl.searchParams.set('callbackUrl', pathname)
+      signInUrl.searchParams.set('callbackUrl', fullUrl)
       return NextResponse.redirect(signInUrl)
     }
   }

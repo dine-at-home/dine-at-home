@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ import {
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
 
-export default function CreateDinnerPage() {
+function CreateDinnerPageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -917,5 +917,22 @@ export default function CreateDinnerPage() {
         </div>
       </div>
     </HostGuard>
+  )
+}
+
+export default function CreateDinnerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <CreateDinnerPageContent />
+    </Suspense>
   )
 }

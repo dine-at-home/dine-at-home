@@ -56,8 +56,7 @@ const mockBookings = [
       title: 'Authentic Italian Pasta Making',
       host: {
         name: 'Marco Rossi',
-        avatar:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+        avatar: '',
       },
       image:
         'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
@@ -79,8 +78,7 @@ const mockBookings = [
       title: 'Japanese Sushi Workshop',
       host: {
         name: 'Yuki Tanaka',
-        avatar:
-          'https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face',
+        avatar: '',
       },
       image:
         'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
@@ -102,8 +100,7 @@ const mockBookings = [
       title: 'French Wine Tasting',
       host: {
         name: 'Pierre Dubois',
-        avatar:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+        avatar: '',
       },
       image:
         'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
@@ -146,6 +143,12 @@ function ProfilePageContent() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [showReviewDialog, setShowReviewDialog] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<any>(null)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -205,9 +208,7 @@ function ProfilePageContent() {
         gender: user.gender || '',
         languages: languagesArray,
         profileImage:
-          user.image && user.image.trim() !== ''
-            ? user.image
-            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+          user.image && user.image.trim() !== '' ? user.image : '',
         memberSince: memberSince,
       }))
     }
@@ -304,14 +305,14 @@ function ProfilePageContent() {
               status: booking.status?.toLowerCase() || 'pending',
               guests: booking.guests || 1,
               totalAmount: booking.totalPrice || 0,
+              dinnerId: dinner?.id || booking.dinnerId,
               dinner: dinner
                 ? {
+                    id: dinner.id,
                     title: dinner.title,
                     host: {
                       name: dinner.host.name,
-                      avatar:
-                        dinner.host.avatar ||
-                        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                      avatar: dinner.host.avatar || '',
                     },
                     image: dinner.thumbnail || dinner.images?.[0] || null,
                     location:
@@ -323,7 +324,7 @@ function ProfilePageContent() {
                     capacity: dinner.capacity,
                   }
                 : null,
-              review: null, // Reviews will be fetched separately if needed
+              review: null, // Will be populated from reviews list
             }
           })
 
@@ -343,6 +344,191 @@ function ProfilePageContent() {
 
     fetchBookings()
   }, [user?.id])
+
+  // Merge reviews into bookings when both are loaded
+  useEffect(() => {
+    if (bookings.length > 0 && reviews.length > 0) {
+      setBookings((prevBookings) =>
+        prevBookings.map((booking) => {
+          const review = reviews.find((r: any) => r.dinner?.id === booking.dinnerId)
+          return {
+            ...booking,
+            review: review
+              ? {
+                  rating: review.rating,
+                  comment: review.comment || '',
+                }
+              : null,
+          }
+        })
+      )
+    }
+  }, [reviews])
+
+  // Handle review submission
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedBooking || reviewRating === 0) {
+      setReviewError('Please select a rating')
+      return
+    }
+
+    setReviewSubmitting(true)
+    setReviewError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setReviewError('Authentication required. Please sign in again.')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const dinnerId = selectedBooking.dinner?.id || selectedBooking.dinnerId
+      if (!dinnerId) {
+        setReviewError('Dinner information is missing')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const response = await fetch(getApiUrl('/reviews'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dinnerId,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setReviewError(result.error || result.message || 'Failed to submit review')
+        setReviewSubmitting(false)
+        return
+      }
+
+      // Success - refresh bookings and reviews
+      setShowReviewDialog(false)
+      setSelectedBooking(null)
+      setReviewRating(0)
+      setReviewComment('')
+      setReviewError(null)
+
+      // Refresh bookings to show the new review
+      if (user?.id) {
+        const bookingsResult = await bookingService.getUserBookings(user.id)
+        if (bookingsResult.success && bookingsResult.data) {
+          // Transform and update bookings similar to fetchBookings
+          const transformedBookings = bookingsResult.data.map((booking: any) => {
+            let dinner = null
+            if (booking.dinner) {
+              try {
+                const backendDinner = booking.dinner
+                dinner = transformDinner({
+                  ...backendDinner,
+                  description: backendDinner.description || '',
+                  cuisine: backendDinner.cuisine || 'Other',
+                  capacity: backendDinner.capacity || 0,
+                  available: backendDinner.available || 0,
+                  instantBook: backendDinner.instantBook || false,
+                  rating: backendDinner.rating || 0,
+                  reviewCount: backendDinner.reviewCount || 0,
+                  images: Array.isArray(backendDinner.images)
+                    ? backendDinner.images
+                    : backendDinner.images || [],
+                  location:
+                    typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                  host: backendDinner.host || {},
+                })
+              } catch (error) {
+                console.error('Error transforming dinner:', error)
+                dinner = {
+                  id: booking.dinner.id,
+                  title: booking.dinner.title || 'Unknown Dinner',
+                  date: booking.dinner.date
+                    ? typeof booking.dinner.date === 'string'
+                      ? booking.dinner.date.split('T')[0]
+                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                    : '',
+                  time: booking.dinner.time || '19:00',
+                  price: booking.dinner.price || 0,
+                  capacity: booking.dinner.capacity || 0,
+                  images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                  host: {
+                    id: booking.dinner.host?.id || '',
+                    name: booking.dinner.host?.name || 'Unknown Host',
+                    avatar: booking.dinner.host?.image || undefined,
+                  },
+                  location:
+                    typeof booking.dinner.location === 'object'
+                      ? booking.dinner.location
+                      : {
+                          address: '',
+                          city: '',
+                          state: '',
+                          neighborhood: '',
+                        },
+                }
+              }
+            }
+
+            return {
+              id: booking.id,
+              status: booking.status?.toLowerCase() || 'pending',
+              guests: booking.guests || 1,
+              totalAmount: booking.totalPrice || 0,
+              dinner: dinner
+                ? {
+                    title: dinner.title,
+                    host: {
+                      name: dinner.host.name,
+                      avatar: dinner.host.avatar || undefined,
+                    },
+                    image: dinner.thumbnail || dinner.images?.[0] || null,
+                    location:
+                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                      'Location not available',
+                    date: dinner.date,
+                    time: dinner.time,
+                    price: dinner.price,
+                    capacity: dinner.capacity,
+                  }
+                : null,
+              dinnerId: dinner?.id || booking.dinnerId,
+              review: null, // Will be populated from reviews list
+            }
+          })
+          setBookings(transformedBookings)
+
+          // Refresh reviews to merge with bookings
+          if (user?.id) {
+            const reviewsResponse = await fetch(getApiUrl(`/users/${user.id}/reviews`), {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            })
+            const reviewsResult = await reviewsResponse.json()
+            if (reviewsResult.success && reviewsResult.data) {
+              setReviews(reviewsResult.data)
+              // Reviews will be merged into bookings via useEffect
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error)
+      setReviewError(error.message || 'Failed to submit review. Please try again.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   // Fetch reviews when user is available
   useEffect(() => {
@@ -502,7 +688,9 @@ function ProfilePageContent() {
   }
 
   if (!user) {
-    router.push('/auth/signin')
+    // Preserve the current URL as callback URL
+    const currentUrl = window.location.pathname + (window.location.search || '')
+    router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`)
     return null
   }
 
@@ -603,9 +791,7 @@ function ProfilePageContent() {
         gender: user.gender || '',
         languages: languagesArray,
         profileImage:
-          user.image && user.image.trim() !== ''
-            ? user.image
-            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+          user.image && user.image.trim() !== '' ? user.image : '',
         bio: '',
         memberSince: memberSince,
       })
@@ -764,8 +950,9 @@ function ProfilePageContent() {
                         src={
                           user?.image && user.image.trim() !== ''
                             ? user.image
-                            : profileData.profileImage ||
-                              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+                            : profileData.profileImage && profileData.profileImage.trim() !== ''
+                            ? profileData.profileImage
+                            : ''
                         }
                         alt={profileData.name || user?.name || 'Profile'}
                       />
@@ -1131,7 +1318,17 @@ function ProfilePageContent() {
                                       </span>
                                       {(booking.status === 'completed' ||
                                         booking.status === 'COMPLETED') && (
-                                        <Button size="sm" variant="outline">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setSelectedBooking(booking)
+                                            setReviewRating(0)
+                                            setReviewComment('')
+                                            setReviewError(null)
+                                            setShowReviewDialog(true)
+                                          }}
+                                        >
                                           Write Review
                                         </Button>
                                       )}
@@ -1177,23 +1374,17 @@ function ProfilePageContent() {
                         return (
                           <div key={review.id} className="border rounded-lg p-4">
                             <div className="flex items-start gap-4">
-                              {dinner?.host?.image ? (
-                                <Avatar className="w-12 h-12">
+                              <Avatar className="w-12 h-12">
+                                {dinner?.host?.image && dinner.host.image.trim() !== '' && (
                                   <AvatarImage
                                     src={dinner.host.image}
                                     alt={dinner.host?.name || 'Host'}
                                   />
-                                  <AvatarFallback>
-                                    {(dinner.host?.name || 'H').charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <Avatar className="w-12 h-12">
-                                  <AvatarFallback>
-                                    {(dinner?.host?.name || 'H').charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
+                                )}
+                                <AvatarFallback>
+                                  {(dinner?.host?.name || 'H').charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h3 className="font-semibold">
@@ -1257,13 +1448,14 @@ function ProfilePageContent() {
                           </div>
                           <Badge variant="secondary">Verified</Badge>
                         </div>
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                        {/* Phone Verification - Commented out for now */}
+                        {/* <div className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
                             <p className="font-medium">Phone Verification</p>
                             <p className="text-sm text-muted-foreground">Your phone is verified</p>
                           </div>
                           <Badge variant="secondary">Verified</Badge>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
 
@@ -1284,7 +1476,8 @@ function ProfilePageContent() {
                             Enabled
                           </Button>
                         </div>
-                        <div className="flex items-center justify-between">
+                        {/* SMS Notifications - Commented out for now */}
+                        {/* <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">SMS Notifications</p>
                             <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
@@ -1292,7 +1485,7 @@ function ProfilePageContent() {
                           <Button variant="outline" size="sm">
                             Disabled
                           </Button>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
 
@@ -1463,6 +1656,94 @@ function ProfilePageContent() {
                   </>
                 ) : (
                   'Change Password'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+            <DialogDescription>
+              {selectedBooking?.dinner?.title
+                ? `Share your experience about ${selectedBooking.dinner.title}`
+                : 'Share your experience'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitReview}>
+            <div className="space-y-4 py-4">
+              {/* Rating Selection */}
+              <div>
+                <Label className="mb-2 block">Rating *</Label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => setReviewRating(rating)}
+                      className="focus:outline-none transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          rating <= reviewRating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comment */}
+              <div>
+                <Label htmlFor="review-comment" className="mb-2 block">
+                  Comment (Optional)
+                </Label>
+                <Textarea
+                  id="review-comment"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Tell others about your experience..."
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Error Message */}
+              {reviewError && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+                  <p className="text-sm text-destructive">{reviewError}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowReviewDialog(false)
+                  setSelectedBooking(null)
+                  setReviewRating(0)
+                  setReviewComment('')
+                  setReviewError(null)
+                }}
+                disabled={reviewSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={reviewSubmitting || reviewRating === 0}>
+                {reviewSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Review'
                 )}
               </Button>
             </DialogFooter>

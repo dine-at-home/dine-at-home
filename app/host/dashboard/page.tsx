@@ -1450,7 +1450,8 @@ function HostDashboardContent() {
                 <Badge className="bg-green-100 text-green-800">Verified</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              {/* Phone Verification - Commented out for now */}
+              {/* <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-muted-foreground" />
                   <div>
@@ -1458,7 +1459,7 @@ function HostDashboardContent() {
                   </div>
                 </div>
                 <Badge className="bg-green-100 text-green-800">Verified</Badge>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -1481,7 +1482,8 @@ function HostDashboardContent() {
                 <Badge className="bg-green-100 text-green-800">Enabled</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              {/* SMS Notifications - Commented out for now */}
+              {/* <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5 text-muted-foreground" />
                   <div>
@@ -1490,7 +1492,7 @@ function HostDashboardContent() {
                   </div>
                 </div>
                 <Badge className="bg-gray-100 text-gray-800">Disabled</Badge>
-              </div>
+              </div> */}
             </div>
           </div>
 
