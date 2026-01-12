@@ -765,7 +765,7 @@ function CreateDinnerPageContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Duration {isDev ? '(hours/minutes)' : '(hours)'}</label>
+                    <label className="block text-sm font-medium mb-2">Duration (hours/minutes)</label>
                     <Select
                       value={dinnerData.duration?.toString() || '3'}
                       onValueChange={(value) => handleInputChange('duration', parseFloat(value) || 3)}
@@ -774,7 +774,7 @@ function CreateDinnerPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {isDev && <SelectItem value="0.033333">2 minutes (dev only)</SelectItem>}
+                        <SelectItem value="0.033333">2 minutes</SelectItem>
                         <SelectItem value="2">2 hours</SelectItem>
                         <SelectItem value="3">3 hours</SelectItem>
                         <SelectItem value="4">4 hours</SelectItem>
