@@ -6,6 +6,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Calendar } from '../ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Search, MapPin, Calendar as CalendarIcon, Users, Plus, Minus } from 'lucide-react'
 
 import { SearchParams } from '@/types'
@@ -16,6 +17,7 @@ interface SearchWidgetProps {
   initialParams?: {
     location?: string
     date?: Date
+    month?: string // Format: "YYYY-MM"
     guests?: number
   }
 }
@@ -30,6 +32,49 @@ export function SearchWidget({
   const [date, setDate] = useState<Date | undefined>(initialParams?.date)
   const [guests, setGuests] = useState(initialParams?.guests || 2)
   const [showGuestSelector, setShowGuestSelector] = useState(false)
+  const [showDateSelector, setShowDateSelector] = useState(false)
+  
+  // Month/Year selection
+  const currentDate = new Date()
+  const currentYear = currentDate.getFullYear()
+  const currentMonth = currentDate.getMonth()
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    initialParams?.date 
+      ? `${new Date(initialParams.date).getFullYear()}-${String(new Date(initialParams.date).getMonth() + 1).padStart(2, '0')}`
+      : initialParams?.month || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
+  )
+  
+  // Calendar month state (for controlling which month is displayed)
+  const getInitialCalendarMonth = () => {
+    if (initialParams?.date) {
+      const dateObj = new Date(initialParams.date)
+      return new Date(dateObj.getFullYear(), dateObj.getMonth(), 1)
+    }
+    const [year, monthNum] = selectedMonth.split('-').map(Number)
+    return new Date(year, monthNum - 1, 1)
+  }
+  const [calendarMonth, setCalendarMonth] = useState<Date>(getInitialCalendarMonth())
+
+  // Generate month/year options
+  const generateMonthOptions = () => {
+    const months = []
+    const currentDate = new Date()
+    const currentYear = currentDate.getFullYear()
+    const currentMonth = currentDate.getMonth()
+    
+    // Generate options for current month and next 12 months
+    for (let i = 0; i < 13; i++) {
+      const date = new Date(currentYear, currentMonth + i, 1)
+      const year = date.getFullYear()
+      const month = date.getMonth()
+      const monthValue = `${year}-${String(month + 1).padStart(2, '0')}`
+      const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      months.push({ value: monthValue, label: monthLabel, year, month })
+    }
+    return months
+  }
+
+  const monthOptions = generateMonthOptions()
 
   // Update state when initialParams change (e.g., when navigating to different search URL)
   useEffect(() => {
@@ -37,6 +82,16 @@ export function SearchWidget({
       setLocation(initialParams.location || '')
       setDate(initialParams.date)
       setGuests(initialParams.guests || 2)
+      if (initialParams.date) {
+        const dateObj = new Date(initialParams.date)
+        const monthValue = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
+        setSelectedMonth(monthValue)
+        setCalendarMonth(new Date(dateObj.getFullYear(), dateObj.getMonth(), 1))
+      } else if (initialParams.month) {
+        setSelectedMonth(initialParams.month)
+        const [year, monthNum] = initialParams.month.split('-').map(Number)
+        setCalendarMonth(new Date(year, monthNum - 1, 1))
+      }
     }
   }, [initialParams])
 
@@ -48,12 +103,31 @@ export function SearchWidget({
     const searchParams = new URLSearchParams()
 
     if (location) searchParams.set('location', location)
-    if (date) searchParams.set('date', date.toISOString())
+    // If date is selected, use date; otherwise use month
+    if (date) {
+      searchParams.set('date', date.toISOString())
+    } else if (selectedMonth) {
+      searchParams.set('month', selectedMonth)
+    }
     if (guests) searchParams.set('guests', guests.toString())
 
     // Navigate to search page with query parameters
     const queryString = searchParams.toString()
     router.push(`/search${queryString ? `?${queryString}` : ''}`)
+  }
+
+  // When month changes, clear date if it's outside the selected month and update calendar month
+  const handleMonthChange = (monthValue: string) => {
+    setSelectedMonth(monthValue)
+    const [year, monthNum] = monthValue.split('-').map(Number)
+    setCalendarMonth(new Date(year, monthNum - 1, 1))
+    if (date) {
+      const dateYear = date.getFullYear()
+      const dateMonth = date.getMonth() + 1
+      if (dateYear !== year || dateMonth !== monthNum) {
+        setDate(undefined)
+      }
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -82,37 +156,88 @@ export function SearchWidget({
             </div>
           </div>
 
-          {/* Date */}
-          <div className="flex-1">
+          {/* Month & Date */}
+          <div className="relative flex-1">
             <label className="block text-xs font-semibold text-gray-800 mb-2 ml-4">When</label>
-            <Popover>
+            <Popover open={showDateSelector} onOpenChange={setShowDateSelector}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl"
+                  className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl text-foreground"
                 >
                   <CalendarIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                   <span className="text-sm text-foreground">
                     {date
                       ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      : 'Add dates'}
+                      : monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
                   </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-4" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  disabled={(date) => {
-                    const today = new Date()
-                    today.setHours(0, 0, 0, 0)
-                    const dateToCheck = new Date(date)
-                    dateToCheck.setHours(0, 0, 0, 0)
-                    return dateToCheck < today
-                  }}
-                  initialFocus
-                />
+                <div className="space-y-4">
+                  {/* Month Selector */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Month</label>
+                    <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {monthOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Date Picker (Optional) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium">Date (optional)</label>
+                      {date && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDate(undefined)
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={(selectedDate) => {
+                        setDate(selectedDate)
+                        if (selectedDate) {
+                          setShowDateSelector(false)
+                        }
+                      }}
+                      month={calendarMonth}
+                      onMonthChange={setCalendarMonth}
+                      disabled={(dateToCheck) => {
+                        const [year, monthNum] = selectedMonth.split('-').map(Number)
+                        const checkYear = dateToCheck.getFullYear()
+                        const checkMonth = dateToCheck.getMonth() + 1
+                        // Disable dates outside the selected month
+                        if (checkYear !== year || checkMonth !== monthNum) return true
+                        // Disable past dates
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        return dateToCheck < today
+                      }}
+                      initialFocus
+                    />
+                  </div>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
@@ -201,37 +326,90 @@ export function SearchWidget({
           </div>
         </div>
 
-        {/* Date */}
-        <div>
+        {/* Month & Date */}
+        <div className="relative">
           <label className="block text-xs font-semibold text-gray-800 mb-2 ml-4">When</label>
-          <Popover>
+          <Popover open={showDateSelector} onOpenChange={setShowDateSelector}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl"
+                className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl text-foreground"
               >
                 <CalendarIcon className="w-4 h-4 mr-3 text-muted-foreground" />
                 <span className="text-sm text-foreground">
                   {date
                     ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                    : 'Add dates'}
+                    : monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
                 </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-4" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                disabled={(date) => {
-                  const today = new Date()
-                  today.setHours(0, 0, 0, 0)
-                  const dateToCheck = new Date(date)
-                  dateToCheck.setHours(0, 0, 0, 0)
-                  return dateToCheck < today
-                }}
-                initialFocus
-              />
+              <div className="space-y-4">
+                {/* Month Selector */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Month</label>
+                  <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Date Picker (Optional) */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Date (optional)</label>
+                    {date && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setDate(undefined)
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(selectedDate) => {
+                      setDate(selectedDate)
+                      if (selectedDate) {
+                        setShowDateSelector(false)
+                      }
+                    }}
+                    month={date ? new Date(date.getFullYear(), date.getMonth(), 1) : (() => {
+                      const [year, monthNum] = selectedMonth.split('-').map(Number)
+                      return new Date(year, monthNum - 1, 1)
+                    })()}
+                    disabled={(dateToCheck) => {
+                      const [year, monthNum] = selectedMonth.split('-').map(Number)
+                      const checkYear = dateToCheck.getFullYear()
+                      const checkMonth = dateToCheck.getMonth() + 1
+                      // Disable dates outside the selected month
+                      if (checkYear !== year || checkMonth !== monthNum) return true
+                      // Disable past dates
+                      const today = new Date()
+                      today.setHours(0, 0, 0, 0)
+                      return dateToCheck < today
+                    }}
+                    initialFocus
+                  />
+                </div>
+              </div>
             </PopoverContent>
           </Popover>
         </div>

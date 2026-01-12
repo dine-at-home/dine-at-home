@@ -24,14 +24,17 @@ function SearchPageContent() {
   // Parse search parameters from URL
   const location = searchParams.get('location') || ''
   const dateParam = searchParams.get('date')
+  const monthParam = searchParams.get('month')
   const guestsParam = searchParams.get('guests')
 
   const date = dateParam ? new Date(dateParam) : undefined
+  const month = monthParam || undefined
   const guests = guestsParam ? parseInt(guestsParam, 10) : 2
 
   const searchParamsObj = {
     location,
     date,
+    month,
     guests,
   }
 

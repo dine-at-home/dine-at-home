@@ -61,7 +61,9 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         if (searchParams.location) {
           queryParams.append('location', searchParams.location)
         }
-        if (searchParams.date) {
+        if (searchParams.month) {
+          queryParams.append('month', searchParams.month)
+        } else if (searchParams.date) {
           queryParams.append('date', searchParams.date.toISOString().split('T')[0])
         }
         if (searchParams.guests) {
@@ -99,7 +101,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     }
 
     fetchDinners()
-  }, [searchParams.location, searchParams.date, searchParams.guests, searchParams.cuisine])
+  }, [searchParams.location, searchParams.date, searchParams.month, searchParams.guests, searchParams.cuisine])
 
   // Listen for booking created events to remove dinner from listings in real-time
   useEffect(() => {
@@ -298,6 +300,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
               initialParams={{
                 location: searchParams.location,
                 date: searchParams.date,
+                month: searchParams.month,
                 guests: searchParams.guests,
               }}
             />
@@ -308,6 +311,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
               initialParams={{
                 location: searchParams.location,
                 date: searchParams.date,
+                month: searchParams.month,
                 guests: searchParams.guests,
               }}
             />
@@ -341,13 +345,21 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                     <span className="text-muted-foreground"> in {searchParams.location}</span>
                   )}
                 </h1>
-                {searchParams.date && (
+                {(searchParams.month || searchParams.date) && (
                   <p className="text-muted-foreground mt-1">
-                    {searchParams.date.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {searchParams.month
+                      ? (() => {
+                          const [year, month] = searchParams.month.split('-').map(Number)
+                          const date = new Date(year, month - 1, 1)
+                          return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                        })()
+                      : searchParams.date
+                        ? searchParams.date.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                          })
+                        : ''}
                     {searchParams.guests && ` • ${searchParams.guests} guests`}
                   </p>
                 )}
