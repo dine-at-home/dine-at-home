@@ -33,9 +33,7 @@ import {
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
 
-const COUNTRIES = [
-  'Iceland',
-]
+const COUNTRIES = ['Iceland']
 
 function CreateDinnerPageContent() {
   const router = useRouter()
@@ -765,10 +763,14 @@ function CreateDinnerPageContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Duration (hours/minutes)</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Duration (hours/minutes)
+                    </label>
                     <Select
                       value={dinnerData.duration?.toString() || '3'}
-                      onValueChange={(value) => handleInputChange('duration', parseFloat(value) || 3)}
+                      onValueChange={(value) =>
+                        handleInputChange('duration', parseFloat(value) || 3)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />

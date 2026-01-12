@@ -8,6 +8,7 @@ import { SocialProofSection } from '@/components/home/social-proof-section'
 import { FeaturedDinnersSection } from '@/components/home/featured-dinners-section'
 import { HowItWorksSection } from '@/components/home/how-it-works-section'
 import { HostCTASection } from '@/components/home/host-cta-section'
+import { AdBanner } from '@/components/home/ad-banner'
 import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
 import { shouldShowInListings } from '@/lib/dinner-filters'
@@ -145,7 +146,6 @@ function HomePageContent() {
         </div>
       )}
       <HeroSection />
-      <SocialProofSection />
       {loading ? (
         <div className="py-16 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -159,7 +159,29 @@ function HomePageContent() {
       ) : (
         <FeaturedDinnersSection dinners={dinners} />
       )}
+
+      <AdBanner
+        title="Elevate Your Culinary Skills"
+        description="Join exclusive online masterclasses with world-renowned chefs. Master the art of pasta, pastry, and more from the comfort of your home."
+        buttonText="View Masterclasses"
+        link="/"
+        imageSrc="/ads/cooking_class.png"
+        variant="primary"
+      />
+
+      <SocialProofSection />
+
       <HowItWorksSection />
+
+      <AdBanner
+        title="Premium Kitchenware for Master Chefs"
+        description="Upgrade your kitchen with our curated collection of professional ceramic cookware and artisanal tools. Built to last a lifetime."
+        buttonText="Shop Collection"
+        link="/"
+        imageSrc="/ads/premium_cookware.png"
+        variant="secondary"
+      />
+
       <HostCTASection />
     </MainLayout>
   )

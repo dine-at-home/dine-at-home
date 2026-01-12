@@ -209,8 +209,7 @@ function ProfilePageContent() {
         country: user.country || '',
         gender: user.gender || '',
         languages: languagesArray,
-        profileImage:
-          user.image && user.image.trim() !== '' ? user.image : '',
+        profileImage: user.image && user.image.trim() !== '' ? user.image : '',
         memberSince: memberSince,
       }))
     }
@@ -410,7 +409,7 @@ function ProfilePageContent() {
           setReviewRating(0)
           setReviewComment('')
           setReviewError(null)
-          
+
           // Refresh bookings (which now include reviews)
           if (user?.id) {
             const bookingsResult = await bookingService.getUserBookings(user.id)
@@ -775,7 +774,7 @@ function ProfilePageContent() {
     try {
       // Send OTP to user's email
       const result = await resendOTP(user.email)
-      
+
       if (result.success) {
         // Redirect to OTP verification page
         const currentUrl = window.location.pathname + (window.location.search || '')
@@ -933,8 +932,7 @@ function ProfilePageContent() {
         country: user.country || '',
         gender: user.gender || '',
         languages: languagesArray,
-        profileImage:
-          user.image && user.image.trim() !== '' ? user.image : '',
+        profileImage: user.image && user.image.trim() !== '' ? user.image : '',
         bio: '',
         memberSince: memberSince,
       })
@@ -1094,8 +1092,8 @@ function ProfilePageContent() {
                           user?.image && user.image.trim() !== ''
                             ? user.image
                             : profileData.profileImage && profileData.profileImage.trim() !== ''
-                            ? profileData.profileImage
-                            : ''
+                              ? profileData.profileImage
+                              : ''
                         }
                         alt={profileData.name || user?.name || 'Profile'}
                       />
@@ -1409,7 +1407,8 @@ function ProfilePageContent() {
                                       <Badge
                                         className={`text-xs px-2 py-0.5 ${getStatusColor(booking.status)}`}
                                       >
-                                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                        {booking.status.charAt(0).toUpperCase() +
+                                          booking.status.slice(1)}
                                       </Badge>
                                     </div>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
@@ -1422,7 +1421,10 @@ function ProfilePageContent() {
                                     </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <Calendar className="w-4 h-4" />
-                                      {formatFriendlyDateTime(booking.dinner.date, booking.dinner.time)}
+                                      {formatFriendlyDateTime(
+                                        booking.dinner.date,
+                                        booking.dinner.time
+                                      )}
                                     </p>
                                     <div className="flex items-center gap-4 mt-2">
                                       <span className="text-sm text-muted-foreground">
@@ -1485,7 +1487,7 @@ function ProfilePageContent() {
                                       )}
                                     </div>
                                   )}
-                                  
+
                                   {/* Host's Review of Guest - Right aligned, shown after Your Review */}
                                   {booking.hostReview ? (
                                     <div className="p-3 bg-muted rounded-lg text-right">

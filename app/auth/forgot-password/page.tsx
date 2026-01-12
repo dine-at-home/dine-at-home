@@ -107,12 +107,10 @@ function ForgotPasswordPageContent() {
               <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
                 <Mail className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-green-800">
-                    Reset code sent!
-                  </p>
+                  <p className="text-sm font-medium text-green-800">Reset code sent!</p>
                   <p className="text-sm text-green-700 mt-1">
-                    If an account exists with this email, a password reset code has been sent.
-                    Check your email and use the code to reset your password.
+                    If an account exists with this email, a password reset code has been sent. Check
+                    your email and use the code to reset your password.
                   </p>
                   <Link
                     href="/auth/reset-password"

@@ -10,6 +10,7 @@ export { SocialProofSection } from './home/social-proof-section'
 export { FeaturedDinnersSection } from './home/featured-dinners-section'
 export { HowItWorksSection } from './home/how-it-works-section'
 export { HostCTASection } from './home/host-cta-section'
+export { AdBanner } from './home/ad-banner'
 
 // Search Components
 export { SearchWidget } from './search/search-widget'

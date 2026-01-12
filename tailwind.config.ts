@@ -22,6 +22,7 @@ const config: Config = {
           700: '#e64a19', // Primary dark
           800: '#d84315',
           900: '#bf360c',
+          DEFAULT: 'hsl(var(--primary))',
         },
         // Semantic colors using CSS variables
         background: 'hsl(var(--background))',

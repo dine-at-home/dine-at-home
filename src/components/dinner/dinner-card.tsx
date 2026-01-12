@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -7,9 +5,10 @@ import moment from 'moment-timezone'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import { Star, Zap, Calendar, MapPin, Users, Clock } from 'lucide-react'
+import { Star, Zap, Calendar, MapPin, Users, Clock, ArrowRight } from 'lucide-react'
 import { Dinner } from '@/types'
 import { useAuth } from '@/contexts/auth-context'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface DinnerCardProps {
   dinner: Dinner
@@ -45,205 +44,151 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
   const handleQuickBook = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (isHost) {
-      // Hosts can't book, do nothing or show message
-      return
-    }
+    if (isHost) return
     router.push(`/booking?dinner=${dinner.id}`)
   }
 
   return (
-    <div
-      className={`group cursor-pointer transform transition-transform duration-200 hover:scale-[1.02] ${className}`}
+    <motion.div
+      whileHover={{ y: -8 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className={`group cursor-pointer ${className}`}
       onClick={handleCardClick}
     >
-      <div className="bg-white rounded-xl overflow-hidden shadow-card hover:shadow-hover transition-shadow duration-300">
+      <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-zinc-100 flex flex-col h-full">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {dinner.thumbnail || (dinner.images && dinner.images.length > 0) ? (
-            <Image
+        <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+          <AnimatePresence mode="wait">
+            <motion.div
               key={currentImageIndex}
-              src={
-                dinner.images && dinner.images.length > 0
-                  ? dinner.images[currentImageIndex]
-                  : dinner.thumbnail || ''
-              }
-              alt={dinner.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">No image</p>
-            </div>
-          )}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="absolute inset-0"
+            >
+              <Image
+                src={
+                  dinner.images && dinner.images.length > 0
+                    ? dinner.images[currentImageIndex]
+                    : dinner.thumbnail || ''
+                }
+                alt={dinner.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Gradients */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
           {/* Image Navigation */}
           {dinner.images && dinner.images.length > 1 && (
-            <>
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity z-20">
               <Button
                 variant="ghost"
-                size="sm"
-                type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white w-8 h-8 p-0 rounded-full z-10"
+                size="icon"
+                className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 border-0"
                 onClick={prevImage}
               >
-                <span className="text-lg">‹</span>
+                <ArrowRight className="w-4 h-4 rotate-180" />
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white w-8 h-8 p-0 rounded-full z-10"
+                size="icon"
+                className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 border-0"
                 onClick={nextImage}
               >
-                <span className="text-lg">›</span>
+                <ArrowRight className="w-4 h-4" />
               </Button>
-            </>
-          )}
-
-          {/* Image Indicators */}
-          {dinner.images && dinner.images.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1">
-              {dinner.images.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                  }`}
-                />
-              ))}
             </div>
           )}
 
-          {/* Price Badge */}
-          <div className="absolute bottom-3 left-3">
-            <Badge className="bg-black/70 text-white hover:bg-black/80 border-0">
-              ${dinner.price} per person
-            </Badge>
+          {/* Price & Badges */}
+          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+            {dinner.instantBook && (
+              <Badge className="bg-white text-zinc-900 border-0 shadow-sm py-1.5 px-3 rounded-full flex items-center gap-1.5 font-bold">
+                <Zap className="w-3.5 h-3.5 fill-primary-500 text-primary-500" />
+                <span className="text-[10px] uppercase tracking-wider">Instant</span>
+              </Badge>
+            )}
+            {dinner.host.superhost && (
+              <Badge className="bg-primary-500 text-white border-0 shadow-sm py-1.5 px-3 rounded-full font-bold text-[10px] uppercase tracking-wider">
+                Superhost
+              </Badge>
+            )}
           </div>
 
-          {/* Instant Book Badge */}
-          {dinner.instantBook && (
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-white text-gray-800 hover:bg-white border-0 flex items-center space-x-1">
-                <Zap className="w-3 h-3" />
-                <span className="text-xs">Instant Book</span>
-              </Badge>
+          <div className="absolute bottom-4 left-4 z-10">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
+              <span className="text-white font-bold text-lg">${dinner.price}</span>
+              <span className="text-white/80 text-xs ml-1 font-medium">/ person</span>
             </div>
-          )}
-
-          {/* Superhost Badge */}
-          {dinner.host.superhost && (
-            <div className="absolute top-12 left-3">
-              <Badge className="bg-primary text-white hover:bg-primary border-0">Superhost</Badge>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-3">
-          {/* Host Info */}
-          <div className="flex items-center space-x-2">
-            <Avatar className="w-6 h-6">
+        <div className="p-6 flex flex-col flex-1 gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-primary-600">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                {moment.utc(dinner.date).local().format('MMM D, HH:mm')}
+              </span>
+              <Badge
+                variant="secondary"
+                className="bg-zinc-100 text-zinc-600 border-0 text-[10px] px-2 py-0"
+              >
+                {dinner.cuisine}
+              </Badge>
+            </div>
+            <h3 className="font-bold text-xl text-zinc-900 line-clamp-1 group-hover:text-primary-600 transition-colors">
+              {dinner.title}
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-3 text-zinc-500 text-sm">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-zinc-400" />
+              <span className="truncate max-w-[120px]">{dinner.location.neighborhood}</span>
+            </div>
+            <div className="w-1 h-1 rounded-full bg-zinc-300" />
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-zinc-400" />
+              <span>{dinner.available} left</span>
+            </div>
+          </div>
+
+          <div className="pt-2 mt-auto border-t border-zinc-50 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="font-bold text-zinc-900">{dinner.rating}</span>
+              <span className="text-zinc-400 text-xs">({dinner.reviewCount})</span>
+            </div>
+
+            <Avatar className="w-8 h-8 border-2 border-white shadow-sm">
               <AvatarImage
-                src={`https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face`}
+                src={`https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop`}
                 alt={dinner.host.name}
               />
               <AvatarFallback>{dinner.host.name[0]}</AvatarFallback>
             </Avatar>
-            <span className="text-sm text-muted-foreground">Hosted by {dinner.host.name}</span>
           </div>
 
-          {/* Title */}
-          <h3 className="font-semibold text-lg line-clamp-2 leading-tight">{dinner.title}</h3>
-
-          {/* Details */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-1">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  {(() => {
-                    // Parse UTC date from backend and convert to user's browser timezone
-                    // .local() automatically detects and uses the browser's timezone
-                    const momentDate = moment.utc(dinner.date).local()
-                    return momentDate.format('MMM D')
-                  })()}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Clock className="w-4 h-4" />
-                <span>
-                  {(() => {
-                    // Parse UTC date from backend and convert to user's browser timezone for time
-                    const momentDate = moment.utc(dinner.date).local()
-                    return momentDate.format('HH:mm')
-                  })()}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-1">
-                <MapPin className="w-4 h-4" />
-                <span>
-                  {dinner.location.neighborhood}, {dinner.location.city}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Users className="w-4 h-4" />
-                <span>{dinner.available} spots left</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Rating */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-3.5 h-3.5 ${
-                      i < Math.round(dinner.rating || 0)
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'fill-gray-200 text-gray-200'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="font-medium text-sm">{dinner.rating || 0}</span>
-              <span className="text-sm text-muted-foreground">({dinner.reviewCount || 0} reviews)</span>
-            </div>
-            <Badge variant="secondary" className="text-xs">
-              {dinner.cuisine}
-            </Badge>
-          </div>
-
-          {/* Quick Book Button */}
-          <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            {isHost ? (
-              <Button
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg cursor-not-allowed opacity-60"
-                onClick={handleQuickBook}
-                disabled
-                title="Host can't book - switch to guest account to book"
-              >
-                Host can't book
-              </Button>
-            ) : (
-              <Button
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
-                onClick={handleQuickBook}
-              >
-                Quick Book
-              </Button>
-            )}
+          {/* Quick Action Button - Floating on top of everything or slide up? Let's do slide up */}
+          <div className="pt-2 h-0 group-hover:h-12 overflow-hidden transition-all duration-300">
+            <Button
+              className={`w-full ${isHost ? 'bg-zinc-100 text-zinc-400' : 'bg-primary-600 hover:bg-primary-700 text-white'} rounded-xl font-bold transition-all`}
+              onClick={handleQuickBook}
+              disabled={isHost}
+            >
+              {isHost ? 'Host View' : 'Quick Book'}
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

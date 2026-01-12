@@ -59,7 +59,7 @@ export default function DinnerDetailPage() {
 
         if (result.success && result.data) {
           const transformedDinner = transformDinner(result.data)
-          
+
           console.log('🔵 Transformed Dinner:', {
             id: transformedDinner.id,
             title: transformedDinner.title,
@@ -68,7 +68,7 @@ export default function DinnerDetailPage() {
             reviews: transformedDinner.reviews || [],
             hasReviews: !!transformedDinner.reviews && transformedDinner.reviews.length > 0,
           })
-          
+
           setDinner(transformedDinner)
         } else {
           setError(result.error || 'Dinner not found')
@@ -103,7 +103,7 @@ export default function DinnerDetailPage() {
   // Show loading while checking auth or redirecting
   if (authLoading || (user && !user.emailVerified)) {
     return (
-      <PageLayout>
+      <PageLayout fullWidth={true}>
         <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">
@@ -116,7 +116,7 @@ export default function DinnerDetailPage() {
 
   if (loading) {
     return (
-      <PageLayout>
+      <PageLayout fullWidth={true}>
         <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading dinner...</p>
@@ -127,7 +127,7 @@ export default function DinnerDetailPage() {
 
   if (error || !dinner) {
     return (
-      <PageLayout>
+      <PageLayout fullWidth={true}>
         <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-semibold mb-4">Dinner Not Found</h1>
           <p className="text-muted-foreground mb-4">
@@ -145,7 +145,7 @@ export default function DinnerDetailPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout fullWidth={true}>
       <DinnerDetail dinner={dinner} onNavigate={handleNavigation} />
     </PageLayout>
   )

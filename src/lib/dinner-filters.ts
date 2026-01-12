@@ -11,10 +11,10 @@ export function isDinnerPast(dinner: Dinner): boolean {
   // The date field is now a full ISO string (e.g., "2026-01-11T23:00:00.000Z")
   // Parse it directly as UTC
   const dinnerMoment = moment.utc(dinner.date)
-  
+
   // Get current time in UTC for comparison
   const nowMoment = moment.utc()
-  
+
   // Compare in UTC (both moments are in UTC, so comparison is timezone-independent)
   return dinnerMoment.isSameOrBefore(nowMoment)
 }
@@ -51,13 +51,13 @@ export function shouldShowInListings(dinner: Dinner): boolean {
 export function isDinnerOngoing(dinner: Dinner): boolean {
   // The date field is a full ISO string (e.g., "2026-01-11T23:00:00.000Z")
   const dinnerStartMoment = moment.utc(dinner.date)
-  
+
   // Calculate end time by adding duration (in minutes)
   const dinnerEndMoment = dinnerStartMoment.clone().add(dinner.duration || 0, 'minutes')
-  
+
   // Get current time in UTC for comparison
   const nowMoment = moment.utc()
-  
+
   // Ongoing if current time is between start and end time
   return nowMoment.isSameOrAfter(dinnerStartMoment) && nowMoment.isBefore(dinnerEndMoment)
 }
@@ -68,13 +68,13 @@ export function isDinnerOngoing(dinner: Dinner): boolean {
 export function isDinnerEnded(dinner: Dinner): boolean {
   // The date field is a full ISO string (e.g., "2026-01-11T23:00:00.000Z")
   const dinnerStartMoment = moment.utc(dinner.date)
-  
+
   // Calculate end time by adding duration (in minutes)
   const dinnerEndMoment = dinnerStartMoment.clone().add(dinner.duration || 0, 'minutes')
-  
+
   // Get current time in UTC for comparison
   const nowMoment = moment.utc()
-  
+
   // Ended if current time is at or after end time
   return nowMoment.isSameOrAfter(dinnerEndMoment)
 }

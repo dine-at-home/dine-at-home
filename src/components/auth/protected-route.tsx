@@ -106,9 +106,7 @@ export function ProtectedRoute({
             <CardContent className="space-y-4">
               <Button
                 onClick={() =>
-                  router.push(
-                    `/auth/verify-otp?email=${encodeURIComponent(user.email || '')}`
-                  )
+                  router.push(`/auth/verify-otp?email=${encodeURIComponent(user.email || '')}`)
                 }
                 className="w-full"
               >

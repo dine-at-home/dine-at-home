@@ -330,7 +330,7 @@ class AuthService {
           if (newWindow.closed) {
             clearInterval(checkClosed!)
             checkClosed = null
-            
+
             // Only handle popup closure if we haven't received a message
             if (!handled) {
               window.removeEventListener('message', messageListener)

@@ -192,13 +192,13 @@ function VerifyOTPPageContent() {
               <p className="text-muted-foreground">
                 {isLoggedIn ? (
                   <>
-                    We've sent a verification code to <strong>{email || 'your email'}</strong>. Please
-                    enter the code below to continue.
+                    We've sent a verification code to <strong>{email || 'your email'}</strong>.
+                    Please enter the code below to continue.
                   </>
                 ) : (
                   <>
-                    We've sent a verification code to <strong>{email || 'your email'}</strong>. Please
-                    enter the code below.
+                    We've sent a verification code to <strong>{email || 'your email'}</strong>.
+                    Please enter the code below.
                   </>
                 )}
               </p>
@@ -209,9 +209,7 @@ function VerifyOTPPageContent() {
               <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-green-800">
-                    Email verified successfully!
-                  </p>
+                  <p className="text-sm font-medium text-green-800">Email verified successfully!</p>
                   <p className="text-sm text-green-700 mt-1">
                     Redirecting you to your dashboard...
                   </p>
@@ -224,9 +222,7 @@ function VerifyOTPPageContent() {
               <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
                 <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-800">
-                    New verification code sent!
-                  </p>
+                  <p className="text-sm font-medium text-blue-800">New verification code sent!</p>
                   <p className="text-sm text-blue-700 mt-1">
                     Please check your email for the new code.
                   </p>
@@ -299,9 +295,7 @@ function VerifyOTPPageContent() {
 
                 {/* Resend OTP */}
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Didn't receive the code?
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-2">Didn't receive the code?</p>
                   <button
                     type="button"
                     onClick={handleResendOTP}

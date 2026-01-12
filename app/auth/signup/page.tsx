@@ -8,9 +8,7 @@ import Image from 'next/image'
 import { useAuth } from '@/contexts/auth-context'
 import { getRedirectUrl } from '@/lib/auth-utils'
 
-const COUNTRIES = [
-  'Iceland',
-]
+const COUNTRIES = ['Iceland']
 
 const LANGUAGE_OPTIONS = [
   'English',

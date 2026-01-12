@@ -172,9 +172,7 @@ function ResetPasswordPageContent() {
               <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-green-800">
-                    Password reset successful!
-                  </p>
+                  <p className="text-sm font-medium text-green-800">Password reset successful!</p>
                   <p className="text-sm text-green-700 mt-1">
                     Your password has been reset. Redirecting to sign in...
                   </p>
