@@ -56,25 +56,28 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const [hostReviewsLoading, setHostReviewsLoading] = useState(true)
 
   // Use reviews from dinner data if available, otherwise empty array
-  const reviews = dinner.reviews || []
-
+  const reviews = Array.isArray(dinner.reviews) ? dinner.reviews : []
   // Debug logging
   useEffect(() => {
     console.log('🔵 DinnerDetail - Reviews Debug:', {
       dinnerId: dinner.id,
       dinnerTitle: dinner.title,
       reviewCount: dinner.reviewCount,
+      hasReviewsProperty: 'reviews' in dinner,
+      reviewsType: typeof dinner.reviews,
+      reviewsIsArray: Array.isArray(dinner.reviews),
       reviewsArray: reviews,
       reviewsLength: reviews.length,
       hasReviews: reviews.length > 0,
       reviewsData: reviews.map((r: any) => ({
-        id: r.id,
-        userName: r.userName,
-        rating: r.rating,
-        hasComment: !!r.comment,
+        id: r?.id,
+        userName: r?.userName,
+        rating: r?.rating,
+        hasComment: !!r?.comment,
+        comment: r?.comment?.substring(0, 50),
       })),
     })
-  }, [dinner.id, reviews])
+  }, [dinner.id, dinner.reviews, reviews])
 
   // Fetch host reviews
   useEffect(() => {
@@ -532,14 +535,14 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
               {reviews.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {reviews.map((review) => (
+                    {reviews.map((review: any) => (
                       <div key={review.id} className="space-y-3">
                         <div className="flex items-center space-x-3">
                           <Avatar className="w-10 h-10">
                             <AvatarImage src={review.userAvatar || ''} alt={review.userName} />
                             <AvatarFallback>{review.userName[0]}</AvatarFallback>
                           </Avatar>
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium text-sm">{review.userName}</div>
                             <div className="flex items-center space-x-1">
                               {[...Array(review.rating)].map((_, i) => (
@@ -549,17 +552,19 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                                 {new Date(review.date).toLocaleDateString()}
                               </span>
                             </div>
+                            {review.dinner && review.dinner.title && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {review.dinner.title}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{review.comment}</p>
+                        {review.comment && (
+                          <p className="text-sm text-muted-foreground">{review.comment}</p>
+                        )}
                       </div>
                     ))}
                   </div>
-                  {dinner.reviewCount > reviews.length && (
-                    <Button variant="outline" className="mt-6">
-                      Show all {dinner.reviewCount} reviews
-                    </Button>
-                  )}
                 </>
               ) : (
                 <div className="text-center py-12">
