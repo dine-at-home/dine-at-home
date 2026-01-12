@@ -284,7 +284,7 @@ function ProfilePageContent() {
                     superhost: false,
                     joinedDate: new Date().toISOString(),
                     responseRate: 0,
-                    responseTime: 'within 24 hours',
+                    responseTime: 'responds within 24 hours',
                   },
                   location:
                     typeof booking.dinner.location === 'object'

@@ -33,6 +33,7 @@ import {
 import { Dinner, NavigationParams } from '@/types'
 import { useAuth } from '@/contexts/auth-context'
 import { favoriteService } from '@/lib/favorite-service'
+import { getApiUrl } from '@/lib/api-config'
 
 interface DinnerDetailProps {
   dinner: Dinner
@@ -51,9 +52,40 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const [isToggling, setIsToggling] = useState(false)
   const [isCarouselOpen, setIsCarouselOpen] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
+  const [hostReviews, setHostReviews] = useState<any[]>([])
+  const [hostReviewsLoading, setHostReviewsLoading] = useState(true)
 
   // Use reviews from dinner data if available, otherwise empty array
   const reviews = dinner.reviews || []
+
+  // Fetch host reviews
+  useEffect(() => {
+    const fetchHostReviews = async () => {
+      if (!dinner.host?.id) {
+        setHostReviewsLoading(false)
+        return
+      }
+
+      try {
+        setHostReviewsLoading(true)
+        const response = await fetch(getApiUrl(`/host/${dinner.host.id}/reviews/public`))
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          setHostReviews(result.data)
+        } else {
+          setHostReviews([])
+        }
+      } catch (error) {
+        console.error('Error fetching host reviews:', error)
+        setHostReviews([])
+      } finally {
+        setHostReviewsLoading(false)
+      }
+    }
+
+    fetchHostReviews()
+  }, [dinner.host?.id])
 
   // Check if dinner is favorited on mount
   useEffect(() => {
@@ -264,7 +296,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                       yearsSince > 0
                         ? `${yearsSince} year${yearsSince > 1 ? 's' : ''}`
                         : 'Recently joined'
-                    return `${yearsText} • ${dinner.reviewCount} review${dinner.reviewCount !== 1 ? 's' : ''} • ${dinner.host.responseTime || 'Usually responds within 24 hours'}`
+                    return `${yearsText} • ${dinner.reviewCount} review${dinner.reviewCount !== 1 ? 's' : ''}`
                   })()}
                 </p>
                 {dinner.host.bio && <p className="text-sm">"{dinner.host.bio}"</p>}
@@ -275,6 +307,72 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 </div>
               </div>
             </div>
+
+            {/* Host Reviews */}
+            {hostReviews.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="font-semibold text-xl mb-4">
+                    Reviews about {dinner.host.name}
+                  </h3>
+                  <div className="space-y-4">
+                    {hostReviews.slice(0, 5).map((review) => (
+                      <div key={review.id} className="border-b pb-4 last:border-0">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage
+                              src={review.user?.image}
+                              alt={review.user?.name || 'Guest'}
+                            />
+                            <AvatarFallback>
+                              {review.user?.name ? review.user.name.charAt(0).toUpperCase() : 'G'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {review.user?.name || 'Anonymous'}
+                                </p>
+                                {review.dinner && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {review.dinner.title}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-4 h-4 ${
+                                      star <= review.rating
+                                        ? 'text-yellow-400 fill-yellow-400'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            {review.comment && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                {review.comment}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Separator />
 

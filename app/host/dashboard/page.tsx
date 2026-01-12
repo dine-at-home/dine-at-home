@@ -204,6 +204,12 @@ function HostDashboardContent() {
     bookingId: null,
     guestName: '',
   })
+  const [showReviewDialog, setShowReviewDialog] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<any>(null)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -660,7 +666,7 @@ function HostDashboardContent() {
                 price: dinner.price,
                 status: status,
                 bookings: dinner.capacity - dinner.available,
-                revenue: (dinner.capacity - dinner.available) * dinner.price,
+                revenue: dinner.revenue || 0, // Use revenue from backend (calculated from completed bookings)
                 rating: dinner.rating || 0,
                 reviews: dinner.reviewCount || 0,
                 image: dinner.thumbnail || validImages[0] || null,
@@ -703,9 +709,10 @@ function HostDashboardContent() {
           const transformedBookings = result.data.map((booking: any) => {
             return {
               id: booking.id,
+              dinnerId: booking.dinnerId,
               dinner: booking.dinner?.title || 'Unknown Dinner',
               guest: {
-                id: booking.user?.id || '',
+                id: booking.user?.id || booking.userId || '',
                 name: booking.user?.name || 'Unknown Guest',
                 avatar:
                   booking.user?.image ||
@@ -722,6 +729,7 @@ function HostDashboardContent() {
               totalAmount: booking.totalPrice,
               status: booking.status?.toLowerCase() || 'confirmed',
               specialRequests: booking.message || '',
+              review: booking.review || null, // Host's review of the guest (if exists)
             }
           })
           setBookings(transformedBookings)
@@ -804,9 +812,10 @@ function HostDashboardContent() {
           const transformedBookings = updatedResult.data.map((booking: any) => {
             return {
               id: booking.id,
+              dinnerId: booking.dinnerId,
               dinner: booking.dinner?.title || 'Unknown Dinner',
               guest: {
-                id: booking.user?.id || '',
+                id: booking.user?.id || booking.userId || '',
                 name: booking.user?.name || 'Unknown Guest',
                 avatar:
                   booking.user?.image ||
@@ -823,6 +832,7 @@ function HostDashboardContent() {
               totalAmount: booking.totalPrice,
               status: booking.status?.toLowerCase() || 'confirmed',
               specialRequests: booking.message || '',
+              review: booking.review || null, // Host's review of the guest (if exists)
             }
           })
           setBookings(transformedBookings)
@@ -835,6 +845,147 @@ function HostDashboardContent() {
       alert('An error occurred while updating the booking status')
     } finally {
       setUpdatingBookingId(null)
+    }
+  }
+
+  // Handle review submission (host reviewing guest)
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedBooking || reviewRating === 0) {
+      setReviewError('Please select a rating')
+      return
+    }
+
+    setReviewSubmitting(true)
+    setReviewError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setReviewError('Authentication required. Please sign in again.')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const dinnerId = selectedBooking.dinnerId
+      const reviewedUserId = selectedBooking.guest.id
+
+      if (!dinnerId || !reviewedUserId) {
+        setReviewError('Booking information is missing')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const response = await fetch(getApiUrl('/reviews'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dinnerId,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+          reviewedUserId, // Guest being reviewed by host
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        if (result.code === 'ALREADY_REVIEWED' || result.error?.includes('already reviewed')) {
+          // Close the dialog and refresh bookings
+          setShowReviewDialog(false)
+          setSelectedBooking(null)
+          setReviewRating(0)
+          setReviewComment('')
+          setReviewError(null)
+
+          // Refresh bookings
+          if (user?.id) {
+            const bookingsResult = await bookingService.getHostBookings(user.id)
+            if (bookingsResult.success && bookingsResult.data) {
+              const transformedBookings = bookingsResult.data.map((booking: any) => {
+                return {
+                  id: booking.id,
+                  dinnerId: booking.dinnerId,
+                  dinner: booking.dinner?.title || 'Unknown Dinner',
+                  guest: {
+                    id: booking.user?.id || booking.userId || '',
+                    name: booking.user?.name || 'Unknown Guest',
+                    avatar:
+                      booking.user?.image ||
+                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                    email: booking.user?.email || '',
+                  },
+                  date: booking.dinner?.date
+                    ? typeof booking.dinner.date === 'string'
+                      ? booking.dinner.date.split('T')[0]
+                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                    : '',
+                  time: booking.dinner?.time || '',
+                  guests: booking.guests,
+                  totalAmount: booking.totalPrice,
+                  status: booking.status?.toLowerCase() || 'confirmed',
+                  specialRequests: booking.message || '',
+                  review: booking.review || null,
+                }
+              })
+              setBookings(transformedBookings)
+            }
+          }
+        } else {
+          setReviewError(result.error || result.message || 'Failed to submit review')
+        }
+        setReviewSubmitting(false)
+        return
+      }
+
+      // Success - refresh bookings
+      setShowReviewDialog(false)
+      setSelectedBooking(null)
+      setReviewRating(0)
+      setReviewComment('')
+      setReviewError(null)
+
+      // Refresh bookings to show the new review
+      if (user?.id) {
+        const bookingsResult = await bookingService.getHostBookings(user.id)
+        if (bookingsResult.success && bookingsResult.data) {
+          const transformedBookings = bookingsResult.data.map((booking: any) => {
+            return {
+              id: booking.id,
+              dinnerId: booking.dinnerId,
+              dinner: booking.dinner?.title || 'Unknown Dinner',
+              guest: {
+                id: booking.user?.id || booking.userId || '',
+                name: booking.user?.name || 'Unknown Guest',
+                avatar:
+                  booking.user?.image ||
+                  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                email: booking.user?.email || '',
+              },
+              date: booking.dinner?.date
+                ? typeof booking.dinner.date === 'string'
+                  ? booking.dinner.date.split('T')[0]
+                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                : '',
+              time: booking.dinner?.time || '',
+              guests: booking.guests,
+              totalAmount: booking.totalPrice,
+              status: booking.status?.toLowerCase() || 'confirmed',
+              specialRequests: booking.message || '',
+              review: booking.review || null,
+            }
+          })
+          setBookings(transformedBookings)
+        }
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error)
+      setReviewError(error.message || 'Failed to submit review. Please try again.')
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -1262,15 +1413,17 @@ function HostDashboardContent() {
                     <Eye className="w-4 h-4 mr-2" />
                     View
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
+                  {dinner.status !== 'completed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1397,6 +1550,43 @@ function HostDashboardContent() {
                           {updatingBookingId === booking.id ? 'Updating...' : 'Decline'}
                         </Button>
                       </>
+                    )}
+                    {booking.status === 'completed' && !booking.review && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedBooking(booking)
+                          setShowReviewDialog(true)
+                          setReviewRating(0)
+                          setReviewComment('')
+                          setReviewError(null)
+                        }}
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Write Review
+                      </Button>
+                    )}
+                    {booking.status === 'completed' && booking.review && (
+                      <div className="space-y-2 min-w-[200px]">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= (booking.review?.rating || 0)
+                                  ? 'text-yellow-400 fill-yellow-400'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {booking.review?.comment && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {booking.review.comment}
+                          </p>
+                        )}
+                      </div>
                     )}
                     {/* Message feature - commented out for now */}
                     {/* <Button size="sm" variant="outline">
@@ -2246,6 +2436,87 @@ function HostDashboardContent() {
                 Close
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Review Guest Dialog */}
+        <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Write a Review</DialogTitle>
+              <DialogDescription>
+                Share your experience about {selectedBooking?.guest.name || 'this guest'}
+                {selectedBooking?.dinner && ` for ${selectedBooking.dinner}`}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Rating *</Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="focus:outline-none"
+                    >
+                      <Star
+                        className={`w-8 h-8 transition-colors ${
+                          star <= reviewRating
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reviewComment">Comment (Optional)</Label>
+                <Textarea
+                  id="reviewComment"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Tell others about your experience..."
+                  rows={4}
+                  disabled={reviewSubmitting}
+                />
+              </div>
+
+              {reviewError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                  {reviewError}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowReviewDialog(false)
+                    setSelectedBooking(null)
+                    setReviewRating(0)
+                    setReviewComment('')
+                    setReviewError(null)
+                  }}
+                  disabled={reviewSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={reviewSubmitting || reviewRating === 0}>
+                  {reviewSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Review'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 

@@ -43,7 +43,7 @@ export function transformDinner(dinner: any): Dinner {
     superhost: dinner.host?.superhost || false,
     joinedDate: dinner.host?.createdAt || dinner.host?.joinedDate || new Date().toISOString(),
     responseRate: dinner.host?.responseRate || 0,
-    responseTime: dinner.host?.responseTime || 'within 24 hours',
+    responseTime: dinner.host?.responseTime || 'responds within 24 hours',
     bio: dinner.host?.bio,
   }
 
