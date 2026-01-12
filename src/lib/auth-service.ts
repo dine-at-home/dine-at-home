@@ -269,6 +269,7 @@ class AuthService {
 
         // Store reference to message listener for cleanup
         let messageListener: ((event: MessageEvent) => void) | null = null
+        let handled = false // Track if we've already handled the authentication
 
         // Listen for messages from the popup
         messageListener = (event: MessageEvent) => {
@@ -278,6 +279,15 @@ class AuthService {
           }
 
           if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+            // Prevent multiple handlers
+            if (handled) return
+            handled = true
+
+            // Clear the interval if it exists
+            if (checkClosed) {
+              clearInterval(checkClosed)
+            }
+
             // Authentication succeeded, refresh the page
             if (messageListener) {
               window.removeEventListener('message', messageListener)
@@ -292,6 +302,15 @@ class AuthService {
             // Reload to update the UI
             window.location.reload()
           } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+            // Prevent multiple handlers
+            if (handled) return
+            handled = true
+
+            // Clear the interval if it exists
+            if (checkClosed) {
+              clearInterval(checkClosed)
+            }
+
             // Authentication failed - dispatch custom event for error handling
             if (messageListener) {
               window.removeEventListener('message', messageListener)
@@ -305,18 +324,24 @@ class AuthService {
 
         window.addEventListener('message', messageListener)
 
-        // Monitor the popup window for closure (fallback)
-        const checkClosed = setInterval(() => {
+        // Monitor the popup window for closure (fallback - only if no message received)
+        let checkClosed: NodeJS.Timeout | null = null
+        checkClosed = setInterval(() => {
           if (newWindow.closed) {
-            clearInterval(checkClosed)
-            window.removeEventListener('message', messageListener)
-            // Check if user is authenticated after popup closes
-            setTimeout(() => {
-              // Refresh user data in case authentication succeeded
-              if (typeof window !== 'undefined') {
-                window.location.reload()
-              }
-            }, 500)
+            clearInterval(checkClosed!)
+            checkClosed = null
+            
+            // Only handle popup closure if we haven't received a message
+            if (!handled) {
+              window.removeEventListener('message', messageListener)
+              // Check if user is authenticated after popup closes (fallback)
+              setTimeout(() => {
+                // Refresh user data in case authentication succeeded
+                if (typeof window !== 'undefined') {
+                  window.location.reload()
+                }
+              }, 500)
+            }
           }
         }, 500)
       } else {

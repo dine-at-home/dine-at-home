@@ -33,7 +33,6 @@ import {
   Settings,
   History,
   CreditCard,
-  Bell,
   Shield,
   LogOut,
   Save,
@@ -324,7 +323,12 @@ function ProfilePageContent() {
                     capacity: dinner.capacity,
                   }
                 : null,
-              review: null, // Will be populated from reviews list
+              review: booking.review
+                ? {
+                    rating: booking.review.rating,
+                    comment: booking.review.comment || '',
+                  }
+                : null,
             }
           })
 
@@ -345,25 +349,7 @@ function ProfilePageContent() {
     fetchBookings()
   }, [user?.id])
 
-  // Merge reviews into bookings when both are loaded
-  useEffect(() => {
-    if (bookings.length > 0 && reviews.length > 0) {
-      setBookings((prevBookings) =>
-        prevBookings.map((booking) => {
-          const review = reviews.find((r: any) => r.dinner?.id === booking.dinnerId)
-          return {
-            ...booking,
-            review: review
-              ? {
-                  rating: review.rating,
-                  comment: review.comment || '',
-                }
-              : null,
-          }
-        })
-      )
-    }
-  }, [reviews])
+  // Note: Reviews now come with bookings from the backend, so no merging needed
 
   // Handle review submission
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -407,7 +393,110 @@ function ProfilePageContent() {
       const result = await response.json()
 
       if (!response.ok) {
-        setReviewError(result.error || result.message || 'Failed to submit review')
+        // If review already exists, refresh bookings to show it
+        if (result.code === 'ALREADY_REVIEWED' || result.error?.includes('already reviewed')) {
+          // Close the dialog and refresh bookings (reviews are included with bookings)
+          setShowReviewDialog(false)
+          setSelectedBooking(null)
+          setReviewRating(0)
+          setReviewComment('')
+          setReviewError(null)
+          
+          // Refresh bookings (which now include reviews)
+          if (user?.id) {
+            const bookingsResult = await bookingService.getUserBookings(user.id)
+            if (bookingsResult.success && bookingsResult.data) {
+              const transformedBookings = bookingsResult.data.map((booking: any) => {
+                let dinner = null
+                if (booking.dinner) {
+                  try {
+                    const backendDinner = booking.dinner
+                    dinner = transformDinner({
+                      ...backendDinner,
+                      description: backendDinner.description || '',
+                      cuisine: backendDinner.cuisine || 'Other',
+                      capacity: backendDinner.capacity || 0,
+                      available: backendDinner.available || 0,
+                      instantBook: backendDinner.instantBook || false,
+                      rating: backendDinner.rating || 0,
+                      reviewCount: backendDinner.reviewCount || 0,
+                      images: Array.isArray(backendDinner.images)
+                        ? backendDinner.images
+                        : backendDinner.images || [],
+                      location:
+                        typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                      host: backendDinner.host || {},
+                    })
+                  } catch (error) {
+                    console.error('Error transforming dinner:', error)
+                    dinner = {
+                      id: booking.dinner.id,
+                      title: booking.dinner.title || 'Unknown Dinner',
+                      date: booking.dinner.date
+                        ? typeof booking.dinner.date === 'string'
+                          ? booking.dinner.date.split('T')[0]
+                          : new Date(booking.dinner.date).toISOString().split('T')[0]
+                        : '',
+                      time: booking.dinner.time || '19:00',
+                      price: booking.dinner.price || 0,
+                      capacity: booking.dinner.capacity || 0,
+                      images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                      host: {
+                        id: booking.dinner.host?.id || '',
+                        name: booking.dinner.host?.name || 'Unknown Host',
+                        avatar: booking.dinner.host?.image || undefined,
+                      },
+                      location:
+                        typeof booking.dinner.location === 'object'
+                          ? booking.dinner.location
+                          : {
+                              address: '',
+                              city: '',
+                              state: '',
+                              neighborhood: '',
+                            },
+                    }
+                  }
+                }
+
+                return {
+                  id: booking.id,
+                  status: booking.status?.toLowerCase() || 'pending',
+                  guests: booking.guests || 1,
+                  totalAmount: booking.totalPrice || 0,
+                  dinner: dinner
+                    ? {
+                        id: dinner.id,
+                        title: dinner.title,
+                        host: {
+                          name: dinner.host.name,
+                          avatar: dinner.host.avatar || undefined,
+                        },
+                        image: dinner.thumbnail || dinner.images?.[0] || null,
+                        location:
+                          `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                          'Location not available',
+                        date: dinner.date,
+                        time: dinner.time,
+                        price: dinner.price,
+                        capacity: dinner.capacity,
+                      }
+                    : null,
+                  dinnerId: dinner?.id || booking.dinnerId,
+                  review: booking.review
+                    ? {
+                        rating: booking.review.rating,
+                        comment: booking.review.comment || '',
+                      }
+                    : null,
+                }
+              })
+              setBookings(transformedBookings)
+            }
+          }
+        } else {
+          setReviewError(result.error || result.message || 'Failed to submit review')
+        }
         setReviewSubmitting(false)
         return
       }
@@ -500,26 +589,15 @@ function ProfilePageContent() {
                   }
                 : null,
               dinnerId: dinner?.id || booking.dinnerId,
-              review: null, // Will be populated from reviews list
+              review: booking.review
+                ? {
+                    rating: booking.review.rating,
+                    comment: booking.review.comment || '',
+                  }
+                : null,
             }
           })
           setBookings(transformedBookings)
-
-          // Refresh reviews to merge with bookings
-          if (user?.id) {
-            const reviewsResponse = await fetch(getApiUrl(`/users/${user.id}/reviews`), {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-            })
-            const reviewsResult = await reviewsResponse.json()
-            if (reviewsResult.success && reviewsResult.data) {
-              setReviews(reviewsResult.data)
-              // Reviews will be merged into bookings via useEffect
-            }
-          }
         }
       }
     } catch (error: any) {
@@ -1374,17 +1452,20 @@ function ProfilePageContent() {
                         return (
                           <div key={review.id} className="border rounded-lg p-4">
                             <div className="flex items-start gap-4">
-                              <Avatar className="w-12 h-12">
-                                {dinner?.host?.image && dinner.host.image.trim() !== '' && (
-                                  <AvatarImage
-                                    src={dinner.host.image}
-                                    alt={dinner.host?.name || 'Host'}
+                              <div className="relative flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden">
+                                {dinner?.thumbnail ? (
+                                  <Image
+                                    src={dinner.thumbnail}
+                                    alt={dinner?.title || 'Dinner'}
+                                    fill
+                                    className="rounded-lg object-cover"
                                   />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <ChefHat className="w-8 h-8 text-muted-foreground" />
+                                  </div>
                                 )}
-                                <AvatarFallback>
-                                  {(dinner?.host?.name || 'H').charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
+                              </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h3 className="font-semibold">
@@ -1446,7 +1527,7 @@ function ProfilePageContent() {
                             <p className="font-medium">Email Verification</p>
                             <p className="text-sm text-muted-foreground">Your email is verified</p>
                           </div>
-                          <Badge variant="secondary">Verified</Badge>
+                          <Badge variant="secondary" className="bg-green-500 text-white border-transparent hover:bg-green-600">Verified</Badge>
                         </div>
                         {/* Phone Verification - Commented out for now */}
                         {/* <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -1455,36 +1536,6 @@ function ProfilePageContent() {
                             <p className="text-sm text-muted-foreground">Your phone is verified</p>
                           </div>
                           <Badge variant="secondary">Verified</Badge>
-                        </div> */}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <Bell className="w-4 h-4" />
-                        Notifications
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Email Notifications</p>
-                            <p className="text-sm text-muted-foreground">
-                              Receive updates via email
-                            </p>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            Enabled
-                          </Button>
-                        </div>
-                        {/* SMS Notifications - Commented out for now */}
-                        {/* <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">SMS Notifications</p>
-                            <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            Disabled
-                          </Button>
                         </div> */}
                       </div>
                     </div>

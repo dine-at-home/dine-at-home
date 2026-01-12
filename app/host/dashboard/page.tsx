@@ -52,6 +52,7 @@ import {
   Camera,
 } from 'lucide-react'
 import Image from 'next/image'
+import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
 import { getDinnerStatus } from '@/lib/dinner-filters'
 import { transformDinner } from '@/lib/dinner-utils'
@@ -652,7 +653,7 @@ function HostDashboardContent() {
               return {
                 id: dinner.id,
                 title: dinner.title,
-                date: dinnerTransformed.date, // Use formatted date from transformDinner
+                date: dinner.date, // Use original ISO string from backend for timezone conversion
                 time: dinner.time,
                 guests: dinner.capacity - dinner.available,
                 maxCapacity: dinner.capacity,
@@ -1222,7 +1223,14 @@ function HostDashboardContent() {
                 <div className="space-y-2 text-sm text-muted-foreground mb-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    {dinner.date} at {dinner.time}
+                    {(() => {
+                      // Parse UTC date from database and convert to user's browser timezone
+                      // .local() automatically detects and uses the browser's timezone
+                      const momentDate = moment.utc(dinner.date).local()
+                      const dateStr = momentDate.format('MMM D, YYYY')
+                      const timeStr = momentDate.format('HH:mm')
+                      return `${dateStr} at ${timeStr}`
+                    })()}
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />

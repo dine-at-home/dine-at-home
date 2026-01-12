@@ -47,11 +47,13 @@ export function transformDinner(dinner: any): Dinner {
     bio: dinner.host?.bio,
   }
 
-  // Format date
+  // Preserve the original ISO date string for timezone conversion
+  // The backend sends date as ISO string (e.g., "2026-01-11T23:00:00.000Z")
+  // We keep the full ISO string so moment-timezone can convert it properly
   const dateStr =
     typeof dinner.date === 'string'
-      ? dinner.date.split('T')[0]
-      : new Date(dinner.date).toISOString().split('T')[0]
+      ? dinner.date // Keep full ISO string for timezone conversion
+      : new Date(dinner.date).toISOString()
 
   // Menu, included, houseRules, and dietary are stored as arrays directly
   const menu: string[] = Array.isArray(dinner.menu) ? dinner.menu : []
@@ -66,7 +68,7 @@ export function transformDinner(dinner: any): Dinner {
     price: dinner.price,
     duration: dinner.duration,
     cuisine: dinner.cuisine || 'Other',
-    date: dateStr,
+    date: dateStr, // Full ISO string for proper timezone handling
     time: dinner.time || '19:00',
     capacity: dinner.capacity,
     available: dinner.available || dinner.capacity,

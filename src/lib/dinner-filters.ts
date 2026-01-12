@@ -1,23 +1,22 @@
 import { Dinner } from '@/types'
+import moment from 'moment-timezone'
 
 /**
  * Check if a dinner date/time has passed
  * A dinner is considered "past" if the current time is at or after the dinner start time
  * This ensures bookings are allowed until the start time
+ * Uses timezone-aware comparison: parses UTC date/time and compares in user's local timezone
  */
 export function isDinnerPast(dinner: Dinner): boolean {
-  // Parse date string (format: YYYY-MM-DD) and create date in local timezone
-  const [year, month, day] = dinner.date.split('-').map(Number)
-  const dinnerDate = new Date(year, month - 1, day) // month is 0-indexed
-
-  // Parse time (format: HH:MM or HH:MM:SS)
-  const [hours, minutes, seconds] = dinner.time.split(':').map(Number)
-  dinnerDate.setHours(hours || 0, minutes || 0, seconds || 0, 0)
-
-  const now = new Date()
-  // Return true if current time is at or after the dinner start time
-  // This means bookings are allowed until the start time
-  return dinnerDate <= now
+  // The date field is now a full ISO string (e.g., "2026-01-11T23:00:00.000Z")
+  // Parse it directly as UTC
+  const dinnerMoment = moment.utc(dinner.date)
+  
+  // Get current time in UTC for comparison
+  const nowMoment = moment.utc()
+  
+  // Compare in UTC (both moments are in UTC, so comparison is timezone-independent)
+  return dinnerMoment.isSameOrBefore(nowMoment)
 }
 
 /**

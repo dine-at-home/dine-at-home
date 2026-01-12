@@ -33,6 +33,10 @@ import {
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
 
+const COUNTRIES = [
+  'Iceland',
+]
+
 function CreateDinnerPageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,6 +45,14 @@ function CreateDinnerPageContent() {
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
 
   const errorRef = useRef<HTMLDivElement>(null)
+
+  // Check if we're in development mode
+  const isDev =
+    typeof window !== 'undefined'
+      ? process.env.NODE_ENV === 'development' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+      : process.env.NODE_ENV === 'development'
 
   // Auto-scroll to error when it appears
   useEffect(() => {
@@ -108,9 +120,9 @@ function CreateDinnerPageContent() {
       houseRules:
         'Please arrive on time. Let us know about dietary restrictions in advance. No smoking indoors. Children welcome with advance notice.',
       address: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
+      city: 'Reykjavik',
+      state: 'Iceland',
+      zipCode: '101',
       directions: 'Take the subway to 14th Street station, walk 2 blocks north',
       accessibility: 'Wheelchair accessible entrance and restroom available',
       date: dateStr,
@@ -301,14 +313,78 @@ function CreateDinnerPageContent() {
         return
       }
 
-      // Step 1: Validate that at least one image is provided
+      // Step 1: Validate all form data before uploading images
+      const validationErrors: string[] = []
+
+      if (!dinnerData.title || dinnerData.title.trim() === '') {
+        validationErrors.push('Title is required')
+      }
+
+      if (!dinnerData.description || dinnerData.description.trim() === '') {
+        validationErrors.push('Description is required')
+      }
+
+      if (!dinnerData.cuisineType || dinnerData.cuisineType.trim() === '') {
+        validationErrors.push('Cuisine type is required')
+      }
+
+      if (!dinnerData.menu || dinnerData.menu.trim() === '') {
+        validationErrors.push('Menu description is required')
+      }
+
+      if (!dinnerData.date) {
+        validationErrors.push('Date is required')
+      }
+
+      if (!dinnerData.time) {
+        validationErrors.push('Time is required')
+      }
+
+      if (!dinnerData.pricePerPerson || dinnerData.pricePerPerson <= 0) {
+        validationErrors.push('Price per person must be greater than 0')
+      }
+
+      if (!dinnerData.maxCapacity || dinnerData.maxCapacity <= 0) {
+        validationErrors.push('Max capacity must be greater than 0')
+      }
+
+      if (!dinnerData.address || dinnerData.address.trim() === '') {
+        validationErrors.push('Street address is required')
+      }
+
+      if (!dinnerData.city || dinnerData.city.trim() === '') {
+        validationErrors.push('City is required')
+      }
+
+      if (!dinnerData.state || dinnerData.state.trim() === '') {
+        validationErrors.push('Country is required')
+      }
+
+      if (!dinnerData.zipCode || dinnerData.zipCode.trim() === '') {
+        validationErrors.push('ZIP code is required')
+      }
+
       if (selectedImageFiles.length === 0) {
-        setError('Please upload at least one image for your dinner listing')
+        validationErrors.push('Please upload at least one image for your dinner listing')
+      }
+
+      // Validate date is in the future
+      if (dinnerData.date) {
+        const selectedDate = new Date(`${dinnerData.date}T${dinnerData.time || '00:00'}:00`)
+        const now = new Date()
+        if (selectedDate <= now) {
+          validationErrors.push('Dinner date and time must be in the future')
+        }
+      }
+
+      // If there are validation errors, stop before uploading images
+      if (validationErrors.length > 0) {
+        setError(validationErrors.join('. ') + '.')
         setIsSubmitting(false)
         return
       }
 
-      // Step 2: Upload images
+      // Step 2: Upload images (only after all validations pass)
       let imageUrls: string[] = []
       setUploadingImages(true)
       try {
@@ -356,7 +432,7 @@ function CreateDinnerPageContent() {
         currency: 'USD',
         date: dateTime,
         time: dinnerData.time,
-        duration: dinnerData.duration * 60, // Convert hours to minutes
+        duration: Math.round(dinnerData.duration * 60), // Convert hours to minutes (rounds to integer)
         capacity: dinnerData.maxCapacity,
         images: imageUrls, // Use uploaded image URLs
         cuisine: dinnerData.cuisineType,
@@ -603,13 +679,23 @@ function CreateDinnerPageContent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">State *</label>
-                    <Input
+                    <label className="block text-sm font-medium mb-2">Country *</label>
+                    <Select
                       value={dinnerData.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      placeholder="NY"
+                      onValueChange={(value) => handleInputChange('state', value)}
                       required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">ZIP Code *</label>
@@ -679,15 +765,16 @@ function CreateDinnerPageContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Duration (hours)</label>
+                    <label className="block text-sm font-medium mb-2">Duration {isDev ? '(hours/minutes)' : '(hours)'}</label>
                     <Select
                       value={dinnerData.duration?.toString() || '3'}
-                      onValueChange={(value) => handleInputChange('duration', parseInt(value) || 3)}
+                      onValueChange={(value) => handleInputChange('duration', parseFloat(value) || 3)}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        {isDev && <SelectItem value="0.033333">2 minutes (dev only)</SelectItem>}
                         <SelectItem value="2">2 hours</SelectItem>
                         <SelectItem value="3">3 hours</SelectItem>
                         <SelectItem value="4">4 hours</SelectItem>

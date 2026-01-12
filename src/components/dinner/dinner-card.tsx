@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import moment from 'moment-timezone'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -164,15 +165,23 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
               <div className="flex items-center space-x-1">
                 <Calendar className="w-4 h-4" />
                 <span>
-                  {new Date(dinner.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {(() => {
+                    // Parse UTC date from backend and convert to user's browser timezone
+                    // .local() automatically detects and uses the browser's timezone
+                    const momentDate = moment.utc(dinner.date).local()
+                    return momentDate.format('MMM D')
+                  })()}
                 </span>
               </div>
               <div className="flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
-                <span>{dinner.time}</span>
+                <span>
+                  {(() => {
+                    // Parse UTC date from backend and convert to user's browser timezone for time
+                    const momentDate = moment.utc(dinner.date).local()
+                    return momentDate.format('HH:mm')
+                  })()}
+                </span>
               </div>
             </div>
 
