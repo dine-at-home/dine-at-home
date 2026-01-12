@@ -33,6 +33,14 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
       return
     }
 
+    // Check email verification
+    if (user && !user.emailVerified) {
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.push(verifyOtpUrl)
+      return
+    }
+
     // We no longer automatically redirect here if user can't book.
     // Instead, we let the component render the specific access denied message below.
     // This allows users to see "Why" they can't book (e.g. missing phone number).

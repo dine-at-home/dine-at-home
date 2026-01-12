@@ -29,8 +29,17 @@ export function ProtectedRoute({
       const currentUrl = window.location.pathname + (window.location.search || '')
       const signInUrl = `${redirectTo}?callbackUrl=${encodeURIComponent(currentUrl)}`
       router.push(signInUrl)
+      return
     }
-  }, [loading, isAuthenticated, router, redirectTo])
+
+    // Check email verification if user is authenticated
+    if (!loading && isAuthenticated && user && !user.emailVerified) {
+      // Redirect to OTP verification page
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.push(verifyOtpUrl)
+    }
+  }, [loading, isAuthenticated, user, router, redirectTo])
 
   // Show loading state
   if (loading) {
@@ -71,6 +80,39 @@ export function ProtectedRoute({
                 className="w-full"
               >
                 Create Account
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Check email verification
+  if (user && !user.emailVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+                <Lock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <CardTitle>Email Verification Required</CardTitle>
+              <CardDescription>
+                Please verify your email address to access this page
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={() =>
+                  router.push(
+                    `/auth/verify-otp?email=${encodeURIComponent(user.email || '')}`
+                  )
+                }
+                className="w-full"
+              >
+                Verify Email
               </Button>
             </CardContent>
           </Card>

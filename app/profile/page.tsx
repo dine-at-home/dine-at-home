@@ -44,7 +44,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { bookingService } from '@/lib/booking-service'
-import { transformDinner } from '@/lib/dinner-utils'
+import { transformDinner, formatFriendlyDateTime } from '@/lib/dinner-utils'
 import { getApiUrl } from '@/lib/api-config'
 
 // Mock data for demonstration (fallback only)
@@ -118,11 +118,14 @@ const mockBookings = [
 ]
 
 function ProfilePageContent() {
-  const { user, loading, refreshUser } = useAuth()
+  const { user, loading, refreshUser, resendOTP } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
+  const [verifyingEmail, setVerifyingEmail] = useState(false)
+  const [verifyEmailError, setVerifyEmailError] = useState<string | null>(null)
+
   const [isEditing, setIsEditing] = useState(false)
   const [bookings, setBookings] = useState<any[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(true)
@@ -329,6 +332,12 @@ function ProfilePageContent() {
                     comment: booking.review.comment || '',
                   }
                 : null,
+              hostReview: booking.hostReview
+                ? {
+                    rating: booking.hostReview.rating,
+                    comment: booking.hostReview.comment || '',
+                  }
+                : null,
             }
           })
 
@@ -489,6 +498,12 @@ function ProfilePageContent() {
                         comment: booking.review.comment || '',
                       }
                     : null,
+                  hostReview: booking.hostReview
+                    ? {
+                        rating: booking.hostReview.rating,
+                        comment: booking.hostReview.comment || '',
+                      }
+                    : null,
                 }
               })
               setBookings(transformedBookings)
@@ -593,6 +608,12 @@ function ProfilePageContent() {
                 ? {
                     rating: booking.review.rating,
                     comment: booking.review.comment || '',
+                  }
+                : null,
+              hostReview: booking.hostReview
+                ? {
+                    rating: booking.hostReview.rating,
+                    comment: booking.hostReview.comment || '',
                   }
                 : null,
             }
@@ -742,6 +763,35 @@ function ProfilePageContent() {
     router.replace(url)
   }
 
+  const handleVerifyEmail = async () => {
+    if (!user?.email) {
+      setVerifyEmailError('Email address not found')
+      return
+    }
+
+    setVerifyingEmail(true)
+    setVerifyEmailError(null)
+
+    try {
+      // Send OTP to user's email
+      const result = await resendOTP(user.email)
+      
+      if (result.success) {
+        // Redirect to OTP verification page
+        const currentUrl = window.location.pathname + (window.location.search || '')
+        const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+        router.push(verifyOtpUrl)
+      } else {
+        setVerifyEmailError(result.error || 'Failed to send verification code. Please try again.')
+      }
+    } catch (error: any) {
+      console.error('Error sending verification email:', error)
+      setVerifyEmailError('An unexpected error occurred. Please try again.')
+    } finally {
+      setVerifyingEmail(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -770,6 +820,21 @@ function ProfilePageContent() {
     const currentUrl = window.location.pathname + (window.location.search || '')
     router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`)
     return null
+  }
+
+  // Redirect to OTP verification if email is not verified
+  if (user && !user.emailVerified) {
+    const currentUrl = window.location.pathname + (window.location.search || '')
+    const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+    router.push(verifyOtpUrl)
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to email verification...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleSave = async () => {
@@ -977,9 +1042,9 @@ function ProfilePageContent() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-500 text-white font-semibold'
       case 'confirmed':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-blue-500 text-white font-semibold'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800'
       case 'cancelled':
@@ -1315,7 +1380,7 @@ function ProfilePageContent() {
                             className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex gap-4">
-                              <div className="relative flex-shrink-0 w-36 self-stretch min-h-[140px] bg-muted rounded-lg">
+                              <div className="relative flex-shrink-0 w-36 h-36 bg-muted rounded-lg overflow-hidden">
                                 {booking.dinner.image ? (
                                   <Image
                                     src={booking.dinner.image}
@@ -1329,7 +1394,7 @@ function ProfilePageContent() {
                                   </div>
                                 )}
                                 <Badge
-                                  className={`absolute -top-2 -right-2 text-xs ${getStatusColor(booking.status)}`}
+                                  className={`absolute top-2 right-2 text-xs px-2 py-1 shadow-md ${getStatusColor(booking.status)}`}
                                 >
                                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                                 </Badge>
@@ -1337,9 +1402,16 @@ function ProfilePageContent() {
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
-                                    <h3 className="font-semibold text-lg">
-                                      {booking.dinner.title}
-                                    </h3>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h3 className="font-semibold text-lg">
+                                        {booking.dinner.title}
+                                      </h3>
+                                      <Badge
+                                        className={`text-xs px-2 py-0.5 ${getStatusColor(booking.status)}`}
+                                      >
+                                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                      </Badge>
+                                    </div>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <User className="w-4 h-4" />
                                       {booking.dinner.host.name}
@@ -1350,7 +1422,7 @@ function ProfilePageContent() {
                                     </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <Calendar className="w-4 h-4" />
-                                      {booking.dinner.date} at {booking.dinner.time}
+                                      {formatFriendlyDateTime(booking.dinner.date, booking.dinner.time)}
                                     </p>
                                     <div className="flex items-center gap-4 mt-2">
                                       <span className="text-sm text-muted-foreground">
@@ -1364,7 +1436,8 @@ function ProfilePageContent() {
                                 </div>
 
                                 {/* Review Section - Always present for consistency */}
-                                <div className="mt-4">
+                                <div className="mt-4 space-y-3">
+                                  {/* Guest's Review of Dinner */}
                                   {booking.review ? (
                                     <div className="p-3 bg-muted rounded-lg">
                                       <div className="flex items-center gap-2 mb-2">
@@ -1412,6 +1485,21 @@ function ProfilePageContent() {
                                       )}
                                     </div>
                                   )}
+                                  
+                                  {/* Host's Review of Guest - Right aligned, shown after Your Review */}
+                                  {booking.hostReview ? (
+                                    <div className="p-3 bg-muted rounded-lg text-right">
+                                      <div className="flex items-center justify-end gap-2 mb-2">
+                                        <span className="text-sm font-medium">Host's Review</span>
+                                        <div className="flex">
+                                          {renderStars(booking.hostReview.rating)}
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {booking.hostReview.comment}
+                                      </p>
+                                    </div>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -1522,12 +1610,59 @@ function ProfilePageContent() {
                         >
                           Change Password
                         </Button>
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">Email Verification</p>
-                            <p className="text-sm text-muted-foreground">Your email is verified</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium">Email Verification</p>
+                              <p className="text-sm text-muted-foreground">
+                                {user?.emailVerified
+                                  ? 'Your email is verified'
+                                  : 'Please verify your email address'}
+                              </p>
+                            </div>
+                            {user?.emailVerified ? (
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-500 text-white border-transparent hover:bg-green-600"
+                              >
+                                Verified
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="secondary"
+                                className="bg-yellow-500 text-white border-transparent hover:bg-yellow-600"
+                              >
+                                Not Verified
+                              </Badge>
+                            )}
                           </div>
-                          <Badge variant="secondary" className="bg-green-500 text-white border-transparent hover:bg-green-600">Verified</Badge>
+                          {!user?.emailVerified && (
+                            <>
+                              {verifyEmailError && (
+                                <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-2">
+                                  {verifyEmailError}
+                                </div>
+                              )}
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start"
+                                onClick={handleVerifyEmail}
+                                disabled={verifyingEmail}
+                              >
+                                {verifyingEmail ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Sending verification code...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Verify Email
+                                  </>
+                                )}
+                              </Button>
+                            </>
+                          )}
                         </div>
                         {/* Phone Verification - Commented out for now */}
                         {/* <div className="flex items-center justify-between p-3 border rounded-lg">

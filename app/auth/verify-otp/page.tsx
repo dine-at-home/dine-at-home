@@ -22,6 +22,7 @@ function VerifyOTPPageContent() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0) // Cooldown in seconds
 
   // If email not in URL, get from user context or localStorage
   useEffect(() => {
@@ -33,10 +34,43 @@ function VerifyOTPPageContent() {
   // Redirect if already verified
   useEffect(() => {
     if (user && user.emailVerified) {
-      const redirectUrl = getRedirectUrl(user)
-      router.push(redirectUrl)
+      const callbackUrl = searchParams.get('callbackUrl')
+      if (callbackUrl) {
+        router.push(callbackUrl)
+      } else {
+        const redirectUrl = getRedirectUrl(user)
+        router.push(redirectUrl)
+      }
     }
-  }, [user, router])
+  }, [user, router, searchParams])
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => {
+        setResendCooldown(resendCooldown - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCooldown])
+
+  // Automatically send OTP when page loads if user is not verified
+  useEffect(() => {
+    const sendOTPOnLoad = async () => {
+      if (email && email.includes('@') && user && !user.emailVerified) {
+        try {
+          await resendOTP(email)
+          // Start cooldown after sending OTP
+          setResendCooldown(60)
+        } catch (error) {
+          console.error('Error sending OTP on load:', error)
+        }
+      }
+    }
+
+    sendOTPOnLoad()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +98,10 @@ function VerifyOTPPageContent() {
         setSuccess(true)
         // Redirect after 1 second
         setTimeout(() => {
-          if (result.data?.user) {
+          const callbackUrl = searchParams.get('callbackUrl')
+          if (callbackUrl) {
+            router.push(callbackUrl)
+          } else if (result.data?.user) {
             const redirectUrl = getRedirectUrl(result.data.user)
             router.push(redirectUrl)
           } else {
@@ -83,6 +120,10 @@ function VerifyOTPPageContent() {
   }
 
   const handleResendOTP = async () => {
+    if (resendCooldown > 0) {
+      return // Don't allow resend during cooldown
+    }
+
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address')
       return
@@ -98,6 +139,7 @@ function VerifyOTPPageContent() {
       if (result.success) {
         setResendSuccess(true)
         setOtp('') // Clear OTP field
+        setResendCooldown(60) // Start 60-second cooldown
         setTimeout(() => setResendSuccess(false), 5000)
       } else {
         setError(result.error || 'Failed to resend OTP. Please try again.')
@@ -109,6 +151,9 @@ function VerifyOTPPageContent() {
       setResending(false)
     }
   }
+
+  // Determine if user is logged in (has user context but email not verified)
+  const isLoggedIn = !!user && !user.emailVerified
 
   return (
     <div className="h-screen flex flex-col md:flex-row overflow-hidden">
@@ -128,14 +173,16 @@ function VerifyOTPPageContent() {
       <div className="flex-1 bg-muted h-screen overflow-y-auto">
         <div className="flex items-center justify-center min-h-full p-4 md:p-8">
           <div className="w-full max-w-md bg-card rounded-2xl shadow-lg p-6 md:p-8">
-            {/* Back Button */}
-            <Link
-              href="/auth/signup"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Sign Up
-            </Link>
+            {/* Back Button - Only show for non-logged-in users */}
+            {!isLoggedIn && (
+              <Link
+                href="/auth/signup"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Sign Up
+              </Link>
+            )}
 
             {/* Form Header */}
             <div className="mb-6">
@@ -143,8 +190,17 @@ function VerifyOTPPageContent() {
                 Verify Your Email
               </h2>
               <p className="text-muted-foreground">
-                We've sent a verification code to <strong>{email || 'your email'}</strong>. Please
-                enter the code below.
+                {isLoggedIn ? (
+                  <>
+                    We've sent a verification code to <strong>{email || 'your email'}</strong>. Please
+                    enter the code below to continue.
+                  </>
+                ) : (
+                  <>
+                    We've sent a verification code to <strong>{email || 'your email'}</strong>. Please
+                    enter the code below.
+                  </>
+                )}
               </p>
             </div>
 
@@ -249,7 +305,7 @@ function VerifyOTPPageContent() {
                   <button
                     type="button"
                     onClick={handleResendOTP}
-                    disabled={resending}
+                    disabled={resending || resendCooldown > 0}
                     className="text-sm font-medium text-primary-600 hover:text-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {resending ? (
@@ -257,6 +313,8 @@ function VerifyOTPPageContent() {
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Sending...
                       </span>
+                    ) : resendCooldown > 0 ? (
+                      `Resend Code (${resendCooldown}s)`
                     ) : (
                       'Resend Code'
                     )}
@@ -265,8 +323,8 @@ function VerifyOTPPageContent() {
               </form>
             )}
 
-            {/* Links */}
-            {!success && (
+            {/* Links - Only show for non-logged-in users */}
+            {!success && !isLoggedIn && (
               <div className="mt-6 text-center">
                 <p className="text-sm font-medium text-muted-foreground">
                   Already have an account?{' '}

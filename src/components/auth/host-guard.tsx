@@ -35,12 +35,20 @@ export function HostGuard({ children }: HostGuardProps) {
       return
     }
 
+    // Check email verification
+    if (user && !user.emailVerified) {
+      const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
+      const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.replace(verifyOtpUrl)
+      return
+    }
+
     // If user is authenticated but not a host, show access denied message
     // (Don't redirect - let them see the message)
     if (!isAllowed) {
       // User is logged in but not a host - show message but don't redirect
     }
-  }, [loading, isAuthenticated, isAllowed, router, pathname, searchParams])
+  }, [loading, isAuthenticated, isAllowed, user, router, pathname, searchParams])
 
   if (loading) {
     return (
