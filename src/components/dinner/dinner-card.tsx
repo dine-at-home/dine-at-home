@@ -169,10 +169,12 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
             </div>
 
             <Avatar className="w-8 h-8 border-2 border-white shadow-sm">
-              <AvatarImage
-                src={`https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop`}
-                alt={dinner.host.name}
-              />
+              {dinner.host.avatar && (
+                <AvatarImage
+                  src={dinner.host.avatar}
+                  alt={dinner.host.name}
+                />
+              )}
               <AvatarFallback>{dinner.host.name[0]}</AvatarFallback>
             </Avatar>
           </div>

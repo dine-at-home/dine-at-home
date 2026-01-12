@@ -29,6 +29,8 @@ import {
   ChefHat,
   Image as ImageIcon,
   AlertCircle,
+  EyeOff,
+  Shield,
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
@@ -81,8 +83,8 @@ function CreateDinnerPageContent() {
         ingredients: '',
 
         address: '',
-
         city: '',
+        neighborhood: '',
         state: '',
         zipCode: '',
         directions: '',
@@ -119,6 +121,7 @@ function CreateDinnerPageContent() {
         'Please arrive on time. Let us know about dietary restrictions in advance. No smoking indoors. Children welcome with advance notice.',
       address: '123 Main Street',
       city: 'Reykjavik',
+      neighborhood: 'Downtown',
       state: 'Iceland',
       zipCode: '101',
       directions: 'Take the subway to 14th Street station, walk 2 blocks north',
@@ -354,13 +357,15 @@ function CreateDinnerPageContent() {
         validationErrors.push('City is required')
       }
 
+      if (!dinnerData.neighborhood || dinnerData.neighborhood.trim() === '') {
+        validationErrors.push('Area/Neighborhood is required')
+      }
+
       if (!dinnerData.state || dinnerData.state.trim() === '') {
         validationErrors.push('Country is required')
       }
 
-      if (!dinnerData.zipCode || dinnerData.zipCode.trim() === '') {
-        validationErrors.push('ZIP code is required')
-      }
+      // ZIP code is optional - no validation needed
 
       if (selectedImageFiles.length === 0) {
         validationErrors.push('Please upload at least one image for your dinner listing')
@@ -408,8 +413,8 @@ function CreateDinnerPageContent() {
         address: dinnerData.address,
         city: dinnerData.city,
         state: dinnerData.state,
-        zipCode: dinnerData.zipCode,
-        neighborhood: dinnerData.city, // Using city as neighborhood if not separate field
+        zipCode: dinnerData.zipCode || '', // Optional - can be empty
+        neighborhood: dinnerData.neighborhood || dinnerData.city, // Use area/neighborhood if provided, fallback to city
         coordinates: {
           lat: 0, // TODO: Get from geocoding service
           lng: 0, // TODO: Get from geocoding service
@@ -656,6 +661,7 @@ function CreateDinnerPageContent() {
                 <CardDescription>Where will the dinner take place?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+             
                 <div>
                   <label className="block text-sm font-medium mb-2">Street Address *</label>
                   <Input
@@ -666,7 +672,7 @@ function CreateDinnerPageContent() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">City *</label>
                     <Input
@@ -676,6 +682,18 @@ function CreateDinnerPageContent() {
                       required
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Area/Neighborhood *</label>
+                    <Input
+                      value={dinnerData.neighborhood}
+                      onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+                      placeholder="Downtown, Midtown, etc."
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Country *</label>
                     <Select
@@ -696,12 +714,11 @@ function CreateDinnerPageContent() {
                     </Select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">ZIP Code *</label>
+                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
                     <Input
                       value={dinnerData.zipCode}
                       onChange={(e) => handleInputChange('zipCode', e.target.value)}
                       placeholder="10001"
-                      required
                     />
                   </div>
                 </div>

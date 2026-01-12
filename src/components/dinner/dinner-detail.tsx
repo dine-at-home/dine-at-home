@@ -44,6 +44,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const { user } = useAuth()
   const isHost = user?.role === 'host'
   const [selectedGuests, setSelectedGuests] = useState(2)
+  const [hasConfirmedBooking, setHasConfirmedBooking] = useState(false)
 
   // Use the date and time set by the host when creating the listing
   const dinnerDate = new Date(dinner.date)
@@ -118,6 +119,46 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
       })
     }
   }, [dinner.id, user])
+
+  // Check if user has a confirmed booking for this dinner
+  useEffect(() => {
+    const checkBooking = async () => {
+      if (!user || isHost) {
+        // Hosts can always see the address, guests need confirmed booking
+        setHasConfirmedBooking(isHost || false)
+        return
+      }
+
+      try {
+        const token = localStorage.getItem('auth_token')
+        if (!token) {
+          setHasConfirmedBooking(false)
+          return
+        }
+
+        const response = await fetch(getApiUrl(`/bookings/user/${user.id}?status=CONFIRMED`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.data) {
+            const hasBooking = result.data.some(
+              (booking: any) => booking.dinnerId === dinner.id && booking.status === 'CONFIRMED'
+            )
+            setHasConfirmedBooking(hasBooking)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking booking:', error)
+        setHasConfirmedBooking(false)
+      }
+    }
+
+    checkBooking()
+  }, [user, dinner.id, isHost])
 
   const handleFavoriteToggle = async () => {
     if (!user) {
@@ -430,8 +471,15 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 <div>
                   <p className="text-sm font-medium">Location</p>
                   <p className="text-sm text-muted-foreground">
-                    {dinner.location.address}, {dinner.location.city}
+                    {hasConfirmedBooking || isHost
+                      ? [dinner.location.address, dinner.location.neighborhood || dinner.location.city, dinner.location.city, dinner.location.state].filter(Boolean).join(', ')
+                      : [dinner.location.neighborhood || dinner.location.city, dinner.location.city, dinner.location.state].filter(Boolean).join(', ')}
                   </p>
+                  {!hasConfirmedBooking && !isHost && (
+                    <p className="text-xs text-muted-foreground mt-1 italic">
+                      Full address will be shown after booking is confirmed
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -639,12 +687,12 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   </div>
                   <div className="flex justify-between">
                     <span>Service fee</span>
-                    <span>${Math.round(dinner.price * selectedGuests * 0.14)}</span>
+                    <span>${Math.round(dinner.price * selectedGuests * 0.20)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>${Math.round(dinner.price * selectedGuests * 1.14)}</span>
+                    <span>${Math.round(dinner.price * selectedGuests * 1.20)}</span>
                   </div>
                 </div>
 
