@@ -1038,9 +1038,10 @@ function ProfilePageContent() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const normalizedStatus = status.toLowerCase()
+    switch (normalizedStatus) {
       case 'completed':
-        return 'bg-green-500 text-white font-semibold'
+        return 'bg-green-100 text-green-800 font-semibold'
       case 'confirmed':
         return 'bg-blue-500 text-white font-semibold'
       case 'pending':
@@ -1375,7 +1376,8 @@ function ProfilePageContent() {
                         return (
                           <div
                             key={booking.id}
-                            className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                            className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => router.push(`/bookings/${booking.id}`)}
                           >
                             <div className="flex gap-4">
                               <div className="relative flex-shrink-0 w-36 h-36 bg-muted rounded-lg overflow-hidden">
@@ -1392,7 +1394,7 @@ function ProfilePageContent() {
                                   </div>
                                 )}
                                 <Badge
-                                  className={`absolute top-2 right-2 text-xs px-2 py-1 shadow-md ${getStatusColor(booking.status)}`}
+                                  className={`absolute top-2 right-2 text-xs px-3 py-1 rounded-full shadow-md ${getStatusColor(booking.status)}`}
                                 >
                                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                                 </Badge>
@@ -1404,12 +1406,6 @@ function ProfilePageContent() {
                                       <h3 className="font-semibold text-lg">
                                         {booking.dinner.title}
                                       </h3>
-                                      <Badge
-                                        className={`text-xs px-2 py-0.5 ${getStatusColor(booking.status)}`}
-                                      >
-                                        {booking.status.charAt(0).toUpperCase() +
-                                          booking.status.slice(1)}
-                                      </Badge>
                                     </div>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <User className="w-4 h-4" />
@@ -1438,70 +1434,136 @@ function ProfilePageContent() {
                                 </div>
 
                                 {/* Review Section - Always present for consistency */}
-                                <div className="mt-4 space-y-3">
-                                  {/* Guest's Review of Dinner */}
-                                  {booking.review ? (
-                                    <div className="p-3 bg-muted rounded-lg">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <div className="flex">
-                                          {renderStars(booking.review.rating)}
+                                <div 
+                                  className="mt-4"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {booking.review && booking.hostReview ? (
+                                    // Both reviews - display side by side
+                                    <div className="flex gap-3">
+                                      {/* Guest's Review of Dinner */}
+                                      <div className="flex-1 bg-muted rounded-lg p-4 min-w-0">
+                                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                          <div className="flex items-center gap-2">
+                                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                            <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                                              Guest's Review
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            {renderStars(booking.review.rating)}
+                                          </div>
                                         </div>
-                                        <span className="text-sm font-medium">Your Review</span>
+                                        {booking.review.comment && (
+                                          <p className="text-sm text-foreground leading-relaxed break-words">
+                                            {booking.review.comment}
+                                          </p>
+                                        )}
                                       </div>
-                                      <p className="text-sm text-muted-foreground">
-                                        {booking.review.comment}
-                                      </p>
+
+                                      {/* Host's Review of Guest */}
+                                      <div className="flex-1 bg-muted rounded-lg p-4 min-w-0">
+                                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                          <div className="flex items-center gap-2">
+                                            <ChefHat className="w-4 h-4 text-primary flex-shrink-0" />
+                                            <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                                              Host's Review
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            {renderStars(booking.hostReview.rating)}
+                                          </div>
+                                        </div>
+                                        {booking.hostReview.comment && (
+                                          <p className="text-sm text-foreground leading-relaxed break-words">
+                                            {booking.hostReview.comment}
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
                                   ) : (
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm text-muted-foreground">
-                                        {booking.status === 'completed' ||
-                                        booking.status === 'COMPLETED'
-                                          ? 'No review written yet'
-                                          : booking.status === 'confirmed' ||
-                                              booking.status === 'CONFIRMED'
-                                            ? 'Review available after completion'
-                                            : booking.status === 'cancelled' ||
-                                                booking.status === 'CANCELLED'
-                                              ? 'Booking was cancelled'
-                                              : booking.status === 'pending' ||
-                                                  booking.status === 'PENDING'
-                                                ? 'Waiting for host approval'
-                                                : 'Pending review'}
-                                      </span>
-                                      {(booking.status === 'completed' ||
-                                        booking.status === 'COMPLETED') && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setSelectedBooking(booking)
-                                            setReviewRating(0)
-                                            setReviewComment('')
-                                            setReviewError(null)
-                                            setShowReviewDialog(true)
-                                          }}
-                                        >
-                                          Write Review
-                                        </Button>
+                                    // Single review or no reviews - stack vertically
+                                    <div className="space-y-3">
+                                      {/* Guest's Review of Dinner */}
+                                      {booking.review ? (
+                                        <div className="border-l-4 border-blue-500/30 bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                              <Star className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                              <span className="text-sm font-semibold text-foreground">
+                                                Your Review
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              {renderStars(booking.review.rating)}
+                                            </div>
+                                          </div>
+                                          {booking.review.comment && (
+                                            <p className="text-sm text-foreground leading-relaxed break-words">
+                                              {booking.review.comment}
+                                            </p>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-muted-foreground">
+                                            {booking.status === 'completed' ||
+                                            booking.status === 'COMPLETED'
+                                              ? 'No review written yet'
+                                              : booking.status === 'confirmed' ||
+                                                  booking.status === 'CONFIRMED'
+                                                ? 'Review available after completion'
+                                                : booking.status === 'cancelled' ||
+                                                    booking.status === 'CANCELLED'
+                                                  ? 'Booking was cancelled'
+                                                  : booking.status === 'pending' ||
+                                                      booking.status === 'PENDING'
+                                                    ? 'Waiting for host approval'
+                                                    : 'Pending review'}
+                                          </span>
+                                          {(booking.status === 'completed' ||
+                                            booking.status === 'COMPLETED') && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedBooking(booking)
+                                                setReviewRating(0)
+                                                setReviewComment('')
+                                                setReviewError(null)
+                                                setShowReviewDialog(true)
+                                              }}
+                                            >
+                                              Write Review
+                                            </Button>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Host's Review of Guest */}
+                                      {booking.hostReview && (
+                                        <div className="border-l-4 border-primary/30 bg-primary/5 rounded-lg p-4">
+                                          <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                              <ChefHat className="w-4 h-4 text-primary" />
+                                              <span className="text-sm font-semibold text-foreground">
+                                                Host's Review
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              {renderStars(booking.hostReview.rating)}
+                                            </div>
+                                          </div>
+                                          {booking.hostReview.comment && (
+                                            <p className="text-sm text-foreground leading-relaxed break-words">
+                                              {booking.hostReview.comment}
+                                            </p>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
                                   )}
-
-                                  {/* Host's Review of Guest - Right aligned, shown after Your Review */}
-                                  {booking.hostReview ? (
-                                    <div className="p-3 bg-muted rounded-lg text-right">
-                                      <div className="flex items-center justify-end gap-2 mb-2">
-                                        <span className="text-sm font-medium">Host's Review</span>
-                                        <div className="flex">
-                                          {renderStars(booking.hostReview.rating)}
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-muted-foreground">
-                                        {booking.hostReview.comment}
-                                      </p>
-                                    </div>
-                                  ) : null}
                                 </div>
                               </div>
                             </div>

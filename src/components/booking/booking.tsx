@@ -82,7 +82,7 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
   }, [user]) // Run when user object changes
 
   const subtotal = dinner.price * guests
-  const serviceFee = Math.round(subtotal * 0.14)
+  const serviceFee = Math.round(subtotal * 0.20)
   const total = subtotal + serviceFee
 
   const handleGuestDetailsSubmit = () => {

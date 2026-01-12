@@ -1,5 +1,6 @@
 import './globals.css'
 import { AuthProvider } from '@/contexts/auth-context'
+import { Toaster } from '@/components/ui/sonner'
 
 export const metadata = {
   title: 'DineWithUs',
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <Toaster position="top-center" />
+        </AuthProvider>
       </body>
     </html>
   )
