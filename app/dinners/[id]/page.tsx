@@ -59,7 +59,7 @@ export default function DinnerDetailPage() {
 
         if (result.success && result.data) {
           const transformedDinner = transformDinner(result.data)
-          
+
           console.log('🔵 Transformed Dinner:', {
             id: transformedDinner.id,
             title: transformedDinner.title,
@@ -68,7 +68,7 @@ export default function DinnerDetailPage() {
             reviews: transformedDinner.reviews || [],
             hasReviews: !!transformedDinner.reviews && transformedDinner.reviews.length > 0,
           })
-          
+
           setDinner(transformedDinner)
         } else {
           setError(result.error || 'Dinner not found')

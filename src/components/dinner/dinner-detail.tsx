@@ -57,7 +57,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
 
   // Use reviews from dinner data if available, otherwise empty array
   const reviews = dinner.reviews || []
-  
+
   // Debug logging
   useEffect(() => {
     console.log('🔵 DinnerDetail - Reviews Debug:', {
@@ -378,9 +378,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                               </div>
                             </div>
                             {review.comment && (
-                              <p className="text-sm text-muted-foreground mt-2">
-                                {review.comment}
-                              </p>
+                              <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
                             )}
                             <p className="text-xs text-muted-foreground mt-2">
                               {new Date(review.createdAt).toLocaleDateString('en-US', {

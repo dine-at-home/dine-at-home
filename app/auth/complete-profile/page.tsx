@@ -7,9 +7,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { getRedirectUrl } from '@/lib/auth-utils'
 import { getApiUrl } from '@/lib/api-config'
 
-const COUNTRIES = [
-  'Iceland',
-]
+const COUNTRIES = ['Iceland']
 
 const LANGUAGE_OPTIONS = [
   'English',

@@ -2497,9 +2497,7 @@ function HostDashboardContent() {
                     >
                       <Star
                         className={`w-8 h-8 transition-colors ${
-                          star <= reviewRating
-                            ? 'text-yellow-400 fill-yellow-400'
-                            : 'text-gray-300'
+                          star <= reviewRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
                         }`}
                       />
                     </button>

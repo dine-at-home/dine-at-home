@@ -25,17 +25,20 @@ export function formatFriendlyDateTime(dateStr: string, timeStr?: string): strin
     } else if (dateStr.includes('T')) {
       // ISO string without Z (local time)
       dateMoment = moment(dateStr)
-      
+
       // If time is provided separately, use it
       if (timeStr) {
         const [hours, minutes] = timeStr.split(':').map(Number)
-        dateMoment.hours(hours || 0).minutes(minutes || 0).seconds(0)
+        dateMoment
+          .hours(hours || 0)
+          .minutes(minutes || 0)
+          .seconds(0)
       }
     } else {
       // Just date string (e.g., "2026-01-12")
       // Parse the date and combine with time in UTC
       const [year, month, day] = dateStr.split('-').map(Number)
-      
+
       if (timeStr) {
         const [hours, minutes] = timeStr.split(':').map(Number)
         // Create UTC moment from date and time components
@@ -73,10 +76,27 @@ export function formatFriendlyDateTime(dateStr: string, timeStr?: string): strin
             return n + (s[(v - 20) % 10] || s[v] || s[0])
           }
           const day = fallbackDate.getDate()
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const monthNames = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ]
           const month = monthNames[fallbackDate.getMonth()]
           const year = fallbackDate.getFullYear()
-          const time = fallbackDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          const time = fallbackDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          })
           return `${getOrdinal(day)} ${month} ${year} ${time}`
         }
       }
@@ -88,10 +108,27 @@ export function formatFriendlyDateTime(dateStr: string, timeStr?: string): strin
           return n + (s[(v - 20) % 10] || s[v] || s[0])
         }
         const day = fallbackDate.getDate()
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthNames = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ]
         const month = monthNames[fallbackDate.getMonth()]
         const year = fallbackDate.getFullYear()
-        const time = fallbackDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+        const time = fallbackDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
         return `${getOrdinal(day)} ${month} ${year} ${time}`
       }
     } catch {
