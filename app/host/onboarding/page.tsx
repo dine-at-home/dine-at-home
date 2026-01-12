@@ -1,21 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
   Clock,
   Users,
   DollarSign,
@@ -28,11 +34,11 @@ import {
   ArrowLeft,
   CheckCircle,
   Home,
-  Shield
+  Shield,
 } from 'lucide-react'
 import Image from 'next/image'
 
-export default function HostOnboardingPage() {
+function HostOnboardingPageContent() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [hostData, setHostData] = useState({
@@ -42,7 +48,7 @@ export default function HostOnboardingPage() {
     phone: '',
     bio: '',
     profileImage: '',
-    
+
     // Step 2: Location & Availability
     address: '',
     city: '',
@@ -50,57 +56,78 @@ export default function HostOnboardingPage() {
     zipCode: '',
     country: 'United States',
     timezone: 'America/New_York',
-    
+
     // Step 3: Hosting Preferences
     maxCapacity: 8,
     priceRange: 'moderate',
     cuisineTypes: [] as string[],
     dietaryAccommodations: [] as string[],
-    
+
     // Step 4: Verification
     idVerification: false,
     backgroundCheck: false,
     termsAccepted: false,
-    
+
     // Step 5: Stripe Connect
     stripeConnected: false,
     bankAccount: '',
-    taxId: ''
+    taxId: '',
   })
 
   const cuisineTypes = [
-    'Italian', 'French', 'Japanese', 'Chinese', 'Indian', 'Mexican', 
-    'Mediterranean', 'American', 'Thai', 'Korean', 'Spanish', 'Greek',
-    'Lebanese', 'Ethiopian', 'Vietnamese', 'Fusion', 'Other'
+    'Italian',
+    'French',
+    'Japanese',
+    'Chinese',
+    'Indian',
+    'Mexican',
+    'Mediterranean',
+    'American',
+    'Thai',
+    'Korean',
+    'Spanish',
+    'Greek',
+    'Lebanese',
+    'Ethiopian',
+    'Vietnamese',
+    'Fusion',
+    'Other',
   ]
 
   const dietaryAccommodations = [
-    'Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Nut-Free', 
-    'Kosher', 'Halal', 'Low-Sodium', 'Diabetic-Friendly'
+    'Vegetarian',
+    'Vegan',
+    'Gluten-Free',
+    'Dairy-Free',
+    'Nut-Free',
+    'Kosher',
+    'Halal',
+    'Low-Sodium',
+    'Diabetic-Friendly',
   ]
 
   const handleInputChange = (field: string, value: any) => {
-    setHostData(prev => ({
+    setHostData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
   const handleCuisineToggle = (cuisine: string) => {
-    setHostData(prev => ({
+    setHostData((prev) => ({
       ...prev,
       cuisineTypes: prev.cuisineTypes.includes(cuisine)
-        ? prev.cuisineTypes.filter(c => c !== cuisine)
-        : [...prev.cuisineTypes, cuisine]
+        ? prev.cuisineTypes.filter((c) => c !== cuisine)
+        : [...prev.cuisineTypes, cuisine],
     }))
   }
 
   const handleDietaryToggle = (dietary: string) => {
-    setHostData(prev => ({
+    setHostData((prev) => ({
       ...prev,
       dietaryAccommodations: prev.dietaryAccommodations.includes(dietary)
-        ? prev.dietaryAccommodations.filter(d => d !== dietary)
-        : [...prev.dietaryAccommodations, dietary]
+        ? prev.dietaryAccommodations.filter((d) => d !== dietary)
+        : [...prev.dietaryAccommodations, dietary],
     }))
   }
 
@@ -152,7 +179,7 @@ export default function HostOnboardingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Full Name *</label>
-            <Input 
+            <Input
               value={hostData.fullName}
               onChange={(e) => handleInputChange('fullName', e.target.value)}
               placeholder="Enter your full name"
@@ -160,7 +187,7 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Email *</label>
-            <Input 
+            <Input
               type="email"
               value={hostData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
@@ -169,7 +196,7 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Phone Number *</label>
-            <Input 
+            <Input
               type="tel"
               value={hostData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
@@ -178,7 +205,10 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Country</label>
-            <Select value={hostData.country} onValueChange={(value) => handleInputChange('country', value)}>
+            <Select
+              value={hostData.country}
+              onValueChange={(value) => handleInputChange('country', value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -195,7 +225,7 @@ export default function HostOnboardingPage() {
 
         <div>
           <label className="block text-sm font-medium mb-2">Bio *</label>
-          <Textarea 
+          <Textarea
             value={hostData.bio}
             onChange={(e) => handleInputChange('bio', e.target.value)}
             placeholder="Tell us about your cooking experience, passion for food, and what makes your dinners special..."
@@ -218,7 +248,7 @@ export default function HostOnboardingPage() {
       <CardContent className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2">Street Address *</label>
-          <Input 
+          <Input
             value={hostData.address}
             onChange={(e) => handleInputChange('address', e.target.value)}
             placeholder="123 Main Street"
@@ -228,7 +258,7 @@ export default function HostOnboardingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">City *</label>
-            <Input 
+            <Input
               value={hostData.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
               placeholder="New York"
@@ -236,7 +266,7 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">State/Province *</label>
-            <Input 
+            <Input
               value={hostData.state}
               onChange={(e) => handleInputChange('state', e.target.value)}
               placeholder="NY"
@@ -244,7 +274,7 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">ZIP/Postal Code *</label>
-            <Input 
+            <Input
               value={hostData.zipCode}
               onChange={(e) => handleInputChange('zipCode', e.target.value)}
               placeholder="10001"
@@ -255,7 +285,10 @@ export default function HostOnboardingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Timezone *</label>
-            <Select value={hostData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
+            <Select
+              value={hostData.timezone}
+              onValueChange={(value) => handleInputChange('timezone', value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -271,7 +304,10 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Maximum Capacity *</label>
-            <Select value={hostData.maxCapacity.toString()} onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value))}>
+            <Select
+              value={hostData.maxCapacity.toString()}
+              onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value))}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -306,7 +342,7 @@ export default function HostOnboardingPage() {
             {cuisineTypes.map((cuisine) => (
               <Button
                 key={cuisine}
-                variant={hostData.cuisineTypes.includes(cuisine) ? "default" : "outline"}
+                variant={hostData.cuisineTypes.includes(cuisine) ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleCuisineToggle(cuisine)}
                 className="justify-start"
@@ -323,7 +359,7 @@ export default function HostOnboardingPage() {
             {dietaryAccommodations.map((dietary) => (
               <Button
                 key={dietary}
-                variant={hostData.dietaryAccommodations.includes(dietary) ? "default" : "outline"}
+                variant={hostData.dietaryAccommodations.includes(dietary) ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleDietaryToggle(dietary)}
                 className="justify-start"
@@ -336,7 +372,10 @@ export default function HostOnboardingPage() {
 
         <div>
           <label className="block text-sm font-medium mb-2">Price Range *</label>
-          <Select value={hostData.priceRange} onValueChange={(value) => handleInputChange('priceRange', value)}>
+          <Select
+            value={hostData.priceRange}
+            onValueChange={(value) => handleInputChange('priceRange', value)}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -392,8 +431,8 @@ export default function HostOnboardingPage() {
 
         <div className="border-t pt-6">
           <div className="flex items-start gap-3">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={hostData.termsAccepted}
               onChange={(e) => handleInputChange('termsAccepted', e.target.checked)}
               className="mt-1"
@@ -401,9 +440,13 @@ export default function HostOnboardingPage() {
             <div>
               <p className="text-sm">
                 I agree to the{' '}
-                <a href="#" className="text-primary-600 hover:underline">Terms of Service</a>
-                {' '}and{' '}
-                <a href="#" className="text-primary-600 hover:underline">Host Agreement</a>
+                <a href="#" className="text-primary-600 hover:underline">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="#" className="text-primary-600 hover:underline">
+                  Host Agreement
+                </a>
               </p>
             </div>
           </div>
@@ -439,7 +482,7 @@ export default function HostOnboardingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Bank Account (Optional)</label>
-            <Input 
+            <Input
               value={hostData.bankAccount}
               onChange={(e) => handleInputChange('bankAccount', e.target.value)}
               placeholder="Account number"
@@ -447,7 +490,7 @@ export default function HostOnboardingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Tax ID (Optional)</label>
-            <Input 
+            <Input
               value={hostData.taxId}
               onChange={(e) => handleInputChange('taxId', e.target.value)}
               placeholder="Tax identification number"
@@ -461,10 +504,10 @@ export default function HostOnboardingPage() {
   const getStepTitle = () => {
     const titles = [
       'Personal Information',
-      'Location & Availability', 
+      'Location & Availability',
       'Hosting Preferences',
       'Verification & Terms',
-      'Payment Setup'
+      'Payment Setup',
     ]
     return titles[currentStep - 1]
   }
@@ -490,86 +533,101 @@ export default function HostOnboardingPage() {
     <HostGuard>
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Become a Host</h1>
-              <p className="text-muted-foreground mt-1">Share your passion for food and earn money</p>
-            </div>
-            <Button variant="outline" onClick={() => router.push('/')}>
-              <Home className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </div>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {[1, 2, 3, 4, 5].map((step) => (
-              <div key={step} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step <= currentStep 
-                    ? 'bg-primary-600 text-white' 
-                    : 'bg-muted text-muted-foreground'
-                }`}>
-                  {step}
-                </div>
-                {step < 5 && (
-                  <div className={`w-16 h-0.5 mx-2 ${
-                    step < currentStep ? 'bg-primary-600' : 'bg-muted'
-                  }`} />
-                )}
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Become a Host</h1>
+                <p className="text-muted-foreground mt-1">
+                  Share your passion for food and earn money
+                </p>
               </div>
-            ))}
+              <Button variant="outline" onClick={() => router.push('/')}>
+                <Home className="w-4 h-4 mr-2" />
+                Back to Home
+              </Button>
+            </div>
           </div>
-          <p className="text-center mt-4 text-lg font-medium">{getStepTitle()}</p>
-        </div>
 
-        {/* Step Content */}
-        <div className="mb-8">
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
-          {currentStep === 5 && renderStep5()}
-        </div>
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {[1, 2, 3, 4, 5].map((step) => (
+                <div key={step} className="flex items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      step <= currentStep
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {step}
+                  </div>
+                  {step < 5 && (
+                    <div
+                      className={`w-16 h-0.5 mx-2 ${
+                        step < currentStep ? 'bg-primary-600' : 'bg-muted'
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-center mt-4 text-lg font-medium">{getStepTitle()}</p>
+          </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Previous
-          </Button>
+          {/* Step Content */}
+          <div className="mb-8">
+            {currentStep === 1 && renderStep1()}
+            {currentStep === 2 && renderStep2()}
+            {currentStep === 3 && renderStep3()}
+            {currentStep === 4 && renderStep4()}
+            {currentStep === 5 && renderStep5()}
+          </div>
 
-          {currentStep < 5 ? (
-            <Button 
-              onClick={nextStep}
-              disabled={!isStepComplete()}
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1}
               className="gap-2"
             >
-              Next
-              <ArrowRight className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" />
+              Previous
             </Button>
-          ) : (
-            <Button 
-              onClick={completeOnboarding}
-              disabled={!isStepComplete()}
-              className="gap-2"
-            >
-              Complete Onboarding
-              <CheckCircle className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
+
+            {currentStep < 5 ? (
+              <Button onClick={nextStep} disabled={!isStepComplete()} className="gap-2">
+                Next
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button onClick={completeOnboarding} disabled={!isStepComplete()} className="gap-2">
+                Complete Onboarding
+                <CheckCircle className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </HostGuard>
+  )
+}
+
+export default function HostOnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <HostOnboardingPageContent />
+    </Suspense>
   )
 }

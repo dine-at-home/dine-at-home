@@ -16,13 +16,13 @@ function GoogleCallbackContent() {
   useEffect(() => {
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
-    
+
     // Handle error from Google
     if (errorParam) {
       console.error('Google OAuth error:', errorParam)
       setStatus('error')
       setMessage('Authentication failed. Please try again.')
-      
+
       // Notify parent window if opened in popup
       if (window.opener) {
         window.opener.postMessage(
@@ -46,7 +46,7 @@ function GoogleCallbackContent() {
       console.error('No authorization code received from Google')
       setStatus('error')
       setMessage('No authorization code received. Please try again.')
-      
+
       if (window.opener) {
         window.opener.postMessage(
           { type: 'GOOGLE_AUTH_ERROR', error: 'No authorization code received' },
@@ -65,24 +65,25 @@ function GoogleCallbackContent() {
 
     // Exchange code for token
     console.log('Exchanging Google OAuth code for token...')
-    authService.exchangeGoogleCode(code)
+    authService
+      .exchangeGoogleCode(code)
       .then(async (result) => {
         if (result.success && result.data?.user && result.data?.token) {
           console.log('Google authentication successful')
           setStatus('success')
           setMessage('Authentication successful! Redirecting...')
-          
+
           // Notify parent window that authentication succeeded
           if (window.opener) {
             window.opener.postMessage(
-              { 
-                type: 'GOOGLE_AUTH_SUCCESS', 
+              {
+                type: 'GOOGLE_AUTH_SUCCESS',
                 user: result.data.user,
-                token: result.data.token
+                token: result.data.token,
               },
               window.location.origin
             )
-            
+
             // Close the popup after a short delay
             setTimeout(() => {
               window.close()
@@ -92,11 +93,11 @@ function GoogleCallbackContent() {
             try {
               // Refresh user data in auth context
               await refreshUser()
-              
+
               // Get the stored user to determine redirect URL
               const user = authService.getUser()
               const redirectUrl = getRedirectUrl(user)
-              
+
               // Use window.location for full page reload to ensure auth state is refreshed
               window.location.href = redirectUrl
             } catch (error) {
@@ -109,7 +110,7 @@ function GoogleCallbackContent() {
           console.error('Google authentication failed:', result.error)
           setStatus('error')
           setMessage(result.error || 'Authentication failed. Please try again.')
-          
+
           if (window.opener) {
             window.opener.postMessage(
               { type: 'GOOGLE_AUTH_ERROR', error: result.error || 'Authentication failed' },
@@ -129,7 +130,7 @@ function GoogleCallbackContent() {
         console.error('Error exchanging Google code:', err)
         setStatus('error')
         setMessage('Failed to authenticate. Please try again.')
-        
+
         if (window.opener) {
           window.opener.postMessage(
             { type: 'GOOGLE_AUTH_ERROR', error: err.message || 'Authentication failed' },
@@ -175,16 +176,17 @@ function GoogleCallbackContent() {
 
 export default function GoogleCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-muted">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-muted">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <GoogleCallbackContent />
     </Suspense>
   )
 }
-

@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { canAccessHostDashboard, getAccessDeniedMessageForHostDashboard } from '@/lib/access-control'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import {
+  canAccessHostDashboard,
+  getAccessDeniedMessageForHostDashboard,
+} from '@/lib/access-control'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -13,8 +16,10 @@ interface HostGuardProps {
 }
 
 export function HostGuard({ children }: HostGuardProps) {
-  const { user, loading } = useAuth()
+  const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   const isAllowed = canAccessHostDashboard(user)
   const accessDeniedMessage = getAccessDeniedMessageForHostDashboard(user)
@@ -22,20 +27,45 @@ export function HostGuard({ children }: HostGuardProps) {
   useEffect(() => {
     if (loading) return
 
-    if (!isAllowed) {
-      // Optionally, you could redirect immediately here, but showing a message first is more user-friendly
-      // router.replace('/');
+    // If user is not authenticated, redirect to sign in with callback URL
+    if (!isAuthenticated) {
+      const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
+      const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.replace(signInUrl)
+      return
     }
-  }, [loading, isAllowed, router])
+
+    // If user is authenticated but not a host, show access denied message
+    // (Don't redirect - let them see the message)
+    if (!isAllowed) {
+      // User is logged in but not a host - show message but don't redirect
+    }
+  }, [loading, isAuthenticated, isAllowed, router, pathname, searchParams])
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
       </div>
     )
   }
 
+  // If not authenticated, don't render anything (redirect is happening)
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to sign in...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If authenticated but not a host, show access denied
   if (!isAllowed) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background px-4">

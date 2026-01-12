@@ -2,7 +2,11 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { canBookDinners, getAccessDeniedMessage, getRoleBasedRedirect } from '../../lib/access-control'
+import {
+  canBookDinners,
+  getAccessDeniedMessage,
+  getRoleBasedRedirect,
+} from '../../lib/access-control'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -23,14 +27,15 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
     }
 
     if (!isAuthenticated) {
-      router.push('/auth/signin')
+      // Preserve the current URL as callback URL
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`)
       return
     }
 
-    if (user && !canBookDinners(user)) {
-      const redirectUrl = getRoleBasedRedirect(user)
-      router.push(redirectUrl)
-    }
+    // We no longer automatically redirect here if user can't book.
+    // Instead, we let the component render the specific access denied message below.
+    // This allows users to see "Why" they can't book (e.g. missing phone number).
   }, [user, loading, isAuthenticated, router])
 
   // Show loading while checking auth
@@ -57,25 +62,26 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <Alert className={needsPhone ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"}>
-            <AlertCircle className={`h-4 w-4 ${needsPhone ? 'text-blue-600' : 'text-orange-600'}`} />
-            <AlertDescription className={needsPhone ? "text-blue-800" : "text-orange-800"}>
+          <Alert
+            className={needsPhone ? 'border-blue-200 bg-blue-50' : 'border-orange-200 bg-orange-50'}
+          >
+            <AlertCircle
+              className={`h-4 w-4 ${needsPhone ? 'text-blue-600' : 'text-orange-600'}`}
+            />
+            <AlertDescription className={needsPhone ? 'text-blue-800' : 'text-orange-800'}>
               {getAccessDeniedMessage(user)}
             </AlertDescription>
           </Alert>
           <div className="mt-6 text-center">
             {needsPhone ? (
-              <Button 
-                onClick={() => router.push('/profile?tab=overview')}
-                className="mr-4"
-              >
+              <Button onClick={() => router.push('/profile?tab=overview')} className="mr-4">
                 Add Phone Number
               </Button>
             ) : null}
-            <Button 
+            <Button
               onClick={() => router.push(redirectUrl)}
               variant="outline"
-              className={needsPhone ? "" : "mr-4"}
+              className={needsPhone ? '' : 'mr-4'}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back

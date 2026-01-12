@@ -3,17 +3,17 @@
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { 
-  Search, 
-  Users, 
-  CreditCard, 
-  Star, 
-  MapPin, 
+import {
+  Search,
+  Users,
+  CreditCard,
+  Star,
+  MapPin,
   Calendar,
   ChefHat,
   Heart,
   Shield,
-  Clock
+  Clock,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -27,7 +27,8 @@ export default function HowItWorksPage() {
             How DineWithUs Works
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Discover authentic dining experiences and connect with local hosts for unforgettable meals
+            Discover authentic dining experiences and connect with local hosts for unforgettable
+            meals
           </p>
         </div>
 
@@ -53,7 +54,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Browse dining experiences by location, date, and cuisine type. Find the perfect meal for your taste and schedule.
+                  Browse dining experiences by location, date, and cuisine type. Find the perfect
+                  meal for your taste and schedule.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -67,7 +69,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  View detailed information about each dining experience, including menu, host profile, and location details.
+                  View detailed information about each dining experience, including menu, host
+                  profile, and location details.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -81,7 +84,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Secure your spot with our easy booking system. Pay safely and receive instant confirmation.
+                  Secure your spot with our easy booking system. Pay safely and receive instant
+                  confirmation.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -95,7 +99,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Join your host for an authentic dining experience. Share stories, try new flavors, and make lasting memories.
+                  Join your host for an authentic dining experience. Share stories, try new flavors,
+                  and make lasting memories.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -124,7 +129,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Create your host profile and tell us about your culinary skills, specialties, and dining style.
+                  Create your host profile and tell us about your culinary skills, specialties, and
+                  dining style.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -138,7 +144,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Design your dining experience with menu details, available dates, pricing, and special touches.
+                  Design your dining experience with menu details, available dates, pricing, and
+                  special touches.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -152,7 +159,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Welcome guests into your home and share your passion for food. Create memorable experiences.
+                  Welcome guests into your home and share your passion for food. Create memorable
+                  experiences.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -166,7 +174,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Get paid for sharing your culinary talents. Build a reputation and grow your hosting business.
+                  Get paid for sharing your culinary talents. Build a reputation and grow your
+                  hosting business.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -195,7 +204,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  All hosts go through a verification process including identity checks and background verification.
+                  All hosts go through a verification process including identity checks and
+                  background verification.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -209,7 +219,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  All payments are processed securely through our platform with fraud protection and secure encryption.
+                  All payments are processed securely through our platform with fraud protection and
+                  secure encryption.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -223,7 +234,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Read authentic reviews from other guests to help you choose the perfect dining experience.
+                  Read authentic reviews from other guests to help you choose the perfect dining
+                  experience.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -243,7 +255,9 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Simply search for experiences in your area, select your preferred date and time, and complete the booking process. You'll receive instant confirmation and all the details you need.
+                  Simply search for experiences in your area, select your preferred date and time,
+                  and complete the booking process. You'll receive instant confirmation and all the
+                  details you need.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -254,7 +268,9 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  You can cancel your booking up to 24 hours before the experience for a full refund. Cancellations within 24 hours may be subject to different policies depending on the host.
+                  You can cancel your booking up to 24 hours before the experience for a full
+                  refund. Cancellations within 24 hours may be subject to different policies
+                  depending on the host.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -265,7 +281,8 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Sign up as a host, complete your profile, and create your first dining experience. Our team will review your listing and help you get started.
+                  Sign up as a host, complete your profile, and create your first dining experience.
+                  Our team will review your listing and help you get started.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -276,7 +293,9 @@ export default function HowItWorksPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Yes! All hosts are verified through our safety process, and we provide safety guidelines and support. You can also read reviews from other guests before booking.
+                  Yes! All hosts are verified through our safety process, and we provide safety
+                  guidelines and support. You can also read reviews from other guests before
+                  booking.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -291,14 +310,10 @@ export default function HowItWorksPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-primary-600 hover:bg-primary-700">
-              <Link href="/auth/signup">
-                Sign Up as Guest
-              </Link>
+              <Link href="/auth/signup">Sign Up as Guest</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/host/onboarding">
-                Become a Host
-              </Link>
+              <Link href="/host/onboarding">Become a Host</Link>
             </Button>
           </div>
         </div>

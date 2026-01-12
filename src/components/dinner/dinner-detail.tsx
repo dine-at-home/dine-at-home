@@ -1,19 +1,13 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Card, CardContent } from "../ui/card";
-import { Separator } from "../ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import { Card, CardContent } from '../ui/card'
+import { Separator } from '../ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import {
   ArrowLeft,
   Heart,
@@ -34,37 +28,69 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-} from "lucide-react";
+} from 'lucide-react'
 
-import { Dinner, NavigationParams } from "@/types";
-import { useAuth } from "@/contexts/auth-context";
-import { favoriteService } from "@/lib/favorite-service";
+import { Dinner, NavigationParams } from '@/types'
+import { useAuth } from '@/contexts/auth-context'
+import { favoriteService } from '@/lib/favorite-service'
+import { getApiUrl } from '@/lib/api-config'
 
 interface DinnerDetailProps {
-  dinner: Dinner;
-  onNavigate: (page: string, params?: NavigationParams) => void;
+  dinner: Dinner
+  onNavigate: (page: string, params?: NavigationParams) => void
 }
 
 export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
-  const { user } = useAuth();
-  const isHost = user?.role === 'host';
-  const [selectedGuests, setSelectedGuests] = useState(2);
-  
+  const { user } = useAuth()
+  const isHost = user?.role === 'host'
+  const [selectedGuests, setSelectedGuests] = useState(2)
+
   // Use the date and time set by the host when creating the listing
-  const dinnerDate = new Date(dinner.date);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [isToggling, setIsToggling] = useState(false);
-  const [isCarouselOpen, setIsCarouselOpen] = useState(false);
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const dinnerDate = new Date(dinner.date)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isFavorited, setIsFavorited] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
+  const [isCarouselOpen, setIsCarouselOpen] = useState(false)
+  const [carouselIndex, setCarouselIndex] = useState(0)
+  const [hostReviews, setHostReviews] = useState<any[]>([])
+  const [hostReviewsLoading, setHostReviewsLoading] = useState(true)
 
   // Use reviews from dinner data if available, otherwise empty array
-  const reviews = dinner.reviews || [];
+  const reviews = dinner.reviews || []
+
+  // Fetch host reviews
+  useEffect(() => {
+    const fetchHostReviews = async () => {
+      if (!dinner.host?.id) {
+        setHostReviewsLoading(false)
+        return
+      }
+
+      try {
+        setHostReviewsLoading(true)
+        const response = await fetch(getApiUrl(`/host/${dinner.host.id}/reviews/public`))
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          setHostReviews(result.data)
+        } else {
+          setHostReviews([])
+        }
+      } catch (error) {
+        console.error('Error fetching host reviews:', error)
+        setHostReviews([])
+      } finally {
+        setHostReviewsLoading(false)
+      }
+    }
+
+    fetchHostReviews()
+  }, [dinner.host?.id])
 
   // Check if dinner is favorited on mount
   useEffect(() => {
     if (user) {
-      favoriteService.checkFavorite(dinner.id).then(result => {
+      favoriteService.checkFavorite(dinner.id).then((result) => {
         if (result.success && result.data) {
           setIsFavorited(result.data.isFavorited)
         }
@@ -86,12 +112,12 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
     // Immediately update UI for instant feedback
     // React 18 will batch this update and render it synchronously
     setIsFavorited(newFavoritedState)
-    
+
     // Use a microtask to ensure state update is processed before API call
     // This ensures the UI updates immediately while the API call happens in background
     Promise.resolve().then(async () => {
       setIsToggling(true)
-      
+
       try {
         if (wasFavorited) {
           const result = await favoriteService.removeFavorite(dinner.id)
@@ -119,51 +145,47 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const handleBooking = () => {
     if (isHost) {
       // Hosts can't book, do nothing
-      return;
+      return
     }
-    onNavigate("booking", {
+    onNavigate('booking', {
       dinner,
       date: dinnerDate,
       guests: selectedGuests,
-    });
-  };
+    })
+  }
 
   const openCarousel = (index: number) => {
-    setCarouselIndex(index);
-    setIsCarouselOpen(true);
-  };
+    setCarouselIndex(index)
+    setIsCarouselOpen(true)
+  }
 
   const closeCarousel = () => {
-    setIsCarouselOpen(false);
-  };
+    setIsCarouselOpen(false)
+  }
 
   const nextImage = () => {
-    setCarouselIndex((prev) => (prev + 1) % dinner.images.length);
-  };
+    setCarouselIndex((prev) => (prev + 1) % dinner.images.length)
+  }
 
   const prevImage = () => {
-    setCarouselIndex((prev) => (prev - 1 + dinner.images.length) % dinner.images.length);
-  };
+    setCarouselIndex((prev) => (prev - 1 + dinner.images.length) % dinner.images.length)
+  }
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isCarouselOpen) return;
-    
-    if (e.key === 'ArrowLeft') {
-      prevImage();
-    } else if (e.key === 'ArrowRight') {
-      nextImage();
-    } else if (e.key === 'Escape') {
-      closeCarousel();
-    }
-  };
+    if (!isCarouselOpen) return
 
-      return (
-    <div 
-      className="min-h-screen bg-background pt-10"
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-    >
+    if (e.key === 'ArrowLeft') {
+      prevImage()
+    } else if (e.key === 'ArrowRight') {
+      nextImage()
+    } else if (e.key === 'Escape') {
+      closeCarousel()
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background pt-10" onKeyDown={handleKeyDown} tabIndex={0}>
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 space-y-4 sm:space-y-0">
@@ -185,11 +207,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center space-x-2"
-            >
+            <Button variant="ghost" size="sm" className="flex items-center space-x-2">
               <Share className="w-4 h-4" />
               <span>Share</span>
             </Button>
@@ -202,10 +220,10 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             >
               <Heart
                 className={`w-4 h-4 transition-all duration-150 ${
-                  isFavorited ? "fill-red-500 text-red-500" : "text-gray-600"
+                  isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600'
                 }`}
               />
-              <span className="transition-all duration-150">{isFavorited ? "Saved" : "Save"}</span>
+              <span className="transition-all duration-150">{isFavorited ? 'Saved' : 'Save'}</span>
             </Button>
           </div>
         </div>
@@ -214,7 +232,10 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Image Gallery */}
-            <div className="grid grid-cols-4 gap-2 rounded-xl overflow-hidden" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            <div
+              className="grid grid-cols-4 gap-2 rounded-xl overflow-hidden"
+              style={{ gridAutoRows: 'minmax(200px, auto)' }}
+            >
               {dinner.images && dinner.images.length > 0 ? (
                 <>
                   <div className="col-span-4 sm:col-span-2 sm:row-span-2 relative min-h-[400px]">
@@ -251,18 +272,13 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             <div className="flex items-start space-x-4">
               <Avatar className="w-16 h-16">
                 {dinner.host.avatar && (
-                  <AvatarImage
-                    src={dinner.host.avatar}
-                    alt={dinner.host.name}
-                  />
+                  <AvatarImage src={dinner.host.avatar} alt={dinner.host.name} />
                 )}
                 <AvatarFallback>{dinner.host.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
-                  <h3 className="font-semibold text-lg">
-                    Hosted by {dinner.host.name}
-                  </h3>
+                  <h3 className="font-semibold text-lg">Hosted by {dinner.host.name}</h3>
                   {dinner.host.superhost && (
                     <Badge className="bg-primary text-white">
                       <Award className="w-3 h-3 mr-1" />
@@ -272,17 +288,127 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 </div>
                 <p className="text-muted-foreground text-sm mb-3">
                   {(() => {
-                    const joinedDate = new Date(dinner.host.joinedDate);
-                    const yearsSince = Math.floor((new Date().getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24 * 365));
-                    const yearsText = yearsSince > 0 ? `${yearsSince} year${yearsSince > 1 ? 's' : ''}` : 'Recently joined';
-                    return `${yearsText} • ${dinner.reviewCount} review${dinner.reviewCount !== 1 ? 's' : ''} • ${dinner.host.responseTime || 'Usually responds within 24 hours'}`;
+                    const joinedDate = new Date(dinner.host.joinedDate)
+                    const yearsSince = Math.floor(
+                      (new Date().getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+                    )
+                    const yearsText =
+                      yearsSince > 0
+                        ? `${yearsSince} year${yearsSince > 1 ? 's' : ''}`
+                        : 'Recently joined'
+                    return `${yearsText} • ${dinner.reviewCount} review${dinner.reviewCount !== 1 ? 's' : ''}`
                   })()}
                 </p>
-                {dinner.host.bio && (
-                  <p className="text-sm">
-                    "{dinner.host.bio}"
+                {dinner.host.bio && <p className="text-sm">"{dinner.host.bio}"</p>}
+                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                  <span>Response Rate: {dinner.host.responseRate}%</span>
+                  <span>•</span>
+                  <span>{dinner.host.responseTime}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Host Reviews */}
+            {hostReviews.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="font-semibold text-xl mb-4">
+                    Reviews about {dinner.host.name}
+                  </h3>
+                  <div className="space-y-4">
+                    {hostReviews.slice(0, 5).map((review) => (
+                      <div key={review.id} className="border-b pb-4 last:border-0">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage
+                              src={review.user?.image}
+                              alt={review.user?.name || 'Guest'}
+                            />
+                            <AvatarFallback>
+                              {review.user?.name ? review.user.name.charAt(0).toUpperCase() : 'G'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {review.user?.name || 'Anonymous'}
+                                </p>
+                                {review.dinner && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {review.dinner.title}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-4 h-4 ${
+                                      star <= review.rating
+                                        ? 'text-yellow-400 fill-yellow-400'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            {review.comment && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                {review.comment}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <Separator />
+
+            {/* Key Details */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <Utensils className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Cuisine</p>
+                  <p className="text-sm text-muted-foreground">{dinner.cuisine}</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <Clock className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Duration</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(dinner.duration || 0) / 60} hours
                   </p>
-                )}
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <Users className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Capacity</p>
+                  <p className="text-sm text-muted-foreground">{dinner.capacity} guests</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Location</p>
+                  <p className="text-sm text-muted-foreground">
+                    {dinner.location.address}, {dinner.location.city}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -291,15 +417,11 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             {/* Description */}
             {dinner.description && (
               <div>
-                <h3 className="font-semibold text-xl mb-4">
-                  About this experience
-                </h3>
+                <h3 className="font-semibold text-xl mb-4">About this experience</h3>
                 <div className="space-y-4 text-sm whitespace-pre-line">
-                  {dinner.description.split('\n').map((paragraph, index) => (
-                    paragraph.trim() && (
-                      <p key={index}>{paragraph}</p>
-                    )
-                  ))}
+                  {dinner.description
+                    .split('\n')
+                    .map((paragraph, index) => paragraph.trim() && <p key={index}>{paragraph}</p>)}
                 </div>
               </div>
             )}
@@ -375,7 +497,6 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
               </>
             )}
 
-
             {/* Reviews */}
             <div>
               <div className="flex items-center space-x-4 mb-6">
@@ -383,9 +504,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 <div className="flex items-center space-x-2">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   <span className="font-medium">{dinner.rating}</span>
-                  <span className="text-muted-foreground">
-                    ({dinner.reviewCount} reviews)
-                  </span>
+                  <span className="text-muted-foreground">({dinner.reviewCount} reviews)</span>
                 </div>
               </div>
 
@@ -396,22 +515,14 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                       <div key={review.id} className="space-y-3">
                         <div className="flex items-center space-x-3">
                           <Avatar className="w-10 h-10">
-                            <AvatarImage
-                              src={review.userAvatar || ""}
-                              alt={review.userName}
-                            />
+                            <AvatarImage src={review.userAvatar || ''} alt={review.userName} />
                             <AvatarFallback>{review.userName[0]}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium text-sm">
-                              {review.userName}
-                            </div>
+                            <div className="font-medium text-sm">{review.userName}</div>
                             <div className="flex items-center space-x-1">
                               {[...Array(review.rating)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className="w-3 h-3 fill-yellow-400 text-yellow-400"
-                                />
+                                <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                               ))}
                               <span className="text-xs text-muted-foreground ml-2">
                                 {new Date(review.date).toLocaleDateString()}
@@ -419,9 +530,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                             </div>
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {review.comment}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{review.comment}</p>
                       </div>
                     ))}
                   </div>
@@ -446,27 +555,23 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             <Card className="sticky top-24 shadow-modal">
               <CardContent className="p-6">
                 <div className="flex items-baseline space-x-2 mb-6">
-                  <span className="text-2xl font-semibold">
-                    ${dinner.price}
-                  </span>
+                  <span className="text-2xl font-semibold">${dinner.price}</span>
                   <span className="text-muted-foreground">per person</span>
                 </div>
 
                 {/* Date and Time (Set by Host - Read Only) */}
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Date & Time
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Date & Time</label>
                     <div className="space-y-2 p-3 bg-muted rounded-md">
                       <div className="flex items-center space-x-2 text-sm">
                         <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                         <span className="font-medium">
-                          {dinnerDate.toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            month: 'long', 
+                          {dinnerDate.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
                             day: 'numeric',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </span>
                       </div>
@@ -479,14 +584,10 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
 
                   {/* Guest Selection */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Guests
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Guests</label>
                     <Select
                       value={selectedGuests.toString()}
-                      onValueChange={(value) =>
-                        setSelectedGuests(parseInt(value))
-                      }
+                      onValueChange={(value) => setSelectedGuests(parseInt(value))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -494,7 +595,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                       <SelectContent>
                         {[...Array(dinner.capacity)].map((_, i) => (
                           <SelectItem key={i + 1} value={(i + 1).toString()}>
-                            {i + 1} {i + 1 === 1 ? "guest" : "guests"}
+                            {i + 1} {i + 1 === 1 ? 'guest' : 'guests'}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -512,16 +613,12 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   </div>
                   <div className="flex justify-between">
                     <span>Service fee</span>
-                    <span>
-                      ${Math.round(dinner.price * selectedGuests * 0.14)}
-                    </span>
+                    <span>${Math.round(dinner.price * selectedGuests * 0.14)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>
-                      ${Math.round(dinner.price * selectedGuests * 1.14)}
-                    </span>
+                    <span>${Math.round(dinner.price * selectedGuests * 1.14)}</span>
                   </div>
                 </div>
 
@@ -547,10 +644,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                           Reserve instantly
                         </Button>
                       ) : (
-                        <Button
-                          className="w-full"
-                          onClick={handleBooking}
-                        >
+                        <Button className="w-full" onClick={handleBooking}>
                           Request to book
                         </Button>
                       )}
@@ -569,9 +663,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 </div>
 
                 <div className="mt-4 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    You won't be charged yet
-                  </p>
+                  <p className="text-xs text-muted-foreground">You won't be charged yet</p>
                 </div>
 
                 {/* Safety Features */}
@@ -597,7 +689,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
 
       {/* Image Carousel Modal */}
       {isCarouselOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={closeCarousel}
         >
@@ -617,15 +709,15 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             size="icon"
             className="absolute left-4 text-white hover:bg-white/20 z-10"
             onClick={(e) => {
-              e.stopPropagation();
-              prevImage();
+              e.stopPropagation()
+              prevImage()
             }}
           >
             <ChevronLeft className="w-8 h-8" />
           </Button>
 
           {/* Image */}
-          <div 
+          <div
             className="relative max-w-7xl w-full h-full flex items-center justify-center px-16"
             onClick={(e) => e.stopPropagation()}
           >
@@ -650,8 +742,8 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             size="icon"
             className="absolute right-4 text-white hover:bg-white/20 z-10"
             onClick={(e) => {
-              e.stopPropagation();
-              nextImage();
+              e.stopPropagation()
+              nextImage()
             }}
           >
             <ChevronRight className="w-8 h-8" />
@@ -664,5 +756,5 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
         </div>
       )}
     </div>
-  );
+  )
 }

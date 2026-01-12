@@ -15,15 +15,15 @@ export function canCreateDinners(user: User | null): boolean {
 
 export function getAccessDeniedMessage(user: User | null): string {
   if (!user) {
-    return "You must be logged in to book dinners."
+    return 'You must be logged in to book dinners.'
   }
   if (user.role === 'host') {
-    return "Host accounts cannot book dinners. Switch to a guest account to make bookings."
+    return 'Host accounts cannot book dinners. Switch to a guest account to make bookings.'
   }
   if (!user.phone || user.phone.trim().length === 0) {
-    return "You must add a phone number to your profile before you can book dinners. Please update your profile."
+    return 'You must add a phone number to your profile before you can book dinners. Please update your profile.'
   }
-  return "You must be logged in as a guest to book dinners."
+  return 'You must be logged in as a guest to book dinners.'
 }
 
 export function canAccessHostDashboard(user: User | null): boolean {
@@ -33,9 +33,9 @@ export function canAccessHostDashboard(user: User | null): boolean {
 
 export function getAccessDeniedMessageForHostDashboard(user: User | null): string {
   if (user?.role === 'guest') {
-    return "Guest accounts cannot access the host dashboard. Switch to a host account or sign up as a host."
+    return 'Guest accounts cannot access the host dashboard. Switch to a host account or sign up as a host.'
   }
-  return "You must be logged in as a host to access the dashboard."
+  return 'You must be logged in as a host to access the dashboard.'
 }
 
 export function getRoleBasedRedirect(user: User | null): string {

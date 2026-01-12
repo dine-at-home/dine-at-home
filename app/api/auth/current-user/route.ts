@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(getBackendUrl('/auth/current-user'), {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     })

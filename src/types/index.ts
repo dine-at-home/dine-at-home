@@ -7,6 +7,7 @@ export interface Dinner {
   cuisine: string
   date: string
   time: string
+  duration?: number // Duration in minutes
   capacity: number
   available: number
   instantBook: boolean

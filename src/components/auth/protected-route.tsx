@@ -14,18 +14,21 @@ interface ProtectedRouteProps {
   requiredRole?: 'guest' | 'host' | 'admin'
 }
 
-export function ProtectedRoute({ 
-  children, 
-  fallback, 
+export function ProtectedRoute({
+  children,
+  fallback,
   redirectTo = '/auth/signin',
-  requiredRole 
+  requiredRole,
 }: ProtectedRouteProps) {
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push(redirectTo)
+      // Preserve the current URL as callback URL
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      const signInUrl = `${redirectTo}?callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.push(signInUrl)
     }
   }, [loading, isAuthenticated, router, redirectTo])
 
@@ -56,20 +59,15 @@ export function ProtectedRoute({
                 <Lock className="h-6 w-6 text-red-600" />
               </div>
               <CardTitle>Access Restricted</CardTitle>
-              <CardDescription>
-                You need to sign in to access this page
-              </CardDescription>
+              <CardDescription>You need to sign in to access this page</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
-                onClick={() => router.push('/auth/signin')} 
-                className="w-full"
-              >
+              <Button onClick={() => router.push('/auth/signin')} className="w-full">
                 Sign In
               </Button>
-              <Button 
-                onClick={() => router.push('/auth/signup')} 
-                variant="outline" 
+              <Button
+                onClick={() => router.push('/auth/signup')}
+                variant="outline"
                 className="w-full"
               >
                 Create Account
@@ -97,10 +95,7 @@ export function ProtectedRoute({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
-                onClick={() => router.push('/')} 
-                className="w-full"
-              >
+              <Button onClick={() => router.push('/')} className="w-full">
                 Go Home
               </Button>
             </CardContent>

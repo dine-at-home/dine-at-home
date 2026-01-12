@@ -10,15 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox'
 import { Slider } from '../ui/slider'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
-import { 
-  Filter, 
-  MapPin, 
-  Star, 
+import {
+  Filter,
+  MapPin,
+  Star,
   SlidersHorizontal,
   Grid3X3,
   List,
   ArrowUpDown,
-  Search
+  Search,
 } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
@@ -41,7 +41,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   const [dinners, setDinners] = useState<Dinner[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false)
 
@@ -55,7 +55,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         // Build query parameters
         const queryParams = new URLSearchParams({
           limit: '100',
-          page: '1'
+          page: '1',
         })
 
         if (searchParams.location) {
@@ -80,12 +80,12 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
 
         const result = await response.json()
 
-				if (result.success && result.data) {
-					const transformedDinners = result.data.map(transformDinner)
-					// Filter out booked and past dinners
-					const availableDinners = transformedDinners.filter(shouldShowInListings)
-					setDinners(availableDinners)
-				} else {
+        if (result.success && result.data) {
+          const transformedDinners = result.data.map(transformDinner)
+          // Filter out booked and past dinners
+          const availableDinners = transformedDinners.filter(shouldShowInListings)
+          setDinners(availableDinners)
+        } else {
           setError(result.error || 'Failed to load dinners')
           setDinners([])
         }
@@ -107,14 +107,14 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
       console.log('🟠 Search results received booking-created event:', event)
       const customEvent = event as CustomEvent<{ dinnerId: string; bookingId: string }>
       const { dinnerId } = customEvent.detail
-      
+
       console.log('🟠 Event detail:', customEvent.detail)
       console.log('🟠 Removing dinnerId from search results:', dinnerId)
       console.log('🟠 Current dinners count:', dinners.length)
-      
+
       // Remove the booked dinner from listings immediately
-      setDinners(prevDinners => {
-        const filtered = prevDinners.filter(d => d.id !== dinnerId)
+      setDinners((prevDinners) => {
+        const filtered = prevDinners.filter((d) => d.id !== dinnerId)
         console.log('🟠 After filtering, remaining dinners:', filtered.length)
         return filtered
       })
@@ -128,10 +128,10 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
       window.removeEventListener(BOOKING_CREATED_EVENT, handleBookingCreated)
     }
   }, [dinners.length])
-  
+
   // Get unique cuisines for filter (computed from fetched dinners)
   const cuisines = useMemo(() => {
-    return Array.from(new Set(dinners.map(dinner => dinner.cuisine).filter(Boolean)))
+    return Array.from(new Set(dinners.map((dinner) => dinner.cuisine).filter(Boolean)))
   }, [dinners])
 
   // Mobile detection
@@ -139,38 +139,39 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768) // md breakpoint
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    
+
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   // Filter and sort dinners
   const filteredDinners = useMemo(() => {
-    let filtered = dinners.filter(dinner => {
+    let filtered = dinners.filter((dinner) => {
       // Price filter
       if (dinner.price < priceRange[0] || dinner.price > priceRange[1]) return false
-      
+
       // Cuisine filter
       if (selectedCuisines.length > 0 && !selectedCuisines.includes(dinner.cuisine)) return false
-      
+
       // Instant book filter
       if (instantBookOnly && !dinner.instantBook) return false
-      
+
       // Superhost filter
       if (superhostOnly && !dinner.host.superhost) return false
-      
+
       // Location filter (basic string matching)
       if (searchParams.location) {
         const location = searchParams.location.toLowerCase()
-        const dinnerLocation = `${dinner.location.city} ${dinner.location.state} ${dinner.location.neighborhood}`.toLowerCase()
+        const dinnerLocation =
+          `${dinner.location.city} ${dinner.location.state} ${dinner.location.neighborhood}`.toLowerCase()
         if (!dinnerLocation.includes(location)) return false
       }
-      
+
       // Guest capacity filter
       if (searchParams.guests && dinner.capacity < searchParams.guests) return false
-      
+
       return true
     })
 
@@ -200,10 +201,8 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   }, [dinners, priceRange, selectedCuisines, instantBookOnly, superhostOnly, searchParams, sortBy])
 
   const toggleCuisine = (cuisine: string) => {
-    setSelectedCuisines(prev => 
-      prev.includes(cuisine) 
-        ? prev.filter(c => c !== cuisine)
-        : [...prev, cuisine]
+    setSelectedCuisines((prev) =>
+      prev.includes(cuisine) ? prev.filter((c) => c !== cuisine) : [...prev, cuisine]
     )
   }
 
@@ -281,11 +280,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         </div>
       </div> */}
 
-      <Button 
-        variant="outline" 
-        onClick={clearFilters}
-        className="w-full"
-      >
+      <Button variant="outline" onClick={clearFilters} className="w-full">
         Clear all filters
       </Button>
     </div>
@@ -298,22 +293,22 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Mobile: Hero variant, Desktop: Compact variant */}
           <div className="block md:hidden">
-            <SearchWidget 
-              variant="hero" 
+            <SearchWidget
+              variant="hero"
               initialParams={{
                 location: searchParams.location,
                 date: searchParams.date,
-                guests: searchParams.guests
+                guests: searchParams.guests,
               }}
             />
           </div>
           <div className="hidden md:block">
-            <SearchWidget 
-              variant="compact" 
+            <SearchWidget
+              variant="compact"
               initialParams={{
                 location: searchParams.location,
                 date: searchParams.date,
-                guests: searchParams.guests
+                guests: searchParams.guests,
               }}
             />
           </div>
@@ -348,10 +343,10 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 </h1>
                 {searchParams.date && (
                   <p className="text-muted-foreground mt-1">
-                    {searchParams.date.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {searchParams.date.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
                     })}
                     {searchParams.guests && ` • ${searchParams.guests} guests`}
                   </p>
@@ -429,47 +424,53 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             )}
 
             {/* Active Filters */}
-            {!loading && !error && (selectedCuisines.length > 0 || instantBookOnly || superhostOnly || priceRange[0] > 0 || priceRange[1] < 200) && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {selectedCuisines.map(cuisine => (
-                  <Badge 
-                    key={cuisine}
-                    variant="secondary" 
-                    className="cursor-pointer hover:bg-secondary/80"
-                    onClick={() => toggleCuisine(cuisine)}
-                  >
-                    {cuisine} ×
-                  </Badge>
-                ))}
-                {instantBookOnly && (
-                  <Badge 
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-secondary/80"
-                    onClick={() => setInstantBookOnly(false)}
-                  >
-                    Instant Book ×
-                  </Badge>
-                )}
-                {superhostOnly && (
-                  <Badge 
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-secondary/80"
-                    onClick={() => setSuperhostOnly(false)}
-                  >
-                    Superhost ×
-                  </Badge>
-                )}
-                {(priceRange[0] > 0 || priceRange[1] < 200) && (
-                  <Badge 
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-secondary/80"
-                    onClick={() => setPriceRange([0, 200])}
-                  >
-                    ${priceRange[0]} - ${priceRange[1]} ×
-                  </Badge>
-                )}
-              </div>
-            )}
+            {!loading &&
+              !error &&
+              (selectedCuisines.length > 0 ||
+                instantBookOnly ||
+                superhostOnly ||
+                priceRange[0] > 0 ||
+                priceRange[1] < 200) && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {selectedCuisines.map((cuisine) => (
+                    <Badge
+                      key={cuisine}
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => toggleCuisine(cuisine)}
+                    >
+                      {cuisine} ×
+                    </Badge>
+                  ))}
+                  {instantBookOnly && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => setInstantBookOnly(false)}
+                    >
+                      Instant Book ×
+                    </Badge>
+                  )}
+                  {superhostOnly && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => setSuperhostOnly(false)}
+                    >
+                      Superhost ×
+                    </Badge>
+                  )}
+                  {(priceRange[0] > 0 || priceRange[1] < 200) && (
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80"
+                      onClick={() => setPriceRange([0, 200])}
+                    >
+                      ${priceRange[0]} - ${priceRange[1]} ×
+                    </Badge>
+                  )}
+                </div>
+              )}
 
             {/* Results Grid */}
             {!loading && !error && filteredDinners.length === 0 ? (
@@ -486,19 +487,19 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 </Button>
               </div>
             ) : !loading && !error ? (
-                <div className={`grid gap-6 ${
-                  viewMode === 'grid' 
-                    ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
-                    : 'grid-cols-1'
-                }`}>
-                  {filteredDinners.map((dinner) => (
-                    <DinnerCard 
-                      key={dinner.id}
-                      dinner={dinner}
-                      className={viewMode === 'list' ? 'md:flex md:space-x-4' : ''}
-                    />
-                  ))}
-                </div>
+              <div
+                className={`grid gap-6 ${
+                  viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'
+                }`}
+              >
+                {filteredDinners.map((dinner) => (
+                  <DinnerCard
+                    key={dinner.id}
+                    dinner={dinner}
+                    className={viewMode === 'list' ? 'md:flex md:space-x-4' : ''}
+                  />
+                ))}
+              </div>
             ) : null}
           </div>
         </div>

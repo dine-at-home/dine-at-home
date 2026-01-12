@@ -19,7 +19,7 @@ export function dispatchBookingCreated(dinnerId: string, bookingId: string) {
   if (typeof window !== 'undefined') {
     console.log('🟢 Dispatching booking-created event:', { dinnerId, bookingId })
     const event = new CustomEvent<BookingCreatedEventDetail>(BOOKING_CREATED_EVENT, {
-      detail: { dinnerId, bookingId }
+      detail: { dinnerId, bookingId },
     })
     window.dispatchEvent(event)
     console.log('🟢 Event dispatched successfully')
@@ -35,9 +35,8 @@ export function dispatchBookingCreated(dinnerId: string, bookingId: string) {
 export function dispatchBookingCancelled(dinnerId: string, bookingId: string) {
   if (typeof window !== 'undefined') {
     const event = new CustomEvent<BookingCreatedEventDetail>(BOOKING_CANCELLED_EVENT, {
-      detail: { dinnerId, bookingId }
+      detail: { dinnerId, bookingId },
     })
     window.dispatchEvent(event)
   }
 }
-

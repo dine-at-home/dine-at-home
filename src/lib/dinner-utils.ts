@@ -8,27 +8,30 @@ export function transformDinner(dinner: any): Dinner {
   const images: string[] = Array.isArray(dinner.images) ? dinner.images : []
 
   // Filter out invalid blob URLs
-  const validImages = images.filter((img: string) => 
-    img && 
-    typeof img === 'string' && 
-    (img.startsWith('http://') || img.startsWith('https://'))
+  const validImages = images.filter(
+    (img: string) =>
+      img && typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
   )
 
   let location: Location = {
     address: '',
     city: '',
     state: '',
-    neighborhood: ''
+    neighborhood: '',
   }
   // Location is now stored as object directly
-  if (typeof dinner.location === 'object' && dinner.location !== null && !Array.isArray(dinner.location)) {
+  if (
+    typeof dinner.location === 'object' &&
+    dinner.location !== null &&
+    !Array.isArray(dinner.location)
+  ) {
     const locationData = dinner.location as any
     location = {
       address: locationData.address || '',
       city: locationData.city || '',
       state: locationData.state || '',
       neighborhood: locationData.neighborhood || locationData.city || '',
-      coordinates: locationData.coordinates
+      coordinates: locationData.coordinates,
     }
   }
 
@@ -40,14 +43,17 @@ export function transformDinner(dinner: any): Dinner {
     superhost: dinner.host?.superhost || false,
     joinedDate: dinner.host?.createdAt || dinner.host?.joinedDate || new Date().toISOString(),
     responseRate: dinner.host?.responseRate || 0,
-    responseTime: dinner.host?.responseTime || 'within 24 hours',
-    bio: dinner.host?.bio
+    responseTime: dinner.host?.responseTime || 'responds within 24 hours',
+    bio: dinner.host?.bio,
   }
 
-  // Format date
-  const dateStr = typeof dinner.date === 'string' 
-    ? dinner.date.split('T')[0] 
-    : new Date(dinner.date).toISOString().split('T')[0]
+  // Preserve the original ISO date string for timezone conversion
+  // The backend sends date as ISO string (e.g., "2026-01-11T23:00:00.000Z")
+  // We keep the full ISO string so moment-timezone can convert it properly
+  const dateStr =
+    typeof dinner.date === 'string'
+      ? dinner.date // Keep full ISO string for timezone conversion
+      : new Date(dinner.date).toISOString()
 
   // Menu, included, houseRules, and dietary are stored as arrays directly
   const menu: string[] = Array.isArray(dinner.menu) ? dinner.menu : []
@@ -60,8 +66,9 @@ export function transformDinner(dinner: any): Dinner {
     title: dinner.title,
     description: dinner.description || '',
     price: dinner.price,
+    duration: dinner.duration,
     cuisine: dinner.cuisine || 'Other',
-    date: dateStr,
+    date: dateStr, // Full ISO string for proper timezone handling
     time: dinner.time || '19:00',
     capacity: dinner.capacity,
     available: dinner.available || dinner.capacity,
@@ -75,7 +82,6 @@ export function transformDinner(dinner: any): Dinner {
     menu,
     included,
     houseRules,
-    dietary
+    dietary,
   }
 }
-

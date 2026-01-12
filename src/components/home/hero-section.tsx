@@ -7,7 +7,7 @@ import { SearchWidget } from '@/components/search/search-widget'
 export function HeroSection() {
   const { user } = useAuth()
   const isHost = user?.role === 'host'
-  
+
   return (
     <section className="relative h-[70vh] lg:h-[80vh] flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -28,13 +28,14 @@ export function HeroSection() {
         {isHost ? (
           <>
             <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-8">
-              Welcome to Your <br />Host Dashboard
+              Welcome to Your <br />
+              Host Dashboard
             </h1>
             <p className="text-lg lg:text-xl font-normal leading-relaxed mb-10 text-white/90">
               Manage your dinners, bookings, and create amazing dining experiences
             </p>
             <div className="max-w-2xl mx-auto">
-              <a 
+              <a
                 href="/host/dashboard"
                 className="inline-flex items-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors duration-200 text-lg"
               >
@@ -45,12 +46,13 @@ export function HeroSection() {
         ) : (
           <>
             <h1 className="text-2xl sm:text-3xl lg:text-6xl font-bold leading-tight mb-3 sm:mb-6">
-              Find Your Next Authentic <br />Dining Experience
+              Find Your Next Authentic <br />
+              Dining Experience
             </h1>
             <p className="text-sm sm:text-base lg:text-xl font-normal leading-relaxed mb-4 sm:mb-8 text-white/90">
               Connect with local hosts for unforgettable meals in their homes
             </p>
-            
+
             {/* Search Widget - Only show for guests */}
             <div className="max-w-2xl mx-auto relative z-50">
               <SearchWidget variant="hero" />

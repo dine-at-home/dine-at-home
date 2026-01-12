@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,19 +21,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Star, 
-  Edit3, 
-  Camera, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Star,
+  Edit3,
+  Camera,
   Settings,
   History,
   CreditCard,
-  Bell,
   Shield,
   LogOut,
   Save,
@@ -41,7 +40,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ChefHat
+  ChefHat,
 } from 'lucide-react'
 import Image from 'next/image'
 import { bookingService } from '@/lib/booking-service'
@@ -54,58 +53,69 @@ const mockBookings = [
     id: '1',
     dinner: {
       title: 'Authentic Italian Pasta Making',
-      host: { name: 'Marco Rossi', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face' },
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
+      host: {
+        name: 'Marco Rossi',
+        avatar: '',
+      },
+      image:
+        'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
       location: 'Rome, Italy',
       date: '2024-01-15',
       time: '19:00',
       price: 85,
-      capacity: 8
+      capacity: 8,
     },
     status: 'completed',
     guests: 2,
     totalAmount: 170,
     paymentStatus: 'paid',
-    review: { rating: 5, comment: 'Amazing experience! Marco was a fantastic teacher.' }
+    review: { rating: 5, comment: 'Amazing experience! Marco was a fantastic teacher.' },
   },
   {
     id: '2',
     dinner: {
       title: 'Japanese Sushi Workshop',
-      host: { name: 'Yuki Tanaka', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face' },
-      image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
+      host: {
+        name: 'Yuki Tanaka',
+        avatar: '',
+      },
+      image:
+        'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
       location: 'Tokyo, Japan',
       date: '2024-02-20',
       time: '18:30',
       price: 120,
-      capacity: 6
+      capacity: 6,
     },
     status: 'confirmed',
     guests: 1,
     totalAmount: 120,
     paymentStatus: 'paid',
-    review: null
+    review: null,
   },
   {
     id: '3',
     dinner: {
       title: 'French Wine Tasting',
-      host: { name: 'Pierre Dubois', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face' },
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
+      host: {
+        name: 'Pierre Dubois',
+        avatar: '',
+      },
+      image:
+        'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
       location: 'Paris, France',
       date: '2024-01-08',
       time: '20:00',
       price: 95,
-      capacity: 10
+      capacity: 10,
     },
     status: 'cancelled',
     guests: 2,
     totalAmount: 190,
     paymentStatus: 'refunded',
-    review: null
-  }
+    review: null,
+  },
 ]
-
 
 function ProfilePageContent() {
   const { user, loading, refreshUser } = useAuth()
@@ -122,16 +132,22 @@ function ProfilePageContent() {
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   })
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   })
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [showReviewDialog, setShowReviewDialog] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<any>(null)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -141,11 +157,13 @@ function ProfilePageContent() {
     country: '',
     languages: [] as string[],
     profileImage: '',
-    memberSince: ''
+    memberSince: '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Update profile data when user loads
   useEffect(() => {
@@ -175,7 +193,12 @@ function ProfilePageContent() {
         }
       }
 
-      setProfileData(prev => ({
+      // Debug: Log the user image URL
+      if (user.image) {
+        console.log('Profile image URL:', user.image)
+      }
+
+      setProfileData((prev) => ({
         ...prev,
         name: user.name || '',
         email: user.email || '',
@@ -183,8 +206,9 @@ function ProfilePageContent() {
         country: user.country || '',
         gender: user.gender || '',
         languages: languagesArray,
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
-        memberSince: memberSince
+        profileImage:
+          user.image && user.image.trim() !== '' ? user.image : '',
+        memberSince: memberSince,
       }))
     }
   }, [user])
@@ -202,13 +226,13 @@ function ProfilePageContent() {
         console.log('🔵 Fetching bookings for user:', user.id)
         const result = await bookingService.getUserBookings(user.id)
         console.log('🔵 Bookings API result:', result)
-        
+
         if (result.success && result.data) {
           console.log('🔵 Bookings data:', result.data)
           // Transform bookings to match frontend format
           const transformedBookings = result.data.map((booking: any) => {
             console.log('🔵 Processing booking:', booking.id, 'dinner:', booking.dinner)
-            
+
             // Handle dinner data - backend already transforms it, but we need to ensure compatibility
             let dinner = null
             if (booking.dinner) {
@@ -216,7 +240,7 @@ function ProfilePageContent() {
                 // The backend already provides a transformed dinner object
                 // We need to adapt it to work with transformDinner or use it directly
                 const backendDinner = booking.dinner
-                
+
                 // Use transformDinner if needed, or use the backend format directly
                 dinner = transformDinner({
                   ...backendDinner,
@@ -229,11 +253,14 @@ function ProfilePageContent() {
                   rating: backendDinner.rating || 0,
                   reviewCount: backendDinner.reviewCount || 0,
                   // Images might already be an array from backend
-                  images: Array.isArray(backendDinner.images) ? backendDinner.images : (backendDinner.images || []),
+                  images: Array.isArray(backendDinner.images)
+                    ? backendDinner.images
+                    : backendDinner.images || [],
                   // Location might already be an object from backend
-                  location: typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                  location:
+                    typeof backendDinner.location === 'object' ? backendDinner.location : {},
                   // Host is already transformed
-                  host: backendDinner.host || {}
+                  host: backendDinner.host || {},
                 })
               } catch (error) {
                 console.error('Error transforming dinner for booking:', booking.id, error)
@@ -241,7 +268,11 @@ function ProfilePageContent() {
                 dinner = {
                   id: booking.dinner.id,
                   title: booking.dinner.title || 'Unknown Dinner',
-                  date: booking.dinner.date ? (typeof booking.dinner.date === 'string' ? booking.dinner.date.split('T')[0] : new Date(booking.dinner.date).toISOString().split('T')[0]) : '',
+                  date: booking.dinner.date
+                    ? typeof booking.dinner.date === 'string'
+                      ? booking.dinner.date.split('T')[0]
+                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                    : '',
                   time: booking.dinner.time || '19:00',
                   price: booking.dinner.price || 0,
                   capacity: booking.dinner.capacity || 0,
@@ -253,40 +284,54 @@ function ProfilePageContent() {
                     superhost: false,
                     joinedDate: new Date().toISOString(),
                     responseRate: 0,
-                    responseTime: 'within 24 hours'
+                    responseTime: 'responds within 24 hours',
                   },
-                  location: typeof booking.dinner.location === 'object' ? booking.dinner.location : {
-                    address: '',
-                    city: '',
-                    state: '',
-                    neighborhood: ''
-                  }
+                  location:
+                    typeof booking.dinner.location === 'object'
+                      ? booking.dinner.location
+                      : {
+                          address: '',
+                          city: '',
+                          state: '',
+                          neighborhood: '',
+                        },
                 }
               }
             }
-            
+
             return {
               id: booking.id,
               status: booking.status?.toLowerCase() || 'pending',
               guests: booking.guests || 1,
               totalAmount: booking.totalPrice || 0,
-              dinner: dinner ? {
-                title: dinner.title,
-                host: {
-                  name: dinner.host.name,
-                  avatar: dinner.host.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-                },
-                image: dinner.thumbnail || dinner.images?.[0] || null,
-                location: `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() || 'Location not available',
-                date: dinner.date,
-                time: dinner.time,
-                price: dinner.price,
-                capacity: dinner.capacity
-              } : null,
-              review: null // Reviews will be fetched separately if needed
+              dinnerId: dinner?.id || booking.dinnerId,
+              dinner: dinner
+                ? {
+                    id: dinner.id,
+                    title: dinner.title,
+                    host: {
+                      name: dinner.host.name,
+                      avatar: dinner.host.avatar || '',
+                    },
+                    image: dinner.thumbnail || dinner.images?.[0] || null,
+                    location:
+                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                      'Location not available',
+                    date: dinner.date,
+                    time: dinner.time,
+                    price: dinner.price,
+                    capacity: dinner.capacity,
+                  }
+                : null,
+              review: booking.review
+                ? {
+                    rating: booking.review.rating,
+                    comment: booking.review.comment || '',
+                  }
+                : null,
             }
           })
-          
+
           console.log('🔵 Transformed bookings:', transformedBookings)
           setBookings(transformedBookings)
         } else {
@@ -303,6 +348,265 @@ function ProfilePageContent() {
 
     fetchBookings()
   }, [user?.id])
+
+  // Note: Reviews now come with bookings from the backend, so no merging needed
+
+  // Handle review submission
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedBooking || reviewRating === 0) {
+      setReviewError('Please select a rating')
+      return
+    }
+
+    setReviewSubmitting(true)
+    setReviewError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setReviewError('Authentication required. Please sign in again.')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const dinnerId = selectedBooking.dinner?.id || selectedBooking.dinnerId
+      if (!dinnerId) {
+        setReviewError('Dinner information is missing')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const response = await fetch(getApiUrl('/reviews'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dinnerId,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        // If review already exists, refresh bookings to show it
+        if (result.code === 'ALREADY_REVIEWED' || result.error?.includes('already reviewed')) {
+          // Close the dialog and refresh bookings (reviews are included with bookings)
+          setShowReviewDialog(false)
+          setSelectedBooking(null)
+          setReviewRating(0)
+          setReviewComment('')
+          setReviewError(null)
+          
+          // Refresh bookings (which now include reviews)
+          if (user?.id) {
+            const bookingsResult = await bookingService.getUserBookings(user.id)
+            if (bookingsResult.success && bookingsResult.data) {
+              const transformedBookings = bookingsResult.data.map((booking: any) => {
+                let dinner = null
+                if (booking.dinner) {
+                  try {
+                    const backendDinner = booking.dinner
+                    dinner = transformDinner({
+                      ...backendDinner,
+                      description: backendDinner.description || '',
+                      cuisine: backendDinner.cuisine || 'Other',
+                      capacity: backendDinner.capacity || 0,
+                      available: backendDinner.available || 0,
+                      instantBook: backendDinner.instantBook || false,
+                      rating: backendDinner.rating || 0,
+                      reviewCount: backendDinner.reviewCount || 0,
+                      images: Array.isArray(backendDinner.images)
+                        ? backendDinner.images
+                        : backendDinner.images || [],
+                      location:
+                        typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                      host: backendDinner.host || {},
+                    })
+                  } catch (error) {
+                    console.error('Error transforming dinner:', error)
+                    dinner = {
+                      id: booking.dinner.id,
+                      title: booking.dinner.title || 'Unknown Dinner',
+                      date: booking.dinner.date
+                        ? typeof booking.dinner.date === 'string'
+                          ? booking.dinner.date.split('T')[0]
+                          : new Date(booking.dinner.date).toISOString().split('T')[0]
+                        : '',
+                      time: booking.dinner.time || '19:00',
+                      price: booking.dinner.price || 0,
+                      capacity: booking.dinner.capacity || 0,
+                      images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                      host: {
+                        id: booking.dinner.host?.id || '',
+                        name: booking.dinner.host?.name || 'Unknown Host',
+                        avatar: booking.dinner.host?.image || undefined,
+                      },
+                      location:
+                        typeof booking.dinner.location === 'object'
+                          ? booking.dinner.location
+                          : {
+                              address: '',
+                              city: '',
+                              state: '',
+                              neighborhood: '',
+                            },
+                    }
+                  }
+                }
+
+                return {
+                  id: booking.id,
+                  status: booking.status?.toLowerCase() || 'pending',
+                  guests: booking.guests || 1,
+                  totalAmount: booking.totalPrice || 0,
+                  dinner: dinner
+                    ? {
+                        id: dinner.id,
+                        title: dinner.title,
+                        host: {
+                          name: dinner.host.name,
+                          avatar: dinner.host.avatar || undefined,
+                        },
+                        image: dinner.thumbnail || dinner.images?.[0] || null,
+                        location:
+                          `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                          'Location not available',
+                        date: dinner.date,
+                        time: dinner.time,
+                        price: dinner.price,
+                        capacity: dinner.capacity,
+                      }
+                    : null,
+                  dinnerId: dinner?.id || booking.dinnerId,
+                  review: booking.review
+                    ? {
+                        rating: booking.review.rating,
+                        comment: booking.review.comment || '',
+                      }
+                    : null,
+                }
+              })
+              setBookings(transformedBookings)
+            }
+          }
+        } else {
+          setReviewError(result.error || result.message || 'Failed to submit review')
+        }
+        setReviewSubmitting(false)
+        return
+      }
+
+      // Success - refresh bookings and reviews
+      setShowReviewDialog(false)
+      setSelectedBooking(null)
+      setReviewRating(0)
+      setReviewComment('')
+      setReviewError(null)
+
+      // Refresh bookings to show the new review
+      if (user?.id) {
+        const bookingsResult = await bookingService.getUserBookings(user.id)
+        if (bookingsResult.success && bookingsResult.data) {
+          // Transform and update bookings similar to fetchBookings
+          const transformedBookings = bookingsResult.data.map((booking: any) => {
+            let dinner = null
+            if (booking.dinner) {
+              try {
+                const backendDinner = booking.dinner
+                dinner = transformDinner({
+                  ...backendDinner,
+                  description: backendDinner.description || '',
+                  cuisine: backendDinner.cuisine || 'Other',
+                  capacity: backendDinner.capacity || 0,
+                  available: backendDinner.available || 0,
+                  instantBook: backendDinner.instantBook || false,
+                  rating: backendDinner.rating || 0,
+                  reviewCount: backendDinner.reviewCount || 0,
+                  images: Array.isArray(backendDinner.images)
+                    ? backendDinner.images
+                    : backendDinner.images || [],
+                  location:
+                    typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                  host: backendDinner.host || {},
+                })
+              } catch (error) {
+                console.error('Error transforming dinner:', error)
+                dinner = {
+                  id: booking.dinner.id,
+                  title: booking.dinner.title || 'Unknown Dinner',
+                  date: booking.dinner.date
+                    ? typeof booking.dinner.date === 'string'
+                      ? booking.dinner.date.split('T')[0]
+                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                    : '',
+                  time: booking.dinner.time || '19:00',
+                  price: booking.dinner.price || 0,
+                  capacity: booking.dinner.capacity || 0,
+                  images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                  host: {
+                    id: booking.dinner.host?.id || '',
+                    name: booking.dinner.host?.name || 'Unknown Host',
+                    avatar: booking.dinner.host?.image || undefined,
+                  },
+                  location:
+                    typeof booking.dinner.location === 'object'
+                      ? booking.dinner.location
+                      : {
+                          address: '',
+                          city: '',
+                          state: '',
+                          neighborhood: '',
+                        },
+                }
+              }
+            }
+
+            return {
+              id: booking.id,
+              status: booking.status?.toLowerCase() || 'pending',
+              guests: booking.guests || 1,
+              totalAmount: booking.totalPrice || 0,
+              dinner: dinner
+                ? {
+                    title: dinner.title,
+                    host: {
+                      name: dinner.host.name,
+                      avatar: dinner.host.avatar || undefined,
+                    },
+                    image: dinner.thumbnail || dinner.images?.[0] || null,
+                    location:
+                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                      'Location not available',
+                    date: dinner.date,
+                    time: dinner.time,
+                    price: dinner.price,
+                    capacity: dinner.capacity,
+                  }
+                : null,
+              dinnerId: dinner?.id || booking.dinnerId,
+              review: booking.review
+                ? {
+                    rating: booking.review.rating,
+                    comment: booking.review.comment || '',
+                  }
+                : null,
+            }
+          })
+          setBookings(transformedBookings)
+        }
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error)
+      setReviewError(error.message || 'Failed to submit review. Please try again.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   // Fetch reviews when user is available
   useEffect(() => {
@@ -324,7 +628,7 @@ function ProfilePageContent() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         })
 
@@ -353,7 +657,11 @@ function ProfilePageContent() {
     setPasswordLoading(true)
 
     // Validation
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       setPasswordError('All fields are required')
       setPasswordLoading(false)
       return
@@ -389,7 +697,7 @@ function ProfilePageContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
@@ -411,9 +719,9 @@ function ProfilePageContent() {
       setPasswordData({
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
       })
-      
+
       // Close dialog after 2 seconds
       setTimeout(() => {
         setShowChangePasswordDialog(false)
@@ -458,7 +766,9 @@ function ProfilePageContent() {
   }
 
   if (!user) {
-    router.push('/auth/signin')
+    // Preserve the current URL as callback URL
+    const currentUrl = window.location.pathname + (window.location.search || '')
+    router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`)
     return null
   }
 
@@ -481,15 +791,13 @@ function ProfilePageContent() {
       }
 
       // Prepare languages array
-      const languagesArray = Array.isArray(profileData.languages) 
-        ? profileData.languages 
-        : []
+      const languagesArray = Array.isArray(profileData.languages) ? profileData.languages : []
 
       const response = await fetch(getApiUrl(`/users/${user.id}`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: profileData.name || undefined,
@@ -497,6 +805,7 @@ function ProfilePageContent() {
           country: profileData.country || undefined,
           gender: profileData.gender || undefined,
           languages: languagesArray.length > 0 ? languagesArray : undefined,
+          image: profileData.profileImage || undefined,
         }),
       })
 
@@ -511,7 +820,7 @@ function ProfilePageContent() {
       // Success - refresh user data
       setSaveSuccess(true)
       setIsEditing(false)
-      
+
       // Refresh user from auth context
       await refreshUser()
 
@@ -533,19 +842,19 @@ function ProfilePageContent() {
     setSaveSuccess(false)
     // Reset form data to user's current data
     if (user) {
-      const languagesArray = Array.isArray(user.languages) 
-        ? user.languages 
-        : (typeof user.languages === 'string' 
-            ? (() => {
-                try {
-                  const parsed = JSON.parse(user.languages)
-                  return Array.isArray(parsed) ? parsed : []
-                } catch {
-                  return []
-                }
-              })()
-            : [])
-      
+      const languagesArray = Array.isArray(user.languages)
+        ? user.languages
+        : typeof user.languages === 'string'
+          ? (() => {
+              try {
+                const parsed = JSON.parse(user.languages)
+                return Array.isArray(parsed) ? parsed : []
+              } catch {
+                return []
+              }
+            })()
+          : []
+
       let memberSince = ''
       if (user.createdAt) {
         const date = new Date(user.createdAt)
@@ -559,20 +868,124 @@ function ProfilePageContent() {
         country: user.country || '',
         gender: user.gender || '',
         languages: languagesArray,
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+        profileImage:
+          user.image && user.image.trim() !== '' ? user.image : '',
         bio: '',
-        memberSince: memberSince
+        memberSince: memberSince,
       })
+    }
+  }
+
+  const handleImageClick = () => {
+    if (isEditing && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setSaveError('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      setSaveError('Image size must be less than 10MB.')
+      return
+    }
+
+    setIsUploadingImage(true)
+    setSaveError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setSaveError('Authentication required. Please sign in again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('type', 'profile') // Indicate this is a profile image
+
+      // Upload image
+      const uploadResponse = await fetch(getApiUrl('/upload/image'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      const uploadResult = await uploadResponse.json()
+
+      if (!uploadResponse.ok) {
+        setSaveError(uploadResult.error || 'Failed to upload image. Please try again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Update profile data with new image URL
+      if (uploadResult.data?.url) {
+        setProfileData((prev) => ({
+          ...prev,
+          profileImage: uploadResult.data.url,
+        }))
+
+        // Automatically save the profile with the new image
+        if (user?.id) {
+          const saveResponse = await fetch(getApiUrl(`/users/${user.id}`), {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              image: uploadResult.data.url,
+            }),
+          })
+
+          if (saveResponse.ok) {
+            setSaveSuccess(true)
+            await refreshUser()
+            setTimeout(() => {
+              setSaveSuccess(false)
+            }, 2000)
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      setSaveError('An unexpected error occurred while uploading the image. Please try again.')
+    } finally {
+      setIsUploadingImage(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'confirmed': return 'bg-blue-100 text-blue-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -580,9 +993,7 @@ function ProfilePageContent() {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-4 h-4 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
+        className={`w-4 h-4 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
       />
     ))
   }
@@ -595,7 +1006,9 @@ function ProfilePageContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
-              <p className="text-muted-foreground mt-1">Manage your account and view your dining history</p>
+              <p className="text-muted-foreground mt-1">
+                Manage your account and view your dining history
+              </p>
             </div>
             <Button variant="outline" onClick={() => router.push('/')}>
               Back to Home
@@ -611,20 +1024,48 @@ function ProfilePageContent() {
                 <div className="text-center">
                   <div className="relative inline-block mb-4">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={profileData.profileImage} alt={profileData.name} />
-                      <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage
+                        src={
+                          user?.image && user.image.trim() !== ''
+                            ? user.image
+                            : profileData.profileImage && profileData.profileImage.trim() !== ''
+                            ? profileData.profileImage
+                            : ''
+                        }
+                        alt={profileData.name || user?.name || 'Profile'}
+                      />
+                      <AvatarFallback>
+                        {profileData.name || user?.name
+                          ? (profileData.name || user?.name || '').charAt(0).toUpperCase()
+                          : 'U'}
+                      </AvatarFallback>
                     </Avatar>
-                    {isEditing && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
                       <Button
                         size="sm"
                         className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                        onClick={handleImageClick}
+                        disabled={isUploadingImage}
                       >
-                        <Camera className="w-4 h-4" />
+                        {isUploadingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Camera className="w-4 h-4" />
+                        )}
                       </Button>
-                    )}
+                    </>
                   </div>
                   <h2 className="text-xl font-semibold mb-1">{profileData.name || 'Loading...'}</h2>
-                  <p className="text-muted-foreground text-sm mb-4">{profileData.email || 'Loading...'}</p>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {profileData.email || 'Loading...'}
+                  </p>
                   <Badge variant="secondary" className="mb-4">
                     {user.role === 'host' ? (
                       <>
@@ -638,7 +1079,9 @@ function ProfilePageContent() {
                       </>
                     )}
                   </Badge>
-                  <p className="text-xs text-muted-foreground">Member since {profileData.memberSince}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Member since {profileData.memberSince}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -666,9 +1109,9 @@ function ProfilePageContent() {
                       <CardDescription>Your profile details and preferences</CardDescription>
                     </div>
                     <Button
-                      variant={isEditing ? "default" : "outline"}
+                      variant={isEditing ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                      onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
                     >
                       {isEditing ? (
                         <>
@@ -698,9 +1141,16 @@ function ProfilePageContent() {
                       <div>
                         <label className="block text-sm font-medium mb-2">Full Name</label>
                         {isEditing ? (
-                          <Input value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} />
+                          <Input
+                            value={profileData.name}
+                            onChange={(e) =>
+                              setProfileData({ ...profileData, name: e.target.value })
+                            }
+                          />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{profileData.name || 'Loading...'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {profileData.name || 'Loading...'}
+                          </p>
                         )}
                       </div>
                       <div>
@@ -713,22 +1163,40 @@ function ProfilePageContent() {
                       <div>
                         <label className="block text-sm font-medium mb-2">Phone</label>
                         {isEditing ? (
-                          <Input value={profileData.phone} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} />
+                          <Input
+                            value={profileData.phone}
+                            onChange={(e) =>
+                              setProfileData({ ...profileData, phone: e.target.value })
+                            }
+                          />
                         ) : (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            {profileData.phone ? profileData.phone : <span className="italic text-muted-foreground/70">Not added</span>}
+                            {profileData.phone ? (
+                              profileData.phone
+                            ) : (
+                              <span className="italic text-muted-foreground/70">Not added</span>
+                            )}
                           </p>
                         )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">Country</label>
                         {isEditing ? (
-                          <Input value={profileData.country} onChange={(e) => setProfileData({...profileData, country: e.target.value})} />
+                          <Input
+                            value={profileData.country}
+                            onChange={(e) =>
+                              setProfileData({ ...profileData, country: e.target.value })
+                            }
+                          />
                         ) : (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            {profileData.country ? profileData.country : <span className="italic text-muted-foreground/70">Not added</span>}
+                            {profileData.country ? (
+                              profileData.country
+                            ) : (
+                              <span className="italic text-muted-foreground/70">Not added</span>
+                            )}
                           </p>
                         )}
                       </div>
@@ -736,14 +1204,18 @@ function ProfilePageContent() {
                     <div>
                       <label className="block text-sm font-medium mb-2">Bio</label>
                       {isEditing ? (
-                        <Textarea 
-                          value={profileData.bio} 
-                          onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                        <Textarea
+                          value={profileData.bio}
+                          onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                           rows={3}
                         />
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          {profileData.bio ? profileData.bio : <span className="italic text-muted-foreground/70">Not added</span>}
+                          {profileData.bio ? (
+                            profileData.bio
+                          ) : (
+                            <span className="italic text-muted-foreground/70">Not added</span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -752,7 +1224,9 @@ function ProfilePageContent() {
                       <div className="flex flex-wrap gap-2">
                         {profileData.languages && profileData.languages.length > 0 ? (
                           profileData.languages.map((lang, index) => (
-                            <Badge key={index} variant="secondary">{lang}</Badge>
+                            <Badge key={index} variant="secondary">
+                              {lang}
+                            </Badge>
                           ))
                         ) : (
                           <span className="text-sm italic text-muted-foreground/70">Not added</span>
@@ -784,15 +1258,24 @@ function ProfilePageContent() {
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary-600">{bookings.filter(b => b.status === 'completed' || b.status === 'COMPLETED').length}</div>
+                      <div className="text-2xl font-bold text-primary-600">
+                        {
+                          bookings.filter(
+                            (b) => b.status === 'completed' || b.status === 'COMPLETED'
+                          ).length
+                        }
+                      </div>
                       <div className="text-sm text-muted-foreground">Completed Dinners</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-primary-600">
-                        {reviews.length > 0 
-                          ? (reviews.reduce((acc: number, review: any) => acc + review.rating, 0) / reviews.length).toFixed(1)
+                        {reviews.length > 0
+                          ? (
+                              reviews.reduce((acc: number, review: any) => acc + review.rating, 0) /
+                              reviews.length
+                            ).toFixed(1)
                           : '0.0'}
                       </div>
                       <div className="text-sm text-muted-foreground">Average Rating Given</div>
@@ -819,13 +1302,18 @@ function ProfilePageContent() {
                       </div>
                     ) : bookings.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">No bookings yet. Start exploring dinners!</p>
+                        <p className="text-muted-foreground">
+                          No bookings yet. Start exploring dinners!
+                        </p>
                       </div>
                     ) : (
                       bookings.map((booking) => {
                         if (!booking.dinner) return null
                         return (
-                          <div key={booking.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                          <div
+                            key={booking.id}
+                            className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                          >
                             <div className="flex gap-4">
                               <div className="relative flex-shrink-0 w-36 self-stretch min-h-[140px] bg-muted rounded-lg">
                                 {booking.dinner.image ? (
@@ -840,7 +1328,7 @@ function ProfilePageContent() {
                                     <p className="text-muted-foreground text-xs">No image</p>
                                   </div>
                                 )}
-                                <Badge 
+                                <Badge
                                   className={`absolute -top-2 -right-2 text-xs ${getStatusColor(booking.status)}`}
                                 >
                                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -849,7 +1337,9 @@ function ProfilePageContent() {
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
-                                    <h3 className="font-semibold text-lg">{booking.dinner.title}</h3>
+                                    <h3 className="font-semibold text-lg">
+                                      {booking.dinner.title}
+                                    </h3>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <User className="w-4 h-4" />
                                       {booking.dinner.host.name}
@@ -872,33 +1362,51 @@ function ProfilePageContent() {
                                     </div>
                                   </div>
                                 </div>
-                                
+
                                 {/* Review Section - Always present for consistency */}
                                 <div className="mt-4">
                                   {booking.review ? (
                                     <div className="p-3 bg-muted rounded-lg">
                                       <div className="flex items-center gap-2 mb-2">
-                                        <div className="flex">{renderStars(booking.review.rating)}</div>
+                                        <div className="flex">
+                                          {renderStars(booking.review.rating)}
+                                        </div>
                                         <span className="text-sm font-medium">Your Review</span>
                                       </div>
-                                      <p className="text-sm text-muted-foreground">{booking.review.comment}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {booking.review.comment}
+                                      </p>
                                     </div>
                                   ) : (
                                     <div className="flex items-center justify-between">
                                       <span className="text-sm text-muted-foreground">
-                                        {booking.status === 'completed' || booking.status === 'COMPLETED'
-                                          ? 'No review written yet' 
-                                          : booking.status === 'confirmed' || booking.status === 'CONFIRMED'
+                                        {booking.status === 'completed' ||
+                                        booking.status === 'COMPLETED'
+                                          ? 'No review written yet'
+                                          : booking.status === 'confirmed' ||
+                                              booking.status === 'CONFIRMED'
                                             ? 'Review available after completion'
-                                            : booking.status === 'cancelled' || booking.status === 'CANCELLED'
+                                            : booking.status === 'cancelled' ||
+                                                booking.status === 'CANCELLED'
                                               ? 'Booking was cancelled'
-                                              : booking.status === 'pending' || booking.status === 'PENDING'
+                                              : booking.status === 'pending' ||
+                                                  booking.status === 'PENDING'
                                                 ? 'Waiting for host approval'
-                                                : 'Pending review'
-                                        }
+                                                : 'Pending review'}
                                       </span>
-                                      {(booking.status === 'completed' || booking.status === 'COMPLETED') && (
-                                        <Button size="sm" variant="outline">
+                                      {(booking.status === 'completed' ||
+                                        booking.status === 'COMPLETED') && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setSelectedBooking(booking)
+                                            setReviewRating(0)
+                                            setReviewComment('')
+                                            setReviewError(null)
+                                            setShowReviewDialog(true)
+                                          }}
+                                        >
                                           Write Review
                                         </Button>
                                       )}
@@ -933,7 +1441,9 @@ function ProfilePageContent() {
                       </div>
                     ) : reviews.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">You haven't written any reviews yet.</p>
+                        <p className="text-muted-foreground">
+                          You haven't written any reviews yet.
+                        </p>
                       </div>
                     ) : (
                       reviews.map((review: any) => {
@@ -942,33 +1452,39 @@ function ProfilePageContent() {
                         return (
                           <div key={review.id} className="border rounded-lg p-4">
                             <div className="flex items-start gap-4">
-                              {dinner?.host?.image ? (
-                                <Avatar className="w-12 h-12">
-                                  <AvatarImage src={dinner.host.image} alt={dinner.host?.name || 'Host'} />
-                                  <AvatarFallback>{(dinner.host?.name || 'H').charAt(0)}</AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <Avatar className="w-12 h-12">
-                                  <AvatarFallback>{(dinner?.host?.name || 'H').charAt(0)}</AvatarFallback>
-                                </Avatar>
-                              )}
+                              <div className="relative flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden">
+                                {dinner?.thumbnail ? (
+                                  <Image
+                                    src={dinner.thumbnail}
+                                    alt={dinner?.title || 'Dinner'}
+                                    fill
+                                    className="rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <ChefHat className="w-8 h-8 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="font-semibold">{dinner?.title || 'Unknown Dinner'}</h3>
+                                  <h3 className="font-semibold">
+                                    {dinner?.title || 'Unknown Dinner'}
+                                  </h3>
                                   <div className="flex">{renderStars(review.rating)}</div>
                                 </div>
                                 {dinner?.host?.name && (
-                                  <p className="text-sm text-muted-foreground mb-2">Host: {dinner.host.name}</p>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Host: {dinner.host.name}
+                                  </p>
                                 )}
-                                {review.comment && (
-                                  <p className="text-sm mb-2">{review.comment}</p>
-                                )}
+                                {review.comment && <p className="text-sm mb-2">{review.comment}</p>}
                                 {reviewDate && (
                                   <p className="text-xs text-muted-foreground">
-                                    {reviewDate.toLocaleDateString('en-US', { 
-                                      year: 'numeric', 
-                                      month: 'long', 
-                                      day: 'numeric' 
+                                    {reviewDate.toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric',
                                     })}
                                   </p>
                                 )}
@@ -999,8 +1515,8 @@ function ProfilePageContent() {
                         Security
                       </h3>
                       <div className="space-y-3">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="w-full justify-start"
                           onClick={() => setShowChangePasswordDialog(true)}
                         >
@@ -1011,38 +1527,16 @@ function ProfilePageContent() {
                             <p className="font-medium">Email Verification</p>
                             <p className="text-sm text-muted-foreground">Your email is verified</p>
                           </div>
-                          <Badge variant="secondary">Verified</Badge>
+                          <Badge variant="secondary" className="bg-green-500 text-white border-transparent hover:bg-green-600">Verified</Badge>
                         </div>
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                        {/* Phone Verification - Commented out for now */}
+                        {/* <div className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
                             <p className="font-medium">Phone Verification</p>
                             <p className="text-sm text-muted-foreground">Your phone is verified</p>
                           </div>
                           <Badge variant="secondary">Verified</Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <Bell className="w-4 h-4" />
-                        Notifications
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Email Notifications</p>
-                            <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                          </div>
-                          <Button variant="outline" size="sm">Enabled</Button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">SMS Notifications</p>
-                            <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
-                          </div>
-                          <Button variant="outline" size="sm">Disabled</Button>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
 
@@ -1076,7 +1570,8 @@ function ProfilePageContent() {
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
-              Enter your current password and choose a new password. Make sure it's at least 8 characters long.
+              Enter your current password and choose a new password. Make sure it's at least 8
+              characters long.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleChangePassword} className="space-y-4">
@@ -1087,7 +1582,9 @@ function ProfilePageContent() {
                   id="currentPassword"
                   type={showPasswords.current ? 'text' : 'password'}
                   value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
+                  }
                   placeholder="Enter current password"
                   required
                   disabled={passwordLoading}
@@ -1097,7 +1594,7 @@ function ProfilePageContent() {
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                  onClick={() => setShowPasswords((prev) => ({ ...prev, current: !prev.current }))}
                 >
                   {showPasswords.current ? (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1115,7 +1612,9 @@ function ProfilePageContent() {
                   id="newPassword"
                   type={showPasswords.new ? 'text' : 'password'}
                   value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
+                  }
                   placeholder="Enter new password (min 8 characters)"
                   required
                   disabled={passwordLoading}
@@ -1125,7 +1624,7 @@ function ProfilePageContent() {
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                  onClick={() => setShowPasswords((prev) => ({ ...prev, new: !prev.new }))}
                 >
                   {showPasswords.new ? (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1143,7 +1642,9 @@ function ProfilePageContent() {
                   id="confirmPassword"
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                  }
                   placeholder="Confirm new password"
                   required
                   disabled={passwordLoading}
@@ -1153,7 +1654,7 @@ function ProfilePageContent() {
                   variant="ghost"
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                  onClick={() => setShowPasswords((prev) => ({ ...prev, confirm: !prev.confirm }))}
                 >
                   {showPasswords.confirm ? (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1192,7 +1693,12 @@ function ProfilePageContent() {
               </Button>
               <Button
                 type="submit"
-                disabled={passwordLoading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                disabled={
+                  passwordLoading ||
+                  !passwordData.currentPassword ||
+                  !passwordData.newPassword ||
+                  !passwordData.confirmPassword
+                }
               >
                 {passwordLoading ? (
                   <>
@@ -1207,22 +1713,112 @@ function ProfilePageContent() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+            <DialogDescription>
+              {selectedBooking?.dinner?.title
+                ? `Share your experience about ${selectedBooking.dinner.title}`
+                : 'Share your experience'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitReview}>
+            <div className="space-y-4 py-4">
+              {/* Rating Selection */}
+              <div>
+                <Label className="mb-2 block">Rating *</Label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => setReviewRating(rating)}
+                      className="focus:outline-none transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          rating <= reviewRating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comment */}
+              <div>
+                <Label htmlFor="review-comment" className="mb-2 block">
+                  Comment (Optional)
+                </Label>
+                <Textarea
+                  id="review-comment"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Tell others about your experience..."
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Error Message */}
+              {reviewError && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+                  <p className="text-sm text-destructive">{reviewError}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowReviewDialog(false)
+                  setSelectedBooking(null)
+                  setReviewRating(0)
+                  setReviewComment('')
+                  setReviewError(null)
+                }}
+                disabled={reviewSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={reviewSubmitting || reviewRating === 0}>
+                {reviewSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Review'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   )
 }
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={
-      <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
+    <Suspense
+      fallback={
+        <MainLayout>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
           </div>
-        </div>
-      </MainLayout>
-    }>
+        </MainLayout>
+      }
+    >
       <ProfilePageContent />
     </Suspense>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { MainLayout } from '@/components/layout/main-layout'
@@ -21,11 +21,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  Star, 
+import {
+  Calendar,
+  Users,
+  DollarSign,
+  Star,
   Plus,
   Edit,
   Eye,
@@ -48,9 +48,11 @@ import {
   EyeOff,
   Loader2,
   Save,
-  X
+  X,
+  Camera,
 } from 'lucide-react'
 import Image from 'next/image'
+import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
 import { getDinnerStatus } from '@/lib/dinner-filters'
 import { transformDinner } from '@/lib/dinner-utils'
@@ -71,7 +73,8 @@ const mockDinners = [
     revenue: 510,
     rating: 4.9,
     reviews: 12,
-    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center'
+    image:
+      'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
   },
   {
     id: '2',
@@ -86,7 +89,8 @@ const mockDinners = [
     revenue: 480,
     rating: 5.0,
     reviews: 8,
-    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center'
+    image:
+      'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
   },
   {
     id: '3',
@@ -101,8 +105,9 @@ const mockDinners = [
     revenue: 760,
     rating: 4.8,
     reviews: 15,
-    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center'
-  }
+    image:
+      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
+  },
 ]
 
 const mockBookings = [
@@ -111,31 +116,33 @@ const mockBookings = [
     dinner: 'Authentic Italian Pasta Making',
     guest: {
       name: 'Sarah Johnson',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face',
-      email: 'sarah@email.com'
+      avatar:
+        'https://images.unsplash.com/photo-1494790108755-2616b612e845?w=100&h=100&fit=crop&crop=face',
+      email: 'sarah@email.com',
     },
     date: '2024-02-15',
     time: '19:00',
     guests: 2,
     totalAmount: 170,
     status: 'confirmed',
-    specialRequests: 'Vegetarian options please'
+    specialRequests: 'Vegetarian options please',
   },
   {
     id: '2',
     dinner: 'Japanese Sushi Workshop',
     guest: {
       name: 'Mike Chen',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-      email: 'mike@email.com'
+      avatar:
+        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+      email: 'mike@email.com',
     },
     date: '2024-02-20',
     time: '18:30',
     guests: 1,
     totalAmount: 120,
     status: 'pending',
-    specialRequests: 'No raw fish, please'
-  }
+    specialRequests: 'No raw fish, please',
+  },
 ]
 
 function HostDashboardContent() {
@@ -154,24 +161,24 @@ function HostDashboardContent() {
     totalDinners: 0,
     totalBookings: 0,
     averageRating: 0,
-    loading: true
+    loading: true,
   })
   const [reviews, setReviews] = useState<any[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(true)
   const [reviewsStats, setReviewsStats] = useState({
     averageRating: 0,
-    totalReviews: 0
+    totalReviews: 0,
   })
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false)
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   })
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   })
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
@@ -180,6 +187,8 @@ function HostDashboardContent() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null)
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null)
   const [guestProfile, setGuestProfile] = useState<any>(null)
   const [guestProfileLoading, setGuestProfileLoading] = useState(false)
@@ -193,8 +202,14 @@ function HostDashboardContent() {
     open: false,
     type: null,
     bookingId: null,
-    guestName: ''
+    guestName: '',
   })
+  const [showReviewDialog, setShowReviewDialog] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<any>(null)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -204,7 +219,7 @@ function HostDashboardContent() {
     gender: '',
     country: '',
     languages: '',
-    joinedDate: null as Date | null
+    joinedDate: null as Date | null,
   })
 
   useEffect(() => {
@@ -234,7 +249,7 @@ function HostDashboardContent() {
         }
       }
 
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         name: user.name || '',
         email: user.email || '',
@@ -242,7 +257,7 @@ function HostDashboardContent() {
         country: user.country || '',
         languages: languagesString,
         joinedDate: joinedDate,
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+        profileImage: user.image || '', // No placeholder - show initial fallback instead
       }))
     }
   }, [user])
@@ -251,23 +266,23 @@ function HostDashboardContent() {
   useEffect(() => {
     const fetchHostStats = async () => {
       if (!user?.id) {
-        setHostStats(prev => ({ ...prev, loading: false }))
+        setHostStats((prev) => ({ ...prev, loading: false }))
         return
       }
 
       try {
-        setHostStats(prev => ({ ...prev, loading: true }))
+        setHostStats((prev) => ({ ...prev, loading: true }))
         const token = localStorage.getItem('auth_token')
-        
+
         if (!token) {
-          setHostStats(prev => ({ ...prev, loading: false }))
+          setHostStats((prev) => ({ ...prev, loading: false }))
           return
         }
 
         const response = await fetch(getApiUrl(`/host/${user.id}/stats`), {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         })
 
         if (response.ok) {
@@ -277,17 +292,17 @@ function HostDashboardContent() {
               totalDinners: result.data.totalDinners || 0,
               totalBookings: result.data.totalBookings || 0,
               averageRating: result.data.averageRating || 0,
-              loading: false
+              loading: false,
             })
           } else {
-            setHostStats(prev => ({ ...prev, loading: false }))
+            setHostStats((prev) => ({ ...prev, loading: false }))
           }
         } else {
-          setHostStats(prev => ({ ...prev, loading: false }))
+          setHostStats((prev) => ({ ...prev, loading: false }))
         }
       } catch (error) {
         console.error('Error fetching host stats:', error)
-        setHostStats(prev => ({ ...prev, loading: false }))
+        setHostStats((prev) => ({ ...prev, loading: false }))
       }
     }
 
@@ -312,8 +327,8 @@ function HostDashboardContent() {
 
         const response = await fetch(getApiUrl(`/host/${user.id}/reviews`), {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         })
 
         if (response.ok) {
@@ -323,7 +338,7 @@ function HostDashboardContent() {
             if (result.stats) {
               setReviewsStats({
                 averageRating: result.stats.averageRating || 0,
-                totalReviews: result.stats.totalReviews || 0
+                totalReviews: result.stats.totalReviews || 0,
               })
             }
           } else {
@@ -366,15 +381,19 @@ function HostDashboardContent() {
       }
 
       // Prepare languages array
-      const languagesArray = typeof profileData.languages === 'string' && profileData.languages.trim()
-        ? profileData.languages.split(',').map(l => l.trim()).filter(l => l.length > 0)
-        : []
+      const languagesArray =
+        typeof profileData.languages === 'string' && profileData.languages.trim()
+          ? profileData.languages
+              .split(',')
+              .map((l) => l.trim())
+              .filter((l) => l.length > 0)
+          : []
 
       const response = await fetch(getApiUrl(`/users/${user.id}`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: profileData.name || undefined,
@@ -382,6 +401,7 @@ function HostDashboardContent() {
           country: profileData.country || undefined,
           gender: profileData.gender || undefined,
           languages: languagesArray.length > 0 ? languagesArray : undefined,
+          image: profileData.profileImage || undefined,
         }),
       })
 
@@ -396,13 +416,13 @@ function HostDashboardContent() {
       // Success - refresh user data
       setProfileSaveSuccess(true)
       setIsEditingProfile(false)
-      
+
       // Refresh user from auth context - refreshUser is already available from useAuth hook
       // We need to reload the user data
       const currentUser = await fetch(getApiUrl('/auth/current-user'), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).then(res => res.json())
-      
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => res.json())
+
       if (currentUser.success && currentUser.data) {
         // Update profileData with new user data
         let languagesString = ''
@@ -412,7 +432,9 @@ function HostDashboardContent() {
           } else if (typeof currentUser.data.languages === 'string') {
             try {
               const parsed = JSON.parse(currentUser.data.languages)
-              languagesString = Array.isArray(parsed) ? parsed.join(', ') : currentUser.data.languages
+              languagesString = Array.isArray(parsed)
+                ? parsed.join(', ')
+                : currentUser.data.languages
             } catch {
               languagesString = currentUser.data.languages
             }
@@ -427,7 +449,7 @@ function HostDashboardContent() {
           }
         }
 
-        setProfileData(prev => ({
+        setProfileData((prev) => ({
           ...prev,
           name: currentUser.data.name || '',
           email: currentUser.data.email || '',
@@ -435,7 +457,7 @@ function HostDashboardContent() {
           country: currentUser.data.country || '',
           languages: languagesString,
           joinedDate: joinedDate,
-          profileImage: currentUser.data.image || prev.profileImage
+          profileImage: currentUser.data.image || prev.profileImage,
         }))
       }
 
@@ -479,7 +501,7 @@ function HostDashboardContent() {
         }
       }
 
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         name: user.name || '',
         email: user.email || '',
@@ -487,8 +509,106 @@ function HostDashboardContent() {
         country: user.country || '',
         languages: languagesString,
         joinedDate: joinedDate,
-        profileImage: user.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face'
+        profileImage: user.image || '', // No placeholder - show initial fallback instead
       }))
+    }
+  }
+
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setProfileSaveError('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      setProfileSaveError('Image size must be less than 10MB.')
+      return
+    }
+
+    setIsUploadingImage(true)
+    setProfileSaveError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setProfileSaveError('Authentication required. Please sign in again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData()
+      formData.append('image', file)
+
+      // Upload image
+      const uploadResponse = await fetch(getApiUrl('/upload/image'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      const uploadResult = await uploadResponse.json()
+
+      if (!uploadResponse.ok) {
+        setProfileSaveError(uploadResult.error || 'Failed to upload image. Please try again.')
+        setIsUploadingImage(false)
+        return
+      }
+
+      // Update profile data with new image URL
+      if (uploadResult.data?.url) {
+        setProfileData((prev) => ({
+          ...prev,
+          profileImage: uploadResult.data.url,
+        }))
+
+        // Automatically save the profile with the new image
+        if (user?.id) {
+          const saveResponse = await fetch(getApiUrl(`/users/${user.id}`), {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              image: uploadResult.data.url,
+            }),
+          })
+
+          if (saveResponse.ok) {
+            setProfileSaveSuccess(true)
+            setTimeout(() => {
+              setProfileSaveSuccess(false)
+            }, 2000)
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      setProfileSaveError(
+        'An unexpected error occurred while uploading the image. Please try again.'
+      )
+    } finally {
+      setIsUploadingImage(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -503,7 +623,7 @@ function HostDashboardContent() {
       try {
         setDinnersLoading(true)
         const token = localStorage.getItem('auth_token')
-        
+
         if (!token) {
           setDinnersLoading(false)
           return
@@ -511,8 +631,8 @@ function HostDashboardContent() {
 
         const response = await fetch(getApiUrl(`/host/${user.id}/dinners`), {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         })
 
         if (response.ok) {
@@ -529,26 +649,27 @@ function HostDashboardContent() {
               const images = Array.isArray(dinner.images) ? dinner.images : []
 
               // Filter out invalid blob URLs (they don't work after page reload)
-              const validImages = images.filter((img: string) => 
-                img && 
-                typeof img === 'string' && 
-                (img.startsWith('http://') || img.startsWith('https://'))
+              const validImages = images.filter(
+                (img: string) =>
+                  img &&
+                  typeof img === 'string' &&
+                  (img.startsWith('http://') || img.startsWith('https://'))
               )
 
               return {
                 id: dinner.id,
                 title: dinner.title,
-                date: dinnerTransformed.date, // Use formatted date from transformDinner
+                date: dinner.date, // Use original ISO string from backend for timezone conversion
                 time: dinner.time,
                 guests: dinner.capacity - dinner.available,
                 maxCapacity: dinner.capacity,
                 price: dinner.price,
                 status: status,
                 bookings: dinner.capacity - dinner.available,
-                revenue: (dinner.capacity - dinner.available) * dinner.price,
+                revenue: dinner.revenue || 0, // Use revenue from backend (calculated from completed bookings)
                 rating: dinner.rating || 0,
                 reviews: dinner.reviewCount || 0,
-                image: dinner.thumbnail || validImages[0] || null
+                image: dinner.thumbnail || validImages[0] || null,
               }
             })
             setDinners(transformedDinners)
@@ -588,19 +709,27 @@ function HostDashboardContent() {
           const transformedBookings = result.data.map((booking: any) => {
             return {
               id: booking.id,
+              dinnerId: booking.dinnerId,
               dinner: booking.dinner?.title || 'Unknown Dinner',
               guest: {
-                id: booking.user?.id || '',
+                id: booking.user?.id || booking.userId || '',
                 name: booking.user?.name || 'Unknown Guest',
-                avatar: booking.user?.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-                email: booking.user?.email || ''
+                avatar:
+                  booking.user?.image ||
+                  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                email: booking.user?.email || '',
               },
-              date: booking.dinner?.date ? (typeof booking.dinner.date === 'string' ? booking.dinner.date.split('T')[0] : new Date(booking.dinner.date).toISOString().split('T')[0]) : '',
+              date: booking.dinner?.date
+                ? typeof booking.dinner.date === 'string'
+                  ? booking.dinner.date.split('T')[0]
+                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                : '',
               time: booking.dinner?.time || '',
               guests: booking.guests,
               totalAmount: booking.totalPrice,
               status: booking.status?.toLowerCase() || 'confirmed',
-              specialRequests: booking.message || ''
+              specialRequests: booking.message || '',
+              review: booking.review || null, // Host's review of the guest (if exists)
             }
           })
           setBookings(transformedBookings)
@@ -621,7 +750,7 @@ function HostDashboardContent() {
   // Handle viewing guest profile
   const handleViewGuestProfile = async (guestId: string) => {
     if (!guestId) return
-    
+
     setSelectedGuestId(guestId)
     setShowGuestProfileDialog(true)
     setGuestProfileLoading(true)
@@ -636,8 +765,8 @@ function HostDashboardContent() {
 
       const response = await fetch(getApiUrl(`/users/${guestId}`), {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       if (response.ok) {
@@ -654,21 +783,28 @@ function HostDashboardContent() {
   }
 
   // Handle booking status update with confirmation
-  const handleConfirmBookingAction = (bookingId: string, type: 'accept' | 'decline', guestName: string) => {
+  const handleConfirmBookingAction = (
+    bookingId: string,
+    type: 'accept' | 'decline',
+    guestName: string
+  ) => {
     setConfirmDialog({
       open: true,
       type,
       bookingId,
-      guestName
+      guestName,
     })
   }
 
   // Handle booking status update
-  const handleUpdateBookingStatus = async (bookingId: string, status: 'CONFIRMED' | 'CANCELLED') => {
+  const handleUpdateBookingStatus = async (
+    bookingId: string,
+    status: 'CONFIRMED' | 'CANCELLED'
+  ) => {
     try {
       setUpdatingBookingId(bookingId)
       const result = await bookingService.updateBookingStatus(bookingId, status)
-      
+
       if (result.success) {
         // Refresh bookings list
         const updatedResult = await bookingService.getHostBookings(user!.id)
@@ -676,19 +812,27 @@ function HostDashboardContent() {
           const transformedBookings = updatedResult.data.map((booking: any) => {
             return {
               id: booking.id,
+              dinnerId: booking.dinnerId,
               dinner: booking.dinner?.title || 'Unknown Dinner',
               guest: {
-                id: booking.user?.id || '',
+                id: booking.user?.id || booking.userId || '',
                 name: booking.user?.name || 'Unknown Guest',
-                avatar: booking.user?.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-                email: booking.user?.email || ''
+                avatar:
+                  booking.user?.image ||
+                  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                email: booking.user?.email || '',
               },
-              date: booking.dinner?.date ? (typeof booking.dinner.date === 'string' ? booking.dinner.date.split('T')[0] : new Date(booking.dinner.date).toISOString().split('T')[0]) : '',
+              date: booking.dinner?.date
+                ? typeof booking.dinner.date === 'string'
+                  ? booking.dinner.date.split('T')[0]
+                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                : '',
               time: booking.dinner?.time || '',
               guests: booking.guests,
               totalAmount: booking.totalPrice,
               status: booking.status?.toLowerCase() || 'confirmed',
-              specialRequests: booking.message || ''
+              specialRequests: booking.message || '',
+              review: booking.review || null, // Host's review of the guest (if exists)
             }
           })
           setBookings(transformedBookings)
@@ -704,6 +848,147 @@ function HostDashboardContent() {
     }
   }
 
+  // Handle review submission (host reviewing guest)
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedBooking || reviewRating === 0) {
+      setReviewError('Please select a rating')
+      return
+    }
+
+    setReviewSubmitting(true)
+    setReviewError(null)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        setReviewError('Authentication required. Please sign in again.')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const dinnerId = selectedBooking.dinnerId
+      const reviewedUserId = selectedBooking.guest.id
+
+      if (!dinnerId || !reviewedUserId) {
+        setReviewError('Booking information is missing')
+        setReviewSubmitting(false)
+        return
+      }
+
+      const response = await fetch(getApiUrl('/reviews'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dinnerId,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+          reviewedUserId, // Guest being reviewed by host
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        if (result.code === 'ALREADY_REVIEWED' || result.error?.includes('already reviewed')) {
+          // Close the dialog and refresh bookings
+          setShowReviewDialog(false)
+          setSelectedBooking(null)
+          setReviewRating(0)
+          setReviewComment('')
+          setReviewError(null)
+
+          // Refresh bookings
+          if (user?.id) {
+            const bookingsResult = await bookingService.getHostBookings(user.id)
+            if (bookingsResult.success && bookingsResult.data) {
+              const transformedBookings = bookingsResult.data.map((booking: any) => {
+                return {
+                  id: booking.id,
+                  dinnerId: booking.dinnerId,
+                  dinner: booking.dinner?.title || 'Unknown Dinner',
+                  guest: {
+                    id: booking.user?.id || booking.userId || '',
+                    name: booking.user?.name || 'Unknown Guest',
+                    avatar:
+                      booking.user?.image ||
+                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                    email: booking.user?.email || '',
+                  },
+                  date: booking.dinner?.date
+                    ? typeof booking.dinner.date === 'string'
+                      ? booking.dinner.date.split('T')[0]
+                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                    : '',
+                  time: booking.dinner?.time || '',
+                  guests: booking.guests,
+                  totalAmount: booking.totalPrice,
+                  status: booking.status?.toLowerCase() || 'confirmed',
+                  specialRequests: booking.message || '',
+                  review: booking.review || null,
+                }
+              })
+              setBookings(transformedBookings)
+            }
+          }
+        } else {
+          setReviewError(result.error || result.message || 'Failed to submit review')
+        }
+        setReviewSubmitting(false)
+        return
+      }
+
+      // Success - refresh bookings
+      setShowReviewDialog(false)
+      setSelectedBooking(null)
+      setReviewRating(0)
+      setReviewComment('')
+      setReviewError(null)
+
+      // Refresh bookings to show the new review
+      if (user?.id) {
+        const bookingsResult = await bookingService.getHostBookings(user.id)
+        if (bookingsResult.success && bookingsResult.data) {
+          const transformedBookings = bookingsResult.data.map((booking: any) => {
+            return {
+              id: booking.id,
+              dinnerId: booking.dinnerId,
+              dinner: booking.dinner?.title || 'Unknown Dinner',
+              guest: {
+                id: booking.user?.id || booking.userId || '',
+                name: booking.user?.name || 'Unknown Guest',
+                avatar:
+                  booking.user?.image ||
+                  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+                email: booking.user?.email || '',
+              },
+              date: booking.dinner?.date
+                ? typeof booking.dinner.date === 'string'
+                  ? booking.dinner.date.split('T')[0]
+                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                : '',
+              time: booking.dinner?.time || '',
+              guests: booking.guests,
+              totalAmount: booking.totalPrice,
+              status: booking.status?.toLowerCase() || 'confirmed',
+              specialRequests: booking.message || '',
+              review: booking.review || null,
+            }
+          })
+          setBookings(transformedBookings)
+        }
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error)
+      setReviewError(error.message || 'Failed to submit review. Please try again.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab)
@@ -714,45 +999,58 @@ function HostDashboardContent() {
   // Helper function for dinner status colors
   const getDinnerStatusColor = (status: string) => {
     switch (status) {
-      case 'upcoming': return 'bg-blue-100 text-blue-800'
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'draft': return 'bg-gray-100 text-gray-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'upcoming':
+        return 'bg-blue-100 text-blue-800'
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'draft':
+        return 'bg-gray-100 text-gray-800'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   // Helper function for booking status colors
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'confirmed': return 'bg-blue-100 text-blue-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   // Filter dinners based on selected filter
-  const filteredDinners = dinners.filter(dinner => {
+  const filteredDinners = dinners.filter((dinner) => {
     if (dinnerFilter === 'all') return true
     return dinner.status === dinnerFilter
   })
-
 
   // Calculate stats from real data
   const calculateStats = () => {
     const totalRevenue = dinners.reduce((sum, d) => sum + (d.revenue || 0), 0)
     const totalGuests = dinners.reduce((sum, d) => sum + (d.guests || 0), 0)
-    const dinnersWithRatings = dinners.filter(d => d.rating > 0)
-    const averageRating = dinnersWithRatings.length > 0
-      ? (dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length).toFixed(1)
-      : '0.0'
+    const dinnersWithRatings = dinners.filter((d) => d.rating > 0)
+    const averageRating =
+      dinnersWithRatings.length > 0
+        ? (
+            dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length
+          ).toFixed(1)
+        : '0.0'
     const totalReviews = dinners.reduce((sum, d) => sum + (d.reviews || 0), 0)
-    const upcomingDinners = dinners.filter(d => d.status === 'upcoming')
-    const nextUpcoming = upcomingDinners.length > 0
-      ? upcomingDinners.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
-      : null
+    const upcomingDinners = dinners.filter((d) => d.status === 'upcoming')
+    const nextUpcoming =
+      upcomingDinners.length > 0
+        ? upcomingDinners.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+        : null
 
     return {
       totalRevenue,
@@ -760,7 +1058,7 @@ function HostDashboardContent() {
       averageRating,
       totalReviews,
       upcomingCount: upcomingDinners.length,
-      nextUpcoming
+      nextUpcoming,
     }
   }
 
@@ -773,7 +1071,11 @@ function HostDashboardContent() {
     setPasswordLoading(true)
 
     // Validation
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       setPasswordError('All fields are required')
       setPasswordLoading(false)
       return
@@ -809,7 +1111,7 @@ function HostDashboardContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
@@ -831,9 +1133,9 @@ function HostDashboardContent() {
       setPasswordData({
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
       })
-      
+
       // Close dialog after 2 seconds
       setTimeout(() => {
         setShowChangePasswordDialog(false)
@@ -885,7 +1187,9 @@ function HostDashboardContent() {
               <Star className="w-8 h-8 text-primary-600" />
             </div>
             {stats.totalReviews > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">Based on {stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Based on {stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -901,7 +1205,11 @@ function HostDashboardContent() {
             </div>
             {stats.nextUpcoming && (
               <p className="text-xs text-blue-600 mt-2">
-                Next: {new Date(stats.nextUpcoming.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                Next:{' '}
+                {new Date(stats.nextUpcoming.date).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })}
               </p>
             )}
           </CardContent>
@@ -934,7 +1242,6 @@ function HostDashboardContent() {
           <h2 className="text-2xl font-bold">My Dinners</h2>
           <p className="text-muted-foreground">Manage your dining experiences</p>
         </div>
-      
       </div>
 
       {/* Filter Tabs */}
@@ -951,21 +1258,21 @@ function HostDashboardContent() {
           size="sm"
           onClick={() => setDinnerFilter('upcoming')}
         >
-          Upcoming ({dinners.filter(d => d.status === 'upcoming').length})
+          Upcoming ({dinners.filter((d) => d.status === 'upcoming').length})
         </Button>
         <Button
           variant={dinnerFilter === 'completed' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setDinnerFilter('completed')}
         >
-          Completed ({dinners.filter(d => d.status === 'completed').length})
+          Completed ({dinners.filter((d) => d.status === 'completed').length})
         </Button>
         <Button
           variant={dinnerFilter === 'draft' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setDinnerFilter('draft')}
         >
-          Draft ({dinners.filter(d => d.status === 'draft').length})
+          Draft ({dinners.filter((d) => d.status === 'draft').length})
         </Button>
       </div>
 
@@ -988,7 +1295,9 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">${dinners.reduce((sum, d) => sum + d.revenue, 0)}</p>
+                <p className="text-2xl font-bold">
+                  ${dinners.reduce((sum, d) => sum + d.revenue, 0)}
+                </p>
               </div>
               <DollarSign className="w-8 h-8 text-primary-600" />
             </div>
@@ -1000,7 +1309,9 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Guests</p>
-                <p className="text-2xl font-bold">{dinners.reduce((sum, d) => sum + d.guests, 0)}</p>
+                <p className="text-2xl font-bold">
+                  {dinners.reduce((sum, d) => sum + d.guests, 0)}
+                </p>
               </div>
               <Users className="w-8 h-8 text-primary-600" />
             </div>
@@ -1013,10 +1324,12 @@ function HostDashboardContent() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
                 <p className="text-2xl font-bold">
-                  {dinners.filter(d => d.rating > 0).length > 0 
-                    ? (dinners.reduce((sum, d) => sum + d.rating, 0) / dinners.filter(d => d.rating > 0).length).toFixed(1)
-                    : '0.0'
-                  }
+                  {dinners.filter((d) => d.rating > 0).length > 0
+                    ? (
+                        dinners.reduce((sum, d) => sum + d.rating, 0) /
+                        dinners.filter((d) => d.rating > 0).length
+                      ).toFixed(1)
+                    : '0.0'}
                 </p>
               </div>
               <Star className="w-8 h-8 text-primary-600" />
@@ -1037,75 +1350,83 @@ function HostDashboardContent() {
       {!dinnersLoading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredDinners.map((dinner) => (
-          <Card key={dinner.id} className="overflow-hidden">
-            <div className="relative bg-muted">
-              {dinner.image ? (
-                <Image
-                  src={dinner.image}
-                  alt={dinner.title}
-                  width={400}
-                  height={200}
-                  className="w-full h-48 object-cover"
-                />
-              ) : (
-                <div className="w-full h-48 flex items-center justify-center">
-                  <p className="text-muted-foreground text-sm">No image</p>
-                </div>
-              )}
-              <Badge className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}>
-                {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
-              </Badge>
-            </div>
-            <CardContent className="p-6">
-              <h3 className="font-semibold text-lg mb-2">{dinner.title}</h3>
-              <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {dinner.date} at {dinner.time}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  {dinner.guests}/{dinner.maxCapacity} guests
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  ${dinner.price} per person
-                </div>
+            <Card key={dinner.id} className="overflow-hidden">
+              <div className="relative bg-muted">
+                {dinner.image ? (
+                  <Image
+                    src={dinner.image}
+                    alt={dinner.title}
+                    width={400}
+                    height={200}
+                    className="w-full h-48 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm">No image</p>
+                  </div>
+                )}
+                <Badge className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}>
+                  {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
+                </Badge>
               </div>
-              
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                  <span className="font-medium">
-                    {dinner.rating > 0 ? dinner.rating.toFixed(1) : 'No ratings'}
-                  </span>
-                  <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-lg mb-2">{dinner.title}</h3>
+                <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    {(() => {
+                      // Parse UTC date from database and convert to user's browser timezone
+                      // .local() automatically detects and uses the browser's timezone
+                      const momentDate = moment.utc(dinner.date).local()
+                      const dateStr = momentDate.format('MMM D, YYYY')
+                      const timeStr = momentDate.format('HH:mm')
+                      return `${dateStr} at ${timeStr}`
+                    })()}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    {dinner.guests}/{dinner.maxCapacity} guests
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />${dinner.price} per person
+                  </div>
                 </div>
-                <span className="font-semibold text-primary-600">${dinner.revenue}</span>
-              </div>
 
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => router.push(`/dinners/${dinner.id}`)}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="font-medium">
+                      {dinner.rating > 0 ? dinner.rating.toFixed(1) : 'No ratings'}
+                    </span>
+                    <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
+                  </div>
+                  <span className="font-semibold text-primary-600">${dinner.revenue}</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => router.push(`/dinners/${dinner.id}`)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View
+                  </Button>
+                  {dinner.status !== 'completed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -1116,10 +1437,9 @@ function HostDashboardContent() {
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No dinners found</h3>
             <p className="text-muted-foreground mb-6">
-              {dinnerFilter === 'all' 
+              {dinnerFilter === 'all'
                 ? "You haven't created any dinners yet. Create your first dining experience!"
-                : `No dinners with status "${dinnerFilter}" found.`
-              }
+                : `No dinners with status "${dinnerFilter}" found.`}
             </p>
             {dinnerFilter === 'all' && (
               <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
@@ -1147,92 +1467,136 @@ function HostDashboardContent() {
         </div>
       ) : bookings.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No bookings yet. Your bookings will appear here when guests make reservations.</p>
+          <p className="text-muted-foreground">
+            No bookings yet. Your bookings will appear here when guests make reservations.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           {bookings.map((booking) => (
-          <Card key={booking.id}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => booking.guest.id && handleViewGuestProfile(booking.guest.id)}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={booking.guest.avatar} alt={booking.guest.name} />
-                    <AvatarFallback>{booking.guest.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                </button>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <button
-                        onClick={() => booking.guest.id && handleViewGuestProfile(booking.guest.id)}
-                        className="cursor-pointer hover:underline"
-                      >
-                        <h3 className="font-semibold">{booking.guest.name}</h3>
-                      </button>
-                      <p className="text-sm text-muted-foreground">{booking.guest.email}</p>
+            <Card key={booking.id}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => booking.guest.id && handleViewGuestProfile(booking.guest.id)}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={booking.guest.avatar} alt={booking.guest.name} />
+                      <AvatarFallback>{booking.guest.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <button
+                          onClick={() =>
+                            booking.guest.id && handleViewGuestProfile(booking.guest.id)
+                          }
+                          className="cursor-pointer hover:underline"
+                        >
+                          <h3 className="font-semibold">{booking.guest.name}</h3>
+                        </button>
+                        <p className="text-sm text-muted-foreground">{booking.guest.email}</p>
+                      </div>
+                      <Badge className={getStatusColor(booking.status)}>
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </Badge>
                     </div>
-                    <Badge className={getStatusColor(booking.status)}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                    </Badge>
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <ChefHat className="w-4 h-4" />
+                        {booking.dinner}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {booking.date} at {booking.time}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {booking.guests} guest{booking.guests > 1 ? 's' : ''}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />${booking.totalAmount}
+                      </div>
+                      {booking.specialRequests && (
+                        <div className="mt-2 p-2 bg-muted rounded text-xs">
+                          <strong>Special Requests:</strong> {booking.specialRequests}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <ChefHat className="w-4 h-4" />
-                      {booking.dinner}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {booking.date} at {booking.time}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      {booking.guests} guest{booking.guests > 1 ? 's' : ''}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" />
-                      ${booking.totalAmount}
-                    </div>
-                    {booking.specialRequests && (
-                      <div className="mt-2 p-2 bg-muted rounded text-xs">
-                        <strong>Special Requests:</strong> {booking.specialRequests}
+                  <div className="flex flex-col gap-2">
+                    {booking.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() =>
+                            handleConfirmBookingAction(booking.id, 'accept', booking.guest.name)
+                          }
+                          disabled={updatingBookingId === booking.id}
+                        >
+                          {updatingBookingId === booking.id ? 'Updating...' : 'Accept'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleConfirmBookingAction(booking.id, 'decline', booking.guest.name)
+                          }
+                          disabled={updatingBookingId === booking.id}
+                        >
+                          {updatingBookingId === booking.id ? 'Updating...' : 'Decline'}
+                        </Button>
+                      </>
+                    )}
+                    {booking.status === 'completed' && !booking.review && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedBooking(booking)
+                          setShowReviewDialog(true)
+                          setReviewRating(0)
+                          setReviewComment('')
+                          setReviewError(null)
+                        }}
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Write Review
+                      </Button>
+                    )}
+                    {booking.status === 'completed' && booking.review && (
+                      <div className="space-y-2 min-w-[200px]">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= (booking.review?.rating || 0)
+                                  ? 'text-yellow-400 fill-yellow-400'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {booking.review?.comment && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {booking.review.comment}
+                          </p>
+                        )}
                       </div>
                     )}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {booking.status === 'pending' && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleConfirmBookingAction(booking.id, 'accept', booking.guest.name)}
-                        disabled={updatingBookingId === booking.id}
-                      >
-                        {updatingBookingId === booking.id ? 'Updating...' : 'Accept'}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleConfirmBookingAction(booking.id, 'decline', booking.guest.name)}
-                        disabled={updatingBookingId === booking.id}
-                      >
-                        {updatingBookingId === booking.id ? 'Updating...' : 'Decline'}
-                      </Button>
-                    </>
-                  )}
-                  {/* Message feature - commented out for now */}
-                  {/* <Button size="sm" variant="outline">
+                    {/* Message feature - commented out for now */}
+                    {/* <Button size="sm" variant="outline">
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Message
                   </Button> */}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -1260,7 +1624,7 @@ function HostDashboardContent() {
               <Shield className="w-5 h-5" />
               <h3 className="text-lg font-semibold">Security</h3>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
@@ -1269,10 +1633,7 @@ function HostDashboardContent() {
                     <p className="font-medium">Change Password</p>
                   </div>
                 </div>
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowChangePasswordDialog(true)}
-                >
+                <Button variant="outline" onClick={() => setShowChangePasswordDialog(true)}>
                   Change Password
                 </Button>
               </div>
@@ -1287,7 +1648,8 @@ function HostDashboardContent() {
                 <Badge className="bg-green-100 text-green-800">Verified</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              {/* Phone Verification - Commented out for now */}
+              {/* <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-muted-foreground" />
                   <div>
@@ -1295,7 +1657,7 @@ function HostDashboardContent() {
                   </div>
                 </div>
                 <Badge className="bg-green-100 text-green-800">Verified</Badge>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -1305,7 +1667,7 @@ function HostDashboardContent() {
               <Bell className="w-5 h-5" />
               <h3 className="text-lg font-semibold">Notifications</h3>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
@@ -1318,7 +1680,8 @@ function HostDashboardContent() {
                 <Badge className="bg-green-100 text-green-800">Enabled</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              {/* SMS Notifications - Commented out for now */}
+              {/* <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5 text-muted-foreground" />
                   <div>
@@ -1327,7 +1690,7 @@ function HostDashboardContent() {
                   </div>
                 </div>
                 <Badge className="bg-gray-100 text-gray-800">Disabled</Badge>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -1337,7 +1700,7 @@ function HostDashboardContent() {
               <CreditCard className="w-5 h-5" />
               <h3 className="text-lg font-semibold">Payment Methods</h3>
             </div>
-            
+
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
                 <CreditCard className="w-5 h-5 text-muted-foreground" />
@@ -1367,7 +1730,7 @@ function HostDashboardContent() {
       const now = new Date()
       const diffTime = Math.abs(now.getTime() - date.getTime())
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
+
       if (diffDays === 1) return '1 day ago'
       if (diffDays < 7) return `${diffDays} days ago`
       if (diffDays < 30) {
@@ -1412,7 +1775,8 @@ function HostDashboardContent() {
               <Star className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-semibold mb-2">No reviews yet</h3>
               <p className="text-muted-foreground">
-                You haven't received any reviews yet. Reviews will appear here once guests leave feedback on your dinners.
+                You haven't received any reviews yet. Reviews will appear here once guests leave
+                feedback on your dinners.
               </p>
             </CardContent>
           </Card>
@@ -1432,8 +1796,8 @@ function HostDashboardContent() {
                   </div>
                   <div className="flex justify-center mt-2">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
+                      <Star
+                        key={star}
                         className={`w-5 h-5 ${
                           star <= Math.round(reviewsStats.averageRating)
                             ? 'fill-yellow-400 text-yellow-400'
@@ -1443,7 +1807,8 @@ function HostDashboardContent() {
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Based on {reviewsStats.totalReviews} {reviewsStats.totalReviews === 1 ? 'review' : 'reviews'}
+                    Based on {reviewsStats.totalReviews}{' '}
+                    {reviewsStats.totalReviews === 1 ? 'review' : 'reviews'}
                   </p>
                 </div>
               </CardContent>
@@ -1458,14 +1823,19 @@ function HostDashboardContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {reviews.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No reviews to display</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No reviews to display
+                  </p>
                 ) : (
                   reviews.slice(0, 5).map((review: any) => (
                     <div key={review.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Avatar className="w-8 h-8">
-                            <AvatarImage src={review.user?.image} alt={review.user?.name || 'Guest'} />
+                            <AvatarImage
+                              src={review.user?.image}
+                              alt={review.user?.name || 'Guest'}
+                            />
                             <AvatarFallback>
                               {review.user?.name ? review.user.name.charAt(0).toUpperCase() : 'G'}
                             </AvatarFallback>
@@ -1474,8 +1844,8 @@ function HostDashboardContent() {
                         </div>
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <Star 
-                              key={star} 
+                            <Star
+                              key={star}
                               className={`w-4 h-4 ${
                                 star <= review.rating
                                   ? 'fill-yellow-400 text-yellow-400'
@@ -1512,23 +1882,56 @@ function HostDashboardContent() {
               <div className="text-center">
                 <div className="relative inline-block mb-4">
                   <Avatar className="w-24 h-24">
-                    <AvatarImage src={profileData.profileImage} alt={profileData.name || 'Host profile'} />
+                    <AvatarImage
+                      src={
+                        profileData.profileImage && profileData.profileImage.trim() !== ''
+                          ? profileData.profileImage
+                          : user?.image && user.image.trim() !== ''
+                            ? user.image || ''
+                            : ''
+                      }
+                      alt={profileData.name || user?.name || 'Host profile'}
+                    />
                     <AvatarFallback>
-                      {profileData.name ? profileData.name.charAt(0).toUpperCase() : 'H'}
+                      {profileData.name || user?.name
+                        ? (profileData.name || user?.name || '').charAt(0).toUpperCase()
+                        : 'H'}
                     </AvatarFallback>
                   </Avatar>
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <Button
+                      size="sm"
+                      className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                      onClick={handleImageClick}
+                      disabled={isUploadingImage}
+                    >
+                      {isUploadingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </>
                 </div>
                 <h2 className="text-xl font-semibold mb-1">{profileData.name || 'Loading...'}</h2>
-                <p className="text-muted-foreground text-sm mb-4">{profileData.email || 'Loading...'}</p>
+                <p className="text-muted-foreground text-sm mb-4">
+                  {profileData.email || 'Loading...'}
+                </p>
                 <Badge variant="secondary" className="mb-4">
                   <ChefHat className="w-3 h-3 mr-1" />
                   Host Member
                 </Badge>
                 <p className="text-xs text-muted-foreground">
-                  {profileData.joinedDate 
+                  {profileData.joinedDate
                     ? `Member since ${profileData.joinedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
-                    : 'Member since recently'
-                  }
+                    : 'Member since recently'}
                 </p>
               </div>
             </CardContent>
@@ -1559,9 +1962,11 @@ function HostDashboardContent() {
                   </Button>
                 )}
                 <Button
-                  variant={isEditingProfile ? "default" : "outline"}
+                  variant={isEditingProfile ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => isEditingProfile ? handleProfileSave() : setIsEditingProfile(true)}
+                  onClick={() =>
+                    isEditingProfile ? handleProfileSave() : setIsEditingProfile(true)
+                  }
                   disabled={isSavingProfile}
                 >
                   {isEditingProfile ? (
@@ -1597,12 +2002,14 @@ function HostDashboardContent() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Full Name</label>
                   {isEditingProfile ? (
-                    <Input 
-                      value={profileData.name} 
-                      onChange={(e) => setProfileData({...profileData, name: e.target.value})} 
+                    <Input
+                      value={profileData.name}
+                      onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">{profileData.name || 'Loading...'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {profileData.name || 'Loading...'}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -1615,9 +2022,9 @@ function HostDashboardContent() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Phone</label>
                   {isEditingProfile ? (
-                    <Input 
-                      value={profileData.phone} 
-                      onChange={(e) => setProfileData({...profileData, phone: e.target.value})} 
+                    <Input
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -1629,9 +2036,9 @@ function HostDashboardContent() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Country</label>
                   {isEditingProfile ? (
-                    <Input 
-                      value={profileData.country} 
-                      onChange={(e) => setProfileData({...profileData, country: e.target.value})} 
+                    <Input
+                      value={profileData.country}
+                      onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -1644,19 +2051,21 @@ function HostDashboardContent() {
               <div>
                 <label className="block text-sm font-medium mb-2">Languages</label>
                 {isEditingProfile ? (
-                  <Input 
-                    value={typeof profileData.languages === 'string' ? profileData.languages : ''} 
-                    onChange={(e) => setProfileData({...profileData, languages: e.target.value})}
+                  <Input
+                    value={typeof profileData.languages === 'string' ? profileData.languages : ''}
+                    onChange={(e) => setProfileData({ ...profileData, languages: e.target.value })}
                     placeholder="e.g., English, Spanish, French"
                   />
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {profileData.languages ? (
-                      (typeof profileData.languages === 'string' 
+                      (typeof profileData.languages === 'string'
                         ? profileData.languages.split(',').map((lang: string) => lang.trim())
                         : []
                       ).map((lang: string, index: number) => (
-                        <Badge key={index} variant="secondary">{lang}</Badge>
+                        <Badge key={index} variant="secondary">
+                          {lang}
+                        </Badge>
                       ))
                     ) : (
                       <Badge variant="secondary">English</Badge>
@@ -1674,7 +2083,9 @@ function HostDashboardContent() {
                 {hostStats.loading ? (
                   <div className="text-2xl font-bold text-primary-600">...</div>
                 ) : (
-                  <div className="text-2xl font-bold text-primary-600">{hostStats.totalDinners}</div>
+                  <div className="text-2xl font-bold text-primary-600">
+                    {hostStats.totalDinners}
+                  </div>
                 )}
                 <div className="text-sm text-muted-foreground">Total Dinners</div>
               </CardContent>
@@ -1684,7 +2095,9 @@ function HostDashboardContent() {
                 {hostStats.loading ? (
                   <div className="text-2xl font-bold text-primary-600">...</div>
                 ) : (
-                  <div className="text-2xl font-bold text-primary-600">{hostStats.totalBookings}</div>
+                  <div className="text-2xl font-bold text-primary-600">
+                    {hostStats.totalBookings}
+                  </div>
                 )}
                 <div className="text-sm text-muted-foreground">Guests Hosted</div>
               </CardContent>
@@ -1711,61 +2124,63 @@ function HostDashboardContent() {
     <HostGuard>
       <MainLayout>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Host Dashboard</h1>
-              <p className="text-muted-foreground mt-1">Manage your dining experiences and bookings</p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => router.push('/')}>
-                <Home className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-              <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Create Dinner
-              </Button>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Host Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                  Manage your dining experiences and bookings
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => router.push('/')}>
+                  <Home className="w-4 h-4 mr-2" />
+                  Back to Home
+                </Button>
+                <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create Dinner
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="dinners">My Dinners</TabsTrigger>
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="dinners">My Dinners</TabsTrigger>
+              <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="overview" className="mt-6">
-            {renderOverview()}
-          </TabsContent>
+            <TabsContent value="overview" className="mt-6">
+              {renderOverview()}
+            </TabsContent>
 
-          <TabsContent value="dinners" className="mt-6">
-            {renderDinners()}
-          </TabsContent>
+            <TabsContent value="dinners" className="mt-6">
+              {renderDinners()}
+            </TabsContent>
 
-          <TabsContent value="bookings" className="mt-6">
-            {renderBookings()}
-          </TabsContent>
+            <TabsContent value="bookings" className="mt-6">
+              {renderBookings()}
+            </TabsContent>
 
-          <TabsContent value="reviews" className="mt-6">
-            {renderReviews()}
-          </TabsContent>
+            <TabsContent value="reviews" className="mt-6">
+              {renderReviews()}
+            </TabsContent>
 
-          <TabsContent value="profile" className="mt-6">
-            {renderProfile()}
-          </TabsContent>
+            <TabsContent value="profile" className="mt-6">
+              {renderProfile()}
+            </TabsContent>
 
-          <TabsContent value="settings" className="mt-6">
-            {renderSettings()}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="settings" className="mt-6">
+              {renderSettings()}
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Change Password Dialog */}
@@ -1774,7 +2189,8 @@ function HostDashboardContent() {
             <DialogHeader>
               <DialogTitle>Change Password</DialogTitle>
               <DialogDescription>
-                Enter your current password and choose a new password. Make sure it's at least 8 characters long.
+                Enter your current password and choose a new password. Make sure it's at least 8
+                characters long.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleChangePassword} className="space-y-4">
@@ -1785,7 +2201,9 @@ function HostDashboardContent() {
                     id="currentPassword"
                     type={showPasswords.current ? 'text' : 'password'}
                     value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
+                    }
                     placeholder="Enter current password"
                     required
                     disabled={passwordLoading}
@@ -1795,7 +2213,9 @@ function HostDashboardContent() {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                    onClick={() =>
+                      setShowPasswords((prev) => ({ ...prev, current: !prev.current }))
+                    }
                   >
                     {showPasswords.current ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1813,7 +2233,9 @@ function HostDashboardContent() {
                     id="newPassword"
                     type={showPasswords.new ? 'text' : 'password'}
                     value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
+                    }
                     placeholder="Enter new password (min 8 characters)"
                     required
                     disabled={passwordLoading}
@@ -1823,7 +2245,7 @@ function HostDashboardContent() {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                    onClick={() => setShowPasswords((prev) => ({ ...prev, new: !prev.new }))}
                   >
                     {showPasswords.new ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1841,7 +2263,9 @@ function HostDashboardContent() {
                     id="confirmPassword"
                     type={showPasswords.confirm ? 'text' : 'password'}
                     value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    }
                     placeholder="Confirm new password"
                     required
                     disabled={passwordLoading}
@@ -1851,7 +2275,9 @@ function HostDashboardContent() {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                    onClick={() =>
+                      setShowPasswords((prev) => ({ ...prev, confirm: !prev.confirm }))
+                    }
                   >
                     {showPasswords.confirm ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -1890,7 +2316,12 @@ function HostDashboardContent() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={passwordLoading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                  disabled={
+                    passwordLoading ||
+                    !passwordData.currentPassword ||
+                    !passwordData.newPassword ||
+                    !passwordData.confirmPassword
+                  }
                 >
                   {passwordLoading ? (
                     <>
@@ -1911,9 +2342,7 @@ function HostDashboardContent() {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Guest Profile</DialogTitle>
-              <DialogDescription>
-                View guest information and booking history
-              </DialogDescription>
+              <DialogDescription>View guest information and booking history</DialogDescription>
             </DialogHeader>
             {guestProfileLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -1926,11 +2355,19 @@ function HostDashboardContent() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="w-16 h-16">
-                    <AvatarImage src={guestProfile.image || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'} alt={guestProfile.name} />
+                    <AvatarImage
+                      src={
+                        guestProfile.image ||
+                        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+                      }
+                      alt={guestProfile.name}
+                    />
                     <AvatarFallback>{guestProfile.name?.charAt(0) || 'G'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="text-lg font-semibold">{guestProfile.name || 'Unknown Guest'}</h3>
+                    <h3 className="text-lg font-semibold">
+                      {guestProfile.name || 'Unknown Guest'}
+                    </h3>
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       {guestProfile.email || 'No email'}
@@ -1954,15 +2391,21 @@ function HostDashboardContent() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Gender</label>
-                    <p className="text-sm mt-1 capitalize">{guestProfile.gender || 'Not specified'}</p>
+                    <p className="text-sm mt-1 capitalize">
+                      {guestProfile.gender || 'Not specified'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Member Since</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Member Since
+                    </label>
                     <p className="text-sm mt-1">
-                      {guestProfile.joinedDate 
-                        ? new Date(guestProfile.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                        : 'Unknown'
-                      }
+                      {guestProfile.joinedDate
+                        ? new Date(guestProfile.joinedDate).toLocaleDateString('en-US', {
+                            month: 'long',
+                            year: 'numeric',
+                          })
+                        : 'Unknown'}
                     </p>
                   </div>
                 </div>
@@ -1970,12 +2413,15 @@ function HostDashboardContent() {
                   <div className="pt-4 border-t">
                     <label className="text-sm font-medium text-muted-foreground">Languages</label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {Array.isArray(guestProfile.languages) 
-                        ? guestProfile.languages.map((lang: string, index: number) => (
-                            <Badge key={index} variant="secondary">{lang}</Badge>
-                          ))
-                        : <Badge variant="secondary">{guestProfile.languages}</Badge>
-                      }
+                      {Array.isArray(guestProfile.languages) ? (
+                        guestProfile.languages.map((lang: string, index: number) => (
+                          <Badge key={index} variant="secondary">
+                            {lang}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="secondary">{guestProfile.languages}</Badge>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1993,29 +2439,112 @@ function HostDashboardContent() {
           </DialogContent>
         </Dialog>
 
+        {/* Review Guest Dialog */}
+        <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Write a Review</DialogTitle>
+              <DialogDescription>
+                Share your experience about {selectedBooking?.guest.name || 'this guest'}
+                {selectedBooking?.dinner && ` for ${selectedBooking.dinner}`}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Rating *</Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="focus:outline-none"
+                    >
+                      <Star
+                        className={`w-8 h-8 transition-colors ${
+                          star <= reviewRating
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reviewComment">Comment (Optional)</Label>
+                <Textarea
+                  id="reviewComment"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Tell others about your experience..."
+                  rows={4}
+                  disabled={reviewSubmitting}
+                />
+              </div>
+
+              {reviewError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                  {reviewError}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowReviewDialog(false)
+                    setSelectedBooking(null)
+                    setReviewRating(0)
+                    setReviewComment('')
+                    setReviewError(null)
+                  }}
+                  disabled={reviewSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={reviewSubmitting || reviewRating === 0}>
+                  {reviewSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Review'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* Confirmation Dialog */}
-        <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
+        <Dialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>
                 {confirmDialog.type === 'accept' ? 'Accept Booking?' : 'Decline Booking?'}
               </DialogTitle>
               <DialogDescription>
-                {confirmDialog.type === 'accept' 
+                {confirmDialog.type === 'accept'
                   ? `Are you sure you want to accept the booking from ${confirmDialog.guestName}? This will confirm the reservation.`
-                  : `Are you sure you want to decline the booking from ${confirmDialog.guestName}? This action cannot be undone.`
-                }
+                  : `Are you sure you want to decline the booking from ${confirmDialog.guestName}? This action cannot be undone.`}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
                 disabled={updatingBookingId === confirmDialog.bookingId}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 variant={confirmDialog.type === 'accept' ? 'default' : 'destructive'}
                 onClick={() => {
                   if (confirmDialog.bookingId) {
@@ -2026,12 +2555,11 @@ function HostDashboardContent() {
                 }}
                 disabled={updatingBookingId === confirmDialog.bookingId}
               >
-                {updatingBookingId === confirmDialog.bookingId 
-                  ? 'Processing...' 
-                  : confirmDialog.type === 'accept' 
-                    ? 'Accept' 
-                    : 'Decline'
-                }
+                {updatingBookingId === confirmDialog.bookingId
+                  ? 'Processing...'
+                  : confirmDialog.type === 'accept'
+                    ? 'Accept'
+                    : 'Decline'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2043,16 +2571,18 @@ function HostDashboardContent() {
 
 export default function HostDashboardPage() {
   return (
-    <Suspense fallback={
-      <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
+    <Suspense
+      fallback={
+        <MainLayout>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
           </div>
-        </div>
-      </MainLayout>
-    }>
+        </MainLayout>
+      }
+    >
       <HostDashboardContent />
     </Suspense>
   )

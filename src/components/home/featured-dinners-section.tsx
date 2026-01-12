@@ -12,7 +12,7 @@ interface FeaturedDinnersSectionProps {
 
 export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps) {
   const router = useRouter()
-  const featuredDinners = dinners.slice(0, 3)
+  const featuredDinners = [...dinners].reverse().slice(0, 3)
 
   const handleViewAll = () => {
     router.push('/search')
@@ -30,8 +30,8 @@ export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps)
               Discover unique dining experiences hosted by locals
             </p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="hidden md:flex items-center space-x-2"
             onClick={handleViewAll}
           >
@@ -39,24 +39,17 @@ export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps)
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
-        
+
         {featuredDinners.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredDinners.map((dinner) => (
-                <DinnerCard 
-                  key={dinner.id}
-                  dinner={dinner}
-                />
+                <DinnerCard key={dinner.id} dinner={dinner} />
               ))}
             </div>
 
             <div className="mt-12 text-center md:hidden">
-              <Button 
-                variant="outline" 
-                className="items-center space-x-2"
-                onClick={handleViewAll}
-              >
+              <Button variant="outline" className="items-center space-x-2" onClick={handleViewAll}>
                 <span>View All Experiences</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
@@ -70,13 +63,10 @@ export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps)
               </div>
               <h3 className="text-2xl font-semibold mb-3">No dinners available yet</h3>
               <p className="text-muted-foreground mb-6 text-center">
-                We're working on bringing you amazing dining experiences. Check back soon or explore our search to find hosts in your area.
+                We're working on bringing you amazing dining experiences. Check back soon or explore
+                our search to find hosts in your area.
               </p>
-              <Button 
-                variant="outline" 
-                className="items-center space-x-2"
-                onClick={handleViewAll}
-              >
+              <Button variant="outline" className="items-center space-x-2" onClick={handleViewAll}>
                 <span>Explore All Experiences</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>

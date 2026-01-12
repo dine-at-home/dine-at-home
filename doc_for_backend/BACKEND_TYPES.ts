@@ -9,14 +9,14 @@
 export enum UserRole {
   GUEST = 'guest',
   HOST = 'host',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
 }
 
 export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
   CANCELLED = 'CANCELLED',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 // ============================================
@@ -486,7 +486,7 @@ export enum ErrorCode {
   BOOKING_NOT_AVAILABLE = 'BOOKING_NOT_AVAILABLE',
   INSUFFICIENT_CAPACITY = 'INSUFFICIENT_CAPACITY',
   PAST_DATE = 'PAST_DATE',
-  ALREADY_REVIEWED = 'ALREADY_REVIEWED'
+  ALREADY_REVIEWED = 'ALREADY_REVIEWED',
 }
 
 // ============================================
@@ -517,32 +517,31 @@ export interface PriceRange {
 export const ValidationRules = {
   email: {
     pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    maxLength: 255
+    maxLength: 255,
   },
   password: {
     minLength: 8,
     maxLength: 100,
-    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/
+    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
   },
   name: {
     minLength: 2,
-    maxLength: 100
+    maxLength: 100,
   },
   rating: {
     min: 1,
-    max: 5
+    max: 5,
   },
   guests: {
     min: 1,
-    max: 50
+    max: 50,
   },
   price: {
     min: 0,
-    max: 10000
+    max: 10000,
   },
   duration: {
     min: 30,
-    max: 480 // 8 hours
-  }
+    max: 480, // 8 hours
+  },
 }
-
