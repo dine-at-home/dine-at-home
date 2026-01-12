@@ -55,7 +55,7 @@ import Image from 'next/image'
 import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
 import { getDinnerStatus } from '@/lib/dinner-filters'
-import { transformDinner } from '@/lib/dinner-utils'
+import { transformDinner, formatFriendlyDateTime } from '@/lib/dinner-utils'
 import { bookingService } from '@/lib/booking-service'
 
 // Mock data for demonstration (fallback)
@@ -642,7 +642,11 @@ function HostDashboardContent() {
             const transformedDinners = result.data.map((dinner: any) => {
               // Transform to Dinner type first
               const dinnerTransformed = transformDinner(dinner)
-              // Use the new status logic: completed if booked OR past time
+              // Ensure duration is included for status calculation
+              if (!dinnerTransformed.duration && dinner.duration) {
+                dinnerTransformed.duration = dinner.duration
+              }
+              // Use the new status logic: upcoming, ongoing, completed, or draft
               const status = getDinnerStatus(dinnerTransformed, dinner.isActive !== false)
 
               // Images are stored as array directly
@@ -721,8 +725,8 @@ function HostDashboardContent() {
               },
               date: booking.dinner?.date
                 ? typeof booking.dinner.date === 'string'
-                  ? booking.dinner.date.split('T')[0]
-                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                  ? booking.dinner.date // Keep full ISO string for formatting
+                  : new Date(booking.dinner.date).toISOString()
                 : '',
               time: booking.dinner?.time || '',
               guests: booking.guests,
@@ -730,6 +734,7 @@ function HostDashboardContent() {
               status: booking.status?.toLowerCase() || 'confirmed',
               specialRequests: booking.message || '',
               review: booking.review || null, // Host's review of the guest (if exists)
+              guestReview: booking.guestReview || null, // Guest's review of the dinner (if exists)
             }
           })
           setBookings(transformedBookings)
@@ -824,8 +829,8 @@ function HostDashboardContent() {
               },
               date: booking.dinner?.date
                 ? typeof booking.dinner.date === 'string'
-                  ? booking.dinner.date.split('T')[0]
-                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                  ? booking.dinner.date // Keep full ISO string for formatting
+                  : new Date(booking.dinner.date).toISOString()
                 : '',
               time: booking.dinner?.time || '',
               guests: booking.guests,
@@ -833,6 +838,7 @@ function HostDashboardContent() {
               status: booking.status?.toLowerCase() || 'confirmed',
               specialRequests: booking.message || '',
               review: booking.review || null, // Host's review of the guest (if exists)
+              guestReview: booking.guestReview || null, // Guest's review of the dinner (if exists)
             }
           })
           setBookings(transformedBookings)
@@ -920,8 +926,8 @@ function HostDashboardContent() {
                   },
                   date: booking.dinner?.date
                     ? typeof booking.dinner.date === 'string'
-                      ? booking.dinner.date.split('T')[0]
-                      : new Date(booking.dinner.date).toISOString().split('T')[0]
+                      ? booking.dinner.date // Keep full ISO string for formatting
+                      : new Date(booking.dinner.date).toISOString()
                     : '',
                   time: booking.dinner?.time || '',
                   guests: booking.guests,
@@ -967,8 +973,8 @@ function HostDashboardContent() {
               },
               date: booking.dinner?.date
                 ? typeof booking.dinner.date === 'string'
-                  ? booking.dinner.date.split('T')[0]
-                  : new Date(booking.dinner.date).toISOString().split('T')[0]
+                  ? booking.dinner.date // Keep full ISO string for formatting
+                  : new Date(booking.dinner.date).toISOString()
                 : '',
               time: booking.dinner?.time || '',
               guests: booking.guests,
@@ -1001,6 +1007,8 @@ function HostDashboardContent() {
     switch (status) {
       case 'upcoming':
         return 'bg-blue-100 text-blue-800'
+      case 'ongoing':
+        return 'bg-orange-100 text-orange-800'
       case 'completed':
         return 'bg-green-100 text-green-800'
       case 'draft':
@@ -1261,6 +1269,13 @@ function HostDashboardContent() {
           Upcoming ({dinners.filter((d) => d.status === 'upcoming').length})
         </Button>
         <Button
+          variant={dinnerFilter === 'ongoing' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setDinnerFilter('ongoing')}
+        >
+          Ongoing ({dinners.filter((d) => d.status === 'ongoing').length})
+        </Button>
+        <Button
           variant={dinnerFilter === 'completed' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setDinnerFilter('completed')}
@@ -1374,14 +1389,7 @@ function HostDashboardContent() {
                 <div className="space-y-2 text-sm text-muted-foreground mb-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    {(() => {
-                      // Parse UTC date from database and convert to user's browser timezone
-                      // .local() automatically detects and uses the browser's timezone
-                      const momentDate = moment.utc(dinner.date).local()
-                      const dateStr = momentDate.format('MMM D, YYYY')
-                      const timeStr = momentDate.format('HH:mm')
-                      return `${dateStr} at ${timeStr}`
-                    })()}
+                    {formatFriendlyDateTime(dinner.date, dinner.time)}
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
@@ -1413,7 +1421,7 @@ function HostDashboardContent() {
                     <Eye className="w-4 h-4 mr-2" />
                     View
                   </Button>
-                  {dinner.status !== 'completed' && (
+                  {dinner.status !== 'completed' && dinner.status !== 'ongoing' && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -1510,7 +1518,11 @@ function HostDashboardContent() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {booking.date} at {booking.time}
+                        {booking.date && booking.time
+                          ? formatFriendlyDateTime(booking.date, booking.time)
+                          : booking.date
+                            ? formatFriendlyDateTime(booking.date)
+                            : 'Date not available'}
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
@@ -1522,6 +1534,29 @@ function HostDashboardContent() {
                       {booking.specialRequests && (
                         <div className="mt-2 p-2 bg-muted rounded text-xs">
                           <strong>Special Requests:</strong> {booking.specialRequests}
+                        </div>
+                      )}
+                      {/* Guest's Review of the Dinner */}
+                      {booking.guestReview && (
+                        <div className="mt-3 p-3 bg-muted rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium">Guest's Review</span>
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-3 h-3 ${
+                                    star <= (booking.guestReview?.rating || 0)
+                                      ? 'text-yellow-400 fill-yellow-400'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {booking.guestReview.comment}
+                          </p>
                         </div>
                       )}
                     </div>

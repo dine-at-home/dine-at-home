@@ -201,10 +201,21 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
 
           {/* Rating */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-medium text-sm">{dinner.rating}</span>
-              <span className="text-sm text-muted-foreground">({dinner.reviewCount} reviews)</span>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-3.5 h-3.5 ${
+                      i < Math.round(dinner.rating || 0)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'fill-gray-200 text-gray-200'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="font-medium text-sm">{dinner.rating || 0}</span>
+              <span className="text-sm text-muted-foreground">({dinner.reviewCount || 0} reviews)</span>
             </div>
             <Badge variant="secondary" className="text-xs">
               {dinner.cuisine}

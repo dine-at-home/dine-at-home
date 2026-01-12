@@ -13,6 +13,7 @@ const publicRoutes = [
   '/auth/callback',
   '/auth/google/callback',
   '/auth/role-selection',
+  '/auth/verify-otp', // Allow access to OTP verification page
   '/terms-of-use',
   '/privacy-policy',
   '/help-center',

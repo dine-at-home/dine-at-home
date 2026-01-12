@@ -45,20 +45,60 @@ export function shouldShowInListings(dinner: Dinner): boolean {
 }
 
 /**
+ * Check if a dinner is currently ongoing
+ * A dinner is ongoing if it has started but hasn't ended yet (within its duration)
+ */
+export function isDinnerOngoing(dinner: Dinner): boolean {
+  // The date field is a full ISO string (e.g., "2026-01-11T23:00:00.000Z")
+  const dinnerStartMoment = moment.utc(dinner.date)
+  
+  // Calculate end time by adding duration (in minutes)
+  const dinnerEndMoment = dinnerStartMoment.clone().add(dinner.duration || 0, 'minutes')
+  
+  // Get current time in UTC for comparison
+  const nowMoment = moment.utc()
+  
+  // Ongoing if current time is between start and end time
+  return nowMoment.isSameOrAfter(dinnerStartMoment) && nowMoment.isBefore(dinnerEndMoment)
+}
+
+/**
+ * Check if a dinner has ended (past its end time)
+ */
+export function isDinnerEnded(dinner: Dinner): boolean {
+  // The date field is a full ISO string (e.g., "2026-01-11T23:00:00.000Z")
+  const dinnerStartMoment = moment.utc(dinner.date)
+  
+  // Calculate end time by adding duration (in minutes)
+  const dinnerEndMoment = dinnerStartMoment.clone().add(dinner.duration || 0, 'minutes')
+  
+  // Get current time in UTC for comparison
+  const nowMoment = moment.utc()
+  
+  // Ended if current time is at or after end time
+  return nowMoment.isSameOrAfter(dinnerEndMoment)
+}
+
+/**
  * Determine dinner status for host dashboard
- * Returns: 'upcoming', 'completed', or 'draft'
+ * Returns: 'upcoming', 'ongoing', 'completed', or 'draft'
  */
 export function getDinnerStatus(
   dinner: Dinner,
   isActive: boolean = true
-): 'upcoming' | 'completed' | 'draft' {
+): 'upcoming' | 'ongoing' | 'completed' | 'draft' {
   // Draft dinners (not active)
   if (!isActive) {
     return 'draft'
   }
 
-  // Completed if booked or past time
-  if (isDinnerBooked(dinner) || isDinnerPast(dinner)) {
+  // Check if dinner is currently ongoing
+  if (isDinnerOngoing(dinner)) {
+    return 'ongoing'
+  }
+
+  // Completed if ended or fully booked
+  if (isDinnerEnded(dinner) || isDinnerBooked(dinner)) {
     return 'completed'
   }
 

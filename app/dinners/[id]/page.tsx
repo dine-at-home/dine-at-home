@@ -7,14 +7,25 @@ import { DinnerDetail } from '@/components/dinner/dinner-detail'
 import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
 import { NavigationParams, Dinner } from '@/types'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function DinnerDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const id = Array.isArray(params?.id) ? params?.id[0] : (params?.id as string)
   const [dinner, setDinner] = useState<Dinner | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Redirect to OTP verification if user is authenticated but email is not verified
+  useEffect(() => {
+    if (!authLoading && user && !user.emailVerified) {
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.push(verifyOtpUrl)
+    }
+  }, [authLoading, user, router])
 
   useEffect(() => {
     const fetchDinner = async () => {
@@ -37,8 +48,27 @@ export default function DinnerDetailPage() {
 
         const result = await response.json()
 
+        console.log('🔵 Dinner API Response:', {
+          success: result.success,
+          hasData: !!result.data,
+          dinnerId: result.data?.id,
+          reviewCount: result.data?.reviewCount,
+          reviewsCount: result.data?.reviews?.length || 0,
+          reviews: result.data?.reviews || [],
+        })
+
         if (result.success && result.data) {
           const transformedDinner = transformDinner(result.data)
+          
+          console.log('🔵 Transformed Dinner:', {
+            id: transformedDinner.id,
+            title: transformedDinner.title,
+            reviewCount: transformedDinner.reviewCount,
+            reviewsCount: transformedDinner.reviews?.length || 0,
+            reviews: transformedDinner.reviews || [],
+            hasReviews: !!transformedDinner.reviews && transformedDinner.reviews.length > 0,
+          })
+          
           setDinner(transformedDinner)
         } else {
           setError(result.error || 'Dinner not found')
@@ -68,6 +98,20 @@ export default function DinnerDetailPage() {
     } else if (page === 'booking-confirmed') {
       router.push('/profile?tab=bookings')
     }
+  }
+
+  // Show loading while checking auth or redirecting
+  if (authLoading || (user && !user.emailVerified)) {
+    return (
+      <PageLayout>
+        <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            {user && !user.emailVerified ? 'Redirecting to email verification...' : 'Loading...'}
+          </p>
+        </div>
+      </PageLayout>
+    )
   }
 
   if (loading) {

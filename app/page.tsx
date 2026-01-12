@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { HeroSection } from '@/components/home/hero-section'
 import { SocialProofSection } from '@/components/home/social-proof-section'
@@ -12,13 +13,25 @@ import { transformDinner } from '@/lib/dinner-utils'
 import { shouldShowInListings } from '@/lib/dinner-filters'
 import { Dinner } from '@/types'
 import { useSearchParams } from 'next/navigation'
+import { useAuth } from '@/contexts/auth-context'
 
 function HomePageContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, loading: authLoading } = useAuth()
   const [dinners, setDinners] = useState<Dinner[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showBookingSuccess, setShowBookingSuccess] = useState(false)
+
+  // Redirect to OTP verification if user is authenticated but email is not verified
+  useEffect(() => {
+    if (!authLoading && user && !user.emailVerified) {
+      const currentUrl = window.location.pathname + (window.location.search || '')
+      const verifyOtpUrl = `/auth/verify-otp?email=${encodeURIComponent(user.email)}&callbackUrl=${encodeURIComponent(currentUrl)}`
+      router.push(verifyOtpUrl)
+    }
+  }, [authLoading, user, router])
 
   // Check if user was redirected after booking
   useEffect(() => {
@@ -77,6 +90,22 @@ function HomePageContent() {
 
     fetchDinners()
   }, [bookedDinnerIdFromUrl])
+
+  // Show loading while checking auth or redirecting
+  if (authLoading || (user && !user.emailVerified)) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">
+              {user && !user.emailVerified ? 'Redirecting to email verification...' : 'Loading...'}
+            </p>
+          </div>
+        </div>
+      </MainLayout>
+    )
+  }
 
   return (
     <MainLayout>

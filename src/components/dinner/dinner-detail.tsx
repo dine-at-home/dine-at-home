@@ -56,7 +56,29 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
   const [hostReviewsLoading, setHostReviewsLoading] = useState(true)
 
   // Use reviews from dinner data if available, otherwise empty array
-  const reviews = dinner.reviews || []
+  const reviews = Array.isArray(dinner.reviews) ? dinner.reviews : []
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🔵 DinnerDetail - Reviews Debug:', {
+      dinnerId: dinner.id,
+      dinnerTitle: dinner.title,
+      reviewCount: dinner.reviewCount,
+      hasReviewsProperty: 'reviews' in dinner,
+      reviewsType: typeof dinner.reviews,
+      reviewsIsArray: Array.isArray(dinner.reviews),
+      reviewsArray: reviews,
+      reviewsLength: reviews.length,
+      hasReviews: reviews.length > 0,
+      reviewsData: reviews.map((r: any) => ({
+        id: r?.id,
+        userName: r?.userName,
+        rating: r?.rating,
+        hasComment: !!r?.comment,
+        comment: r?.comment?.substring(0, 50),
+      })),
+    })
+  }, [dinner.id, dinner.reviews, reviews])
 
   // Fetch host reviews
   useEffect(() => {
@@ -309,15 +331,20 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             </div>
 
             {/* Host Reviews */}
-            {hostReviews.length > 0 && (
+            {hostReviewsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading reviews...</p>
+              </div>
+            ) : hostReviews.length > 0 ? (
               <>
                 <Separator />
                 <div>
                   <h3 className="font-semibold text-xl mb-4">
-                    Reviews about {dinner.host.name}
+                    Reviews about {dinner.host.name} ({hostReviews.length})
                   </h3>
                   <div className="space-y-4">
-                    {hostReviews.slice(0, 5).map((review) => (
+                    {hostReviews.map((review) => (
                       <div key={review.id} className="border-b pb-4 last:border-0">
                         <div className="flex items-start gap-3">
                           <Avatar className="w-10 h-10">
@@ -372,7 +399,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   </div>
                 </div>
               </>
-            )}
+            ) : null}
 
             <Separator />
 
@@ -511,14 +538,14 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
               {reviews.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {reviews.map((review) => (
+                    {reviews.map((review: any) => (
                       <div key={review.id} className="space-y-3">
                         <div className="flex items-center space-x-3">
                           <Avatar className="w-10 h-10">
                             <AvatarImage src={review.userAvatar || ''} alt={review.userName} />
                             <AvatarFallback>{review.userName[0]}</AvatarFallback>
                           </Avatar>
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium text-sm">{review.userName}</div>
                             <div className="flex items-center space-x-1">
                               {[...Array(review.rating)].map((_, i) => (
@@ -528,17 +555,19 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                                 {new Date(review.date).toLocaleDateString()}
                               </span>
                             </div>
+                            {review.dinner && review.dinner.title && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {review.dinner.title}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{review.comment}</p>
+                        {review.comment && (
+                          <p className="text-sm text-muted-foreground">{review.comment}</p>
+                        )}
                       </div>
                     ))}
                   </div>
-                  {dinner.reviewCount > reviews.length && (
-                    <Button variant="outline" className="mt-6">
-                      Show all {dinner.reviewCount} reviews
-                    </Button>
-                  )}
                 </>
               ) : (
                 <div className="text-center py-12">
