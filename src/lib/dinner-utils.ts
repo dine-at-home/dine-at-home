@@ -163,7 +163,26 @@ export function transformDinner(dinner: any): Dinner {
   const dietary: string[] = Array.isArray(dinner.dietary) ? dinner.dietary : []
 
   // Preserve reviews if they exist (from backend API response)
-  const reviews = Array.isArray(dinner.reviews) ? dinner.reviews : []
+  // Backend sends reviews as an array with structure: { id, userId, userName, userAvatar, rating, comment, date, helpful }
+  const reviews = Array.isArray(dinner.reviews) 
+    ? dinner.reviews.map((r: any) => ({
+        id: r.id || '',
+        userId: r.userId || '',
+        userName: r.userName || r.user?.name || 'Anonymous',
+        userAvatar: r.userAvatar || r.user?.image || undefined,
+        rating: r.rating || 0,
+        comment: r.comment || '',
+        date: r.date || r.createdAt || new Date().toISOString(),
+        helpful: r.helpful || 0,
+      }))
+    : []
+
+  console.log('🔵 transformDinner - Reviews:', {
+    dinnerId: dinner.id,
+    hasReviewsInInput: Array.isArray(dinner.reviews),
+    reviewsCount: reviews.length,
+    reviews: reviews.map((r: any) => ({ id: r.id, userName: r.userName, rating: r.rating })),
+  })
 
   return {
     id: dinner.id,
