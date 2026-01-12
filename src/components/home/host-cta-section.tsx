@@ -1,8 +1,25 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { CheckCircle2, ArrowRight } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 export function HostCTASection() {
+  const { user } = useAuth()
+  const router = useRouter()
+  const isHost = user?.role === 'host'
+  const isGuest = user?.role === 'guest'
+
+  const handleBecomeHost = (e: React.MouseEvent) => {
+    if (isGuest) {
+      e.preventDefault()
+      router.push('/host/restricted')
+    }
+  }
+
   return (
     <section className="py-20 lg:py-28">
       <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
@@ -20,14 +37,14 @@ export function HostCTASection() {
                 </span>
 
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
-                  Earn up to <span className="text-primary-500">$500/week</span>
+                  Share your <span className="text-primary-500">culinary passion</span>
                   <br />
-                  hosting dinners
+                  and host memorable dinners
                 </h2>
 
                 <p className="text-zinc-400 text-base sm:text-lg max-w-md font-light leading-relaxed">
-                  Turn your kitchen into a community hub. Share your culinary heritage and get paid
-                  doing what you love.
+                  Turn your kitchen into a community hub. Share your culinary heritage and meet
+                  wonderful people while doing what you love.
                 </p>
 
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 sm:gap-y-4 pt-2">
@@ -44,15 +61,18 @@ export function HostCTASection() {
                   ))}
                 </ul>
 
-                <div className="pt-4 sm:pt-6">
-                  <Link
-                    href="/host/onboarding"
-                    className="inline-flex items-center justify-center gap-3 px-8 py-4 sm:px-10 sm:py-5 rounded-xl sm:rounded-2xl bg-primary-600 text-white font-bold text-base sm:text-lg hover:bg-primary-500 transition-all duration-300 shadow-xl shadow-primary-900/20 group/btn w-full sm:w-auto text-center"
-                  >
-                    Start Hosting Today
-                    <ArrowRight className="w-5 h-5 transition-transform group-hover/btn:translate-x-1" />
-                  </Link>
-                </div>
+                {!isHost && (
+                  <div className="pt-4 sm:pt-6">
+                    <Link
+                      href="/host/onboarding"
+                      onClick={handleBecomeHost}
+                      className="inline-flex items-center justify-center gap-3 px-8 py-4 sm:px-10 sm:py-5 rounded-xl sm:rounded-2xl bg-primary-600 text-white font-bold text-base sm:text-lg hover:bg-primary-500 transition-all duration-300 shadow-xl shadow-primary-900/20 group/btn w-full sm:w-auto text-center"
+                    >
+                      Start Hosting Today
+                      <ArrowRight className="w-5 h-5 transition-transform group-hover/btn:translate-x-1" />
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
