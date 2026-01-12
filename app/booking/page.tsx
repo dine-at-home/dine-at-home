@@ -78,7 +78,7 @@ function BookingPageContent() {
   if (loading) {
     return (
       <BookingGuard>
-        <PageLayout>
+        <PageLayout fullWidth={true}>
           <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading booking details...</p>
@@ -91,7 +91,7 @@ function BookingPageContent() {
   if (error || !dinner) {
     return (
       <BookingGuard>
-        <PageLayout>
+        <PageLayout fullWidth={true}>
           <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
             <h1 className="text-2xl font-semibold mb-4">Booking Error</h1>
             <p className="text-muted-foreground mb-4">
@@ -111,7 +111,7 @@ function BookingPageContent() {
 
   return (
     <BookingGuard>
-      <PageLayout>
+      <PageLayout fullWidth={true}>
         <Booking dinner={dinner} date={dinnerDate} guests={guests} onNavigate={handleNavigation} />
       </PageLayout>
     </BookingGuard>
@@ -123,7 +123,7 @@ export default function BookingPage() {
     <Suspense
       fallback={
         <BookingGuard>
-          <PageLayout>
+          <PageLayout fullWidth={true}>
             <div className="max-w-screen-xl mx-auto px-4 py-16 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading booking details...</p>

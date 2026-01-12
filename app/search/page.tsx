@@ -52,7 +52,7 @@ function SearchPageContent() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout fullWidth={true}>
       <SearchResults searchParams={searchParamsObj} />
     </PageLayout>
   )

@@ -146,7 +146,6 @@ function HomePageContent() {
         </div>
       )}
       <HeroSection />
-      <SocialProofSection />
       {loading ? (
         <div className="py-16 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -165,10 +164,12 @@ function HomePageContent() {
         title="Elevate Your Culinary Skills"
         description="Join exclusive online masterclasses with world-renowned chefs. Master the art of pasta, pastry, and more from the comfort of your home."
         buttonText="View Masterclasses"
-        link="/masterclasses"
+        link="/"
         imageSrc="/ads/cooking_class.png"
         variant="primary"
       />
+
+      <SocialProofSection />
 
       <HowItWorksSection />
 
@@ -176,7 +177,7 @@ function HomePageContent() {
         title="Premium Kitchenware for Master Chefs"
         description="Upgrade your kitchen with our curated collection of professional ceramic cookware and artisanal tools. Built to last a lifetime."
         buttonText="Shop Collection"
-        link="/shop"
+        link="/"
         imageSrc="/ads/premium_cookware.png"
         variant="secondary"
       />
