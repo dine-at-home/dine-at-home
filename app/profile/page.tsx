@@ -41,6 +41,9 @@ import {
   EyeOff,
   Loader2,
   ChefHat,
+  AlertCircle,
+  Clock,
+  Info,
 } from 'lucide-react'
 import Image from 'next/image'
 import { bookingService } from '@/lib/booking-service'
@@ -150,6 +153,19 @@ function ProfilePageContent() {
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null)
+  const [cancelDetails, setCancelDetails] = useState<{
+    refundAmount: number
+    refundPercentage: number
+    message: string
+    cancellationPolicy: string
+    hoursUntilDinner: number
+    daysUntilDinner: number
+    dinnerTitle: string
+    totalAmount: number
+  } | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [profileData, setProfileData] = useState({
     name: '',
@@ -1413,7 +1429,9 @@ function ProfilePageContent() {
                                     </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <MapPin className="w-4 h-4" />
-                                      {booking.dinner.location}
+                                      {typeof booking.dinner.location === 'object' && booking.dinner.location
+                                        ? `${booking.dinner.location.neighborhood || ''}, ${booking.dinner.location.city || ''}`.trim() || 'Location not available'
+                                        : booking.dinner.location || 'Location not available'}
                                     </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <Calendar className="w-4 h-4" />
@@ -1430,6 +1448,98 @@ function ProfilePageContent() {
                                         €{booking.totalAmount}
                                       </span>
                                     </div>
+                                    {/* Cancel Button for Confirmed/Pending Bookings */}
+                                    {(booking.status === 'confirmed' ||
+                                      booking.status === 'CONFIRMED' ||
+                                      booking.status === 'pending' ||
+                                      booking.status === 'PENDING') && (
+                                      <div className="mt-3">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-destructive border-destructive hover:bg-destructive hover:text-white"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            // Calculate cancellation details
+                                            const cancellationPolicy = booking.dinner?.cancellationPolicy || 'flexible'
+                                            const dinnerDateTime = new Date(booking.dinner.date)
+                                            const now = new Date()
+                                            const hoursUntilDinner = (dinnerDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+                                            const daysUntilDinner = hoursUntilDinner / 24
+
+                                            // Calculate refund based on policy
+                                            let refundAmount = 0
+                                            let refundPercentage = 0
+                                            let message = ''
+
+                                            switch (cancellationPolicy) {
+                                              case 'flexible':
+                                                if (hoursUntilDinner >= 24) {
+                                                  refundAmount = booking.totalAmount
+                                                  refundPercentage = 100
+                                                  message = 'Full refund - cancelled 24+ hours before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message = 'No refund - cancelled less than 24 hours before dinner'
+                                                }
+                                                break
+                                              case 'moderate':
+                                                if (daysUntilDinner >= 5) {
+                                                  refundAmount = booking.totalAmount
+                                                  refundPercentage = 100
+                                                  message = 'Full refund - cancelled 5+ days before dinner'
+                                                } else if (daysUntilDinner >= 1) {
+                                                  refundAmount = booking.totalAmount * 0.5
+                                                  refundPercentage = 50
+                                                  message = '50% refund - cancelled 1-5 days before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message = 'No refund - cancelled less than 1 day before dinner'
+                                                }
+                                                break
+                                              case 'strict':
+                                                if (daysUntilDinner >= 7) {
+                                                  refundAmount = booking.totalAmount * 0.5
+                                                  refundPercentage = 50
+                                                  message = '50% refund - cancelled 7+ days before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message = 'No refund - cancelled less than 7 days before dinner'
+                                                }
+                                                break
+                                              default:
+                                                if (hoursUntilDinner >= 24) {
+                                                  refundAmount = booking.totalAmount
+                                                  refundPercentage = 100
+                                                  message = 'Full refund - cancelled 24+ hours before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message = 'No refund - cancelled less than 24 hours before dinner'
+                                                }
+                                            }
+
+                                            setCancelDetails({
+                                              refundAmount,
+                                              refundPercentage,
+                                              message,
+                                              cancellationPolicy,
+                                              hoursUntilDinner,
+                                              daysUntilDinner,
+                                              dinnerTitle: booking.dinner.title,
+                                              totalAmount: booking.totalAmount,
+                                            })
+                                            setCancelBookingId(booking.id)
+                                            setShowCancelDialog(true)
+                                          }}
+                                        >
+                                          Cancel Booking
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
@@ -1998,6 +2108,232 @@ function ProfilePageContent() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancellation Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              Cancel Booking
+            </DialogTitle>
+            <DialogDescription>
+              Review the cancellation details before confirming
+            </DialogDescription>
+          </DialogHeader>
+
+          {cancelDetails && (
+            <div className="space-y-4 py-4">
+              {/* Booking Info */}
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-semibold mb-2">{cancelDetails.dinnerTitle}</h4>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {cancelDetails.daysUntilDinner >= 1
+                      ? `${Math.floor(cancelDetails.daysUntilDinner)} day${Math.floor(cancelDetails.daysUntilDinner) > 1 ? 's' : ''} until dinner`
+                      : `${Math.floor(cancelDetails.hoursUntilDinner)} hour${Math.floor(cancelDetails.hoursUntilDinner) > 1 ? 's' : ''} until dinner`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cancellation Policy */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Info className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-sm">
+                    Cancellation Policy: {cancelDetails.cancellationPolicy.charAt(0).toUpperCase() + cancelDetails.cancellationPolicy.slice(1)}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">{cancelDetails.message}</p>
+              </div>
+
+              {/* Refund Details */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Original Amount:</span>
+                  <span className="text-sm">€{cancelDetails.totalAmount}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Refund Amount:</span>
+                  <span className={`text-sm font-semibold ${cancelDetails.refundAmount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    €{cancelDetails.refundAmount.toFixed(2)} ({cancelDetails.refundPercentage}%)
+                  </span>
+                </div>
+                {cancelDetails.refundAmount < cancelDetails.totalAmount && (
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-sm font-medium">Non-refundable:</span>
+                    <span className="text-sm text-destructive">
+                      €{(cancelDetails.totalAmount - cancelDetails.refundAmount).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Warning */}
+              {cancelDetails.refundAmount === 0 && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-sm text-destructive font-medium">
+                    ⚠️ No refund will be issued for this cancellation
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={isCancelling}
+              onClick={() => {
+                setShowCancelDialog(false)
+                setCancelBookingId(null)
+                setCancelDetails(null)
+              }}
+            >
+              Keep Booking
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isCancelling}
+              onClick={async () => {
+                if (!cancelBookingId) return
+
+                setIsCancelling(true)
+                try {
+                  const result = await bookingService.cancelBooking(cancelBookingId)
+                  if (result.success) {
+                    // Refresh bookings
+                    if (user?.id) {
+                      const bookingsResult = await bookingService.getUserBookings(user.id)
+                      if (bookingsResult.success && bookingsResult.data) {
+                        const transformedBookings = bookingsResult.data.map((booking: any) => {
+                          let dinner = null
+                          if (booking.dinner) {
+                            try {
+                              const backendDinner = booking.dinner
+                              dinner = transformDinner({
+                                ...backendDinner,
+                                description: backendDinner.description || '',
+                                cuisine: backendDinner.cuisine || 'Other',
+                                capacity: backendDinner.capacity || 0,
+                                available: backendDinner.available || 0,
+                                instantBook: backendDinner.instantBook || false,
+                                rating: backendDinner.rating || 0,
+                                reviewCount: backendDinner.reviewCount || 0,
+                                images: Array.isArray(backendDinner.images)
+                                  ? backendDinner.images
+                                  : backendDinner.images || [],
+                                location:
+                                  typeof backendDinner.location === 'object'
+                                    ? backendDinner.location
+                                    : {},
+                                host: backendDinner.host || {},
+                              })
+                            } catch (err) {
+                              console.error('Error transforming dinner:', err)
+                              // Fallback: use backend data directly if transform fails
+                              dinner = {
+                                id: booking.dinner.id,
+                                title: booking.dinner.title || 'Unknown Dinner',
+                                date: booking.dinner.date
+                                  ? typeof booking.dinner.date === 'string'
+                                    ? booking.dinner.date.split('T')[0]
+                                    : new Date(booking.dinner.date).toISOString().split('T')[0]
+                                  : '',
+                                time: booking.dinner.time || '19:00',
+                                price: booking.dinner.price || 0,
+                                capacity: booking.dinner.capacity || 0,
+                                images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                                host: {
+                                  id: booking.dinner.host?.id || '',
+                                  name: booking.dinner.host?.name || 'Unknown Host',
+                                  avatar: booking.dinner.host?.image || undefined,
+                                  superhost: false,
+                                  joinedDate: new Date().toISOString(),
+                                  responseRate: 0,
+                                  responseTime: 'responds within 24 hours',
+                                },
+                                location:
+                                  typeof booking.dinner.location === 'object'
+                                    ? booking.dinner.location
+                                    : {
+                                        address: '',
+                                        city: '',
+                                        state: '',
+                                        neighborhood: '',
+                                      },
+                              }
+                            }
+                          }
+
+                          return {
+                            id: booking.id,
+                            status: booking.status?.toLowerCase() || 'pending',
+                            guests: booking.guests || 1,
+                            totalAmount: booking.totalPrice || 0,
+                            dinnerId: dinner?.id || booking.dinnerId,
+                            dinner: dinner
+                              ? {
+                                  id: dinner.id,
+                                  title: dinner.title,
+                                  host: {
+                                    name: dinner.host.name,
+                                    avatar: dinner.host.avatar || '',
+                                  },
+                                  image: dinner.thumbnail || dinner.images?.[0] || null,
+                                  location:
+                                    `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                                    'Location not available',
+                                  date: dinner.date,
+                                  time: dinner.time,
+                                  price: dinner.price,
+                                  capacity: dinner.capacity,
+                                }
+                              : null,
+                            review: booking.review
+                              ? {
+                                  rating: booking.review.rating,
+                                  comment: booking.review.comment || '',
+                                }
+                              : null,
+                            hostReview: booking.hostReview
+                              ? {
+                                  rating: booking.hostReview.rating,
+                                  comment: booking.hostReview.comment || '',
+                                }
+                              : null,
+                          }
+                        })
+                        setBookings(transformedBookings)
+                      }
+                    }
+                    setShowCancelDialog(false)
+                    setCancelBookingId(null)
+                    setCancelDetails(null)
+                  } else {
+                    alert(result.error || 'Failed to cancel booking')
+                  }
+                } catch (error) {
+                  console.error('Error cancelling booking:', error)
+                  alert('Failed to cancel booking')
+                } finally {
+                  setIsCancelling(false)
+                }
+              }}
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                'Confirm Cancellation'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </MainLayout>

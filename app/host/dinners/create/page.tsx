@@ -444,6 +444,7 @@ function CreateDinnerPageContent() {
         included: [], // Can be extended later
         houseRules: dinnerData.houseRules ? [dinnerData.houseRules] : [],
         location: location,
+        cancellationPolicy: dinnerData.cancellationPolicy || 'flexible',
       }
 
       // Send to backend API

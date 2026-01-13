@@ -395,6 +395,7 @@ function EditDinnerPageContent() {
         description: dinnerData.description,
         price: dinnerData.pricePerPerson,
         currency: 'EUR',
+        cancellationPolicy: dinnerData.cancellationPolicy || 'flexible',
         date: dateTime,
         time: dinnerData.time,
         duration: dinnerData.duration * 60,

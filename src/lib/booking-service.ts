@@ -224,6 +224,48 @@ class BookingService {
       }
     }
   }
+
+  /**
+   * Cancel a booking (for guests)
+   */
+  async cancelBooking(
+    bookingId: string
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const token = getToken()
+      if (!token) {
+        return { success: false, error: 'Authentication required' }
+      }
+
+      const response = await fetch(getApiUrl(`/bookings/${bookingId}`), {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || result.message || 'Failed to cancel booking',
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      }
+    } catch (error: any) {
+      console.error('Error cancelling booking:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to cancel booking',
+      }
+    }
+  }
 }
 
 export const bookingService = new BookingService()

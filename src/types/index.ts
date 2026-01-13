@@ -22,6 +22,7 @@ export interface Dinner {
   included?: string[]
   houseRules?: string[]
   dietary?: string[]
+  cancellationPolicy?: string
 }
 
 export interface Host {
