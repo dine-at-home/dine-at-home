@@ -77,7 +77,7 @@ model Dinner {
   title       String
   description String
   price       Float
-  currency    String   @default("USD")
+  currency    String   @default("EUR")
   date        DateTime
   time        String
   duration    Int      // in minutes

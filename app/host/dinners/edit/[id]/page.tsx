@@ -19,7 +19,6 @@ import {
   Calendar,
   Clock,
   Users,
-  DollarSign,
   MapPin,
   Upload,
   Plus,
@@ -390,7 +389,7 @@ function EditDinnerPageContent() {
         title: dinnerData.title,
         description: dinnerData.description,
         price: dinnerData.pricePerPerson,
-        currency: 'USD',
+        currency: 'EUR',
         date: dateTime,
         time: dinnerData.time,
         duration: dinnerData.duration * 60,
@@ -794,7 +793,7 @@ function EditDinnerPageContent() {
                   <div>
                     <label className="block text-sm font-medium mb-2">Price Per Person *</label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">€</span>
                       <Input
                         type="number"
                         value={dinnerData.pricePerPerson}

@@ -362,18 +362,18 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span>
-                      ${dinner.price} x {guests} guests
+                      €{dinner.price} x {guests} guests
                     </span>
-                    <span>${subtotal}</span>
+                    <span>€{subtotal}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Service fee</span>
-                    <span>${serviceFee}</span>
+                    <span>€{serviceFee}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
-                    <span>Total (USD)</span>
-                    <span>${total}</span>
+                    <span>Total</span>
+                    <span>€{total}</span>
                   </div>
                 </div>
 
