@@ -189,6 +189,11 @@ function EditDinnerPageContent() {
     'Ethiopian',
     'Vietnamese',
     'Fusion',
+    'Icelandic',
+    'Scandinavian',
+    'Swedish',
+    'Danish',
+    'Norwegian',
     'Other',
   ]
 
