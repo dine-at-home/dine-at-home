@@ -30,6 +30,101 @@ interface SearchResultsProps {
   searchParams: SearchParams
 }
 
+const FiltersContent = ({
+  priceRange,
+  setPriceRange,
+  selectedCuisines,
+  toggleCuisine,
+  instantBookOnly,
+  setInstantBookOnly,
+  superhostOnly,
+  setSuperhostOnly,
+  clearFilters,
+}: {
+  priceRange: number[]
+  setPriceRange: React.Dispatch<React.SetStateAction<number[]>>
+  selectedCuisines: string[]
+  toggleCuisine: (val: string) => void
+  instantBookOnly: boolean
+  setInstantBookOnly: (val: boolean) => void
+  superhostOnly: boolean
+  setSuperhostOnly: (val: boolean) => void
+  clearFilters: () => void
+}) => (
+  <div className="space-y-6">
+    <div>
+      <h3 className="font-semibold mb-3">Price per person</h3>
+      <div className="space-y-3">
+        <Slider
+          value={priceRange}
+          onValueChange={(val) => {
+            if (Array.isArray(val)) setPriceRange(val)
+          }}
+          max={200}
+          min={0}
+          step={1}
+          className="w-full"
+        />
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>€{priceRange[0]}</span>
+          <span>€{priceRange[1]}+</span>
+        </div>
+      </div>
+    </div>
+
+    {/* <div>
+      <h3 className="font-semibold mb-3">Cuisine Type</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {cuisines.map(cuisine => (
+          <div key={cuisine} className="flex items-center space-x-2">
+            <Checkbox
+              id={cuisine}
+              checked={selectedCuisines.includes(cuisine)}
+              onCheckedChange={() => toggleCuisine(cuisine)}
+            />
+            <label 
+              htmlFor={cuisine}
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              {cuisine}
+            </label>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <h3 className="font-semibold mb-3">Booking Options</h3>
+      <div className="space-y-3">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="instant-book"
+            checked={instantBookOnly}
+            onCheckedChange={(checkedState) => setInstantBookOnly(checkedState === true)}
+          />
+          <label htmlFor="instant-book" className="text-sm font-medium">
+            Instant Book only
+          </label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="superhost"
+            checked={superhostOnly}
+            onCheckedChange={(checked) => setSuperhostOnly(checked === true)}
+          />
+          <label htmlFor="superhost" className="text-sm font-medium">
+            Superhost only
+          </label>
+        </div>
+      </div>
+    </div> */}
+
+    <Button variant="outline" onClick={clearFilters} className="w-full">
+      Clear all filters
+    </Button>
+  </div>
+)
+
 export function SearchResults({ searchParams }: SearchResultsProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('recommended')
@@ -101,7 +196,13 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     }
 
     fetchDinners()
-  }, [searchParams.location, searchParams.date, searchParams.month, searchParams.guests, searchParams.cuisine])
+  }, [
+    searchParams.location,
+    searchParams.date,
+    searchParams.month,
+    searchParams.guests,
+    searchParams.cuisine,
+  ])
 
   // Listen for booking created events to remove dinner from listings in real-time
   useEffect(() => {
@@ -215,79 +316,6 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     setSuperhostOnly(false)
   }
 
-  const FiltersContent = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="font-semibold mb-3">Price per person</h3>
-        <div className="space-y-3">
-          <Slider
-            value={priceRange}
-            onValueChange={setPriceRange}
-            max={200}
-            min={0}
-            step={10}
-            className="w-full"
-          />
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>€{priceRange[0]}</span>
-            <span>€{priceRange[1]}+</span>
-          </div>
-        </div>
-      </div>
-
-      {/* <div>
-        <h3 className="font-semibold mb-3">Cuisine Type</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {cuisines.map(cuisine => (
-            <div key={cuisine} className="flex items-center space-x-2">
-              <Checkbox
-                id={cuisine}
-                checked={selectedCuisines.includes(cuisine)}
-                onCheckedChange={() => toggleCuisine(cuisine)}
-              />
-              <label 
-                htmlFor={cuisine}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {cuisine}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-3">Booking Options</h3>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="instant-book"
-              checked={instantBookOnly}
-              onCheckedChange={(checkedState) => setInstantBookOnly(checkedState === true)}
-            />
-            <label htmlFor="instant-book" className="text-sm font-medium">
-              Instant Book only
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="superhost"
-              checked={superhostOnly}
-              onCheckedChange={(checked) => setSuperhostOnly(checked === true)}
-            />
-            <label htmlFor="superhost" className="text-sm font-medium">
-              Superhost only
-            </label>
-          </div>
-        </div>
-      </div> */}
-
-      <Button variant="outline" onClick={clearFilters} className="w-full">
-        Clear all filters
-      </Button>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-background">
       {/* Search Bar */}
@@ -330,7 +358,17 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                   Clear all
                 </Button>
               </div>
-              <FiltersContent />
+              <FiltersContent
+                priceRange={priceRange}
+                setPriceRange={setPriceRange}
+                selectedCuisines={selectedCuisines}
+                toggleCuisine={toggleCuisine}
+                instantBookOnly={instantBookOnly}
+                setInstantBookOnly={setInstantBookOnly}
+                superhostOnly={superhostOnly}
+                setSuperhostOnly={setSuperhostOnly}
+                clearFilters={clearFilters}
+              />
             </div>
           </div>
 
@@ -351,7 +389,10 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                       ? (() => {
                           const [year, month] = searchParams.month.split('-').map(Number)
                           const date = new Date(year, month - 1, 1)
-                          return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                          return date.toLocaleDateString('en-US', {
+                            month: 'long',
+                            year: 'numeric',
+                          })
                         })()
                       : searchParams.date
                         ? searchParams.date.toLocaleDateString('en-US', {
@@ -377,7 +418,17 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                   <SheetContent side="bottom" className="h-[80vh]">
                     <div className="px-4 py-6">
                       <h2 className="font-semibold mb-6">Filters</h2>
-                      <FiltersContent />
+                      <FiltersContent
+                        priceRange={priceRange}
+                        setPriceRange={setPriceRange}
+                        selectedCuisines={selectedCuisines}
+                        toggleCuisine={toggleCuisine}
+                        instantBookOnly={instantBookOnly}
+                        setInstantBookOnly={setInstantBookOnly}
+                        superhostOnly={superhostOnly}
+                        setSuperhostOnly={setSuperhostOnly}
+                        clearFilters={clearFilters}
+                      />
                     </div>
                   </SheetContent>
                 </Sheet>

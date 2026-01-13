@@ -1,58 +1,58 @@
 'use client'
 
 import * as React from 'react'
-import * as SliderPrimitive from '@radix-ui/react-slider'
-
+import RcSlider from 'rc-slider'
+import 'rc-slider/assets/index.css'
 import { cn } from './utils'
 
-function Slider({
-  className,
-  defaultValue,
-  value,
-  min = 0,
-  max = 100,
-  ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
-  const _values = React.useMemo(
-    () => (Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]),
-    [value, defaultValue, min, max]
-  )
+type RcSliderProps = React.ComponentProps<typeof RcSlider>
 
-  return (
-    <SliderPrimitive.Root
-      data-slot="slider"
-      defaultValue={defaultValue}
-      value={value}
-      min={min}
-      max={max}
-      className={cn(
-        'relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col',
-        className
-      )}
-      {...props}
-    >
-      <SliderPrimitive.Track
-        data-slot="slider-track"
-        className={cn(
-          'bg-zinc-100 relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-2 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2'
-        )}
-      >
-        <SliderPrimitive.Range
-          data-slot="slider-range"
-          className={cn(
-            'bg-primary-600 absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full'
-          )}
-        />
-      </SliderPrimitive.Track>
-      {(_values || []).map((_, index) => (
-        <SliderPrimitive.Thumb
-          key={index}
-          data-slot="slider-thumb"
-          className="block h-5 w-5 rounded-full border-2 border-primary-600 bg-white shadow-lg ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
-        />
-      ))}
-    </SliderPrimitive.Root>
-  )
+interface SliderProps extends Omit<RcSliderProps, 'onChange' | 'range'> {
+  onValueChange?: (value: number | number[]) => void
+  range?: boolean
 }
+
+const Slider = React.forwardRef<any, SliderProps>(({ className, onValueChange, ...props }, ref) => {
+  return (
+    <div className={cn('relative w-full px-1', className)}>
+      <RcSlider
+        ref={ref}
+        range
+        allowCross={false}
+        {...props}
+        onChange={(val) => onValueChange?.(val)}
+        styles={{
+          track: { backgroundColor: 'hsl(var(--primary))', height: 6 },
+          rail: { backgroundColor: 'hsl(var(--secondary))', height: 6 },
+          handle: {
+            borderColor: 'hsl(var(--primary))',
+            backgroundColor: 'white',
+            opacity: 1,
+            height: 20,
+            width: 20,
+            marginTop: -7,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          },
+        }}
+      />
+      <style jsx global>{`
+        .rc-slider-handle {
+          cursor: grab !important;
+        }
+        .rc-slider-handle:active {
+          cursor: grabbing !important;
+          border-color: hsl(var(--primary)) !important;
+          box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2) !important;
+        }
+        .rc-slider-handle-dragging {
+          border-color: hsl(var(--primary)) !important;
+          box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2) !important;
+        }
+      `}</style>
+    </div>
+  )
+})
+
+Slider.displayName = 'Slider'
 
 export { Slider }
