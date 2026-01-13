@@ -60,7 +60,7 @@ const FiltersContent = ({
           onValueChange={(val) => {
             if (Array.isArray(val)) setPriceRange(val)
           }}
-          max={200}
+          max={1000}
           min={0}
           step={1}
           className="w-full"
@@ -128,7 +128,7 @@ const FiltersContent = ({
 export function SearchResults({ searchParams }: SearchResultsProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('recommended')
-  const [priceRange, setPriceRange] = useState([0, 200])
+  const [priceRange, setPriceRange] = useState([0, 1000])
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([])
   const [instantBookOnly, setInstantBookOnly] = useState(false)
   const [superhostOnly, setSuperhostOnly] = useState(false)
