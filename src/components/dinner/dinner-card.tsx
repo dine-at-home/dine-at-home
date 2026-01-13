@@ -150,9 +150,19 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
           </div>
 
           <div className="flex items-center gap-3 text-zinc-500 text-sm">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-zinc-400" />
-              <span className="truncate max-w-[120px]">{dinner.location.neighborhood}</span>
+            <div className="flex items-start gap-1.5">
+              <MapPin className="w-4 h-4 text-zinc-400 mt-0.5" />
+              <div className="flex flex-col truncate max-w-[120px]">
+                {dinner.location.neighborhood && (
+                  <span className="truncate">{dinner.location.neighborhood}</span>
+                )}
+                {dinner.location.city && (
+                  <span className="truncate text-zinc-400">{dinner.location.city}</span>
+                )}
+                {!dinner.location.neighborhood && !dinner.location.city && (
+                  <span>Location</span>
+                )}
+              </div>
             </div>
             <div className="w-1 h-1 rounded-full bg-zinc-300" />
             <div className="flex items-center gap-1.5">

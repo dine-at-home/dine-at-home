@@ -93,6 +93,7 @@ model Dinner {
   included    String   // JSON array of included items
   houseRules  String   // JSON array of house rules
   location    String   // JSON object with location data
+  cancellationPolicy String @default("flexible") // flexible, moderate, strict
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
