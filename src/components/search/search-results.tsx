@@ -153,8 +153,10 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
           page: '1',
         })
 
+        // Search by query (title or location) - takes precedence over location
         if (searchParams.location) {
-          queryParams.append('location', searchParams.location)
+          // Use location as query to search both title and location
+          queryParams.append('query', searchParams.location)
         }
         if (searchParams.month) {
           queryParams.append('month', searchParams.month)
@@ -380,7 +382,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 <h1 className="text-2xl font-semibold">
                   {loading ? 'Loading...' : `${filteredDinners.length} dinner experiences`}
                   {searchParams.location && (
-                    <span className="text-muted-foreground"> in {searchParams.location}</span>
+                    <span className="text-muted-foreground"> for "{searchParams.location}"</span>
                   )}
                 </h1>
                 {(searchParams.month || searchParams.date) && (

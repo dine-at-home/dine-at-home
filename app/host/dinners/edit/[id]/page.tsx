@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,7 @@ import {
   Image as ImageIcon,
   AlertCircle,
   Loader2,
+  Shield,
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
@@ -44,6 +45,25 @@ function EditDinnerPageContent() {
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
+
+  const cityInputRef = useRef<HTMLInputElement>(null)
+  const neighborhoodInputRef = useRef<HTMLInputElement>(null)
+  const citySuggestionsRef = useRef<HTMLDivElement>(null)
+  const neighborhoodSuggestionsRef = useRef<HTMLDivElement>(null)
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
+  const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false)
+  
+  // City autocomplete state
+  const [citySuggestions, setCitySuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false)
+  const [selectedCityIndex, setSelectedCityIndex] = useState(-1)
+  
+  // Neighborhood autocomplete state
+  const [neighborhoodSuggestions, setNeighborhoodSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [showNeighborhoodSuggestions, setShowNeighborhoodSuggestions] = useState(false)
+  const [selectedNeighborhoodIndex, setSelectedNeighborhoodIndex] = useState(-1)
+
   const [dinnerData, setDinnerData] = useState({
     title: '',
     description: '',
@@ -54,6 +74,7 @@ function EditDinnerPageContent() {
     specialInstructions: '',
     address: '',
     city: '',
+    neighborhood: '',
     state: '',
     zipCode: '',
     directions: '',
@@ -140,6 +161,7 @@ function EditDinnerPageContent() {
             specialInstructions: houseRulesString,
             address: locationData.address || dinner.location?.address || '',
             city: locationData.city || dinner.location?.city || '',
+            neighborhood: locationData.neighborhood || dinner.location?.neighborhood || '',
             state: locationData.state || dinner.location?.state || '',
             zipCode: locationData.zipCode || '',
             directions: '',
@@ -214,6 +236,353 @@ function EditDinnerPageContent() {
       ...prev,
       [field]: value,
     }))
+  }
+
+  // Load Google Places API
+  useEffect(() => {
+    const loadGooglePlaces = () => {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+      
+      if (!apiKey) {
+        console.warn('Google Places API key is not set. Autocomplete will not work.')
+        return
+      }
+
+      if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
+        setGooglePlacesLoaded(true)
+        // Initialize services
+        try {
+          autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+          const dummyDiv = document.createElement('div')
+          placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+        } catch (error) {
+          console.error('Error initializing Google Places services:', error)
+        }
+        return
+      }
+
+      // Check if script is already loading
+      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+        // Wait for it to load
+        const checkInterval = setInterval(() => {
+          if ((window as any).google?.maps?.places) {
+            setGooglePlacesLoaded(true)
+            try {
+              autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+              const dummyDiv = document.createElement('div')
+              placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+            } catch (error) {
+              console.error('Error initializing Google Places services:', error)
+            }
+            clearInterval(checkInterval)
+          }
+        }, 100)
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval)
+        }, 10000)
+        
+        return () => clearInterval(checkInterval)
+      }
+
+      // Load Google Maps API with Places library
+      const script = document.createElement('script')
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en`
+      script.async = true
+      script.defer = true
+      script.onload = () => {
+        if ((window as any).google?.maps?.places) {
+          setGooglePlacesLoaded(true)
+          try {
+            autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+            const dummyDiv = document.createElement('div')
+            placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+          } catch (error) {
+            console.error('Error initializing Google Places services:', error)
+          }
+        }
+      }
+      script.onerror = (error) => {
+        console.error('Failed to load Google Places API:', error)
+        console.error('Please check your NEXT_PUBLIC_GOOGLE_PLACES_API_KEY environment variable')
+      }
+      document.head.appendChild(script)
+    }
+
+    loadGooglePlaces()
+  }, [])
+
+  // Fetch city suggestions when city input changes
+  useEffect(() => {
+    if (!googlePlacesLoaded || !autocompleteServiceRef.current || !dinnerData.city.trim()) {
+      setCitySuggestions([])
+      setShowCitySuggestions(false)
+      return
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(() => {
+      if (autocompleteServiceRef.current && dinnerData.city.trim()) {
+        try {
+          autocompleteServiceRef.current.getPlacePredictions(
+            {
+              input: dinnerData.city,
+              componentRestrictions: { country: 'is' }, // Restrict to Iceland
+              types: ['(cities)'],
+            },
+            (predictions, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                setCitySuggestions(predictions)
+                setShowCitySuggestions(predictions.length > 0)
+                setSelectedCityIndex(-1)
+              } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                // Only log errors, not zero results (which is normal)
+                console.warn('Google Places API error for city search:', status)
+                setCitySuggestions([])
+                setShowCitySuggestions(false)
+              } else {
+                setCitySuggestions([])
+                setShowCitySuggestions(false)
+              }
+            }
+          )
+        } catch (error) {
+          console.error('Error fetching city predictions:', error)
+          setCitySuggestions([])
+          setShowCitySuggestions(false)
+        }
+      }
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [dinnerData.city, googlePlacesLoaded])
+
+  // Handle city selection
+  const handleSelectCity = (placeId: string, description: string) => {
+    // Get place details to extract city name
+    if (placesServiceRef.current) {
+      placesServiceRef.current.getDetails(
+        {
+          placeId: placeId,
+          fields: ['address_components', 'name'],
+        },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+            // Extract city name
+            const cityComponent = place.address_components?.find(
+              (component) => component.types.includes('locality') || component.types.includes('administrative_area_level_1')
+            )
+            if (cityComponent) {
+              handleInputChange('city', cityComponent.long_name)
+            } else {
+              handleInputChange('city', place.name || description)
+            }
+            // Clear neighborhood when city changes
+            handleInputChange('neighborhood', '')
+            setShowCitySuggestions(false)
+            setCitySuggestions([])
+            setSelectedCityIndex(-1)
+          }
+        }
+      )
+    } else {
+      // Fallback to description if service not available
+      handleInputChange('city', description)
+      handleInputChange('neighborhood', '')
+      setShowCitySuggestions(false)
+    }
+  }
+
+  // Fetch neighborhood suggestions when neighborhood input changes
+  useEffect(() => {
+    if (!googlePlacesLoaded || !autocompleteServiceRef.current || !dinnerData.neighborhood.trim() || !dinnerData.city) {
+      setNeighborhoodSuggestions([])
+      setShowNeighborhoodSuggestions(false)
+      return
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(() => {
+      if (autocompleteServiceRef.current && dinnerData.neighborhood.trim()) {
+        try {
+          // Search for neighborhoods - use a broader search strategy
+          const searchQuery = dinnerData.neighborhood.trim()
+          autocompleteServiceRef.current.getPlacePredictions(
+            {
+              input: searchQuery,
+              componentRestrictions: { country: 'is' }, // Restrict to Iceland
+              // Don't restrict types too much - let Google return relevant results
+            },
+            (predictions, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                // Filter predictions to prioritize neighborhoods/areas in the selected city
+                const filtered = predictions.filter((pred) => {
+                  const desc = pred.description.toLowerCase()
+                  const cityLower = dinnerData.city.toLowerCase()
+                  // Include results that mention the city or Iceland
+                  return desc.includes(cityLower) || desc.includes('iceland')
+                })
+                // Use filtered results if available, otherwise use all predictions
+                const finalResults = filtered.length > 0 ? filtered : predictions
+                setNeighborhoodSuggestions(finalResults)
+                setShowNeighborhoodSuggestions(finalResults.length > 0)
+                setSelectedNeighborhoodIndex(-1)
+              } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                // Only log errors, not zero results (which is normal)
+                console.warn('Google Places API error for neighborhood search:', status)
+                setNeighborhoodSuggestions([])
+                setShowNeighborhoodSuggestions(false)
+              } else {
+                setNeighborhoodSuggestions([])
+                setShowNeighborhoodSuggestions(false)
+              }
+            }
+          )
+        } catch (error) {
+          console.error('Error fetching neighborhood predictions:', error)
+          setNeighborhoodSuggestions([])
+          setShowNeighborhoodSuggestions(false)
+        }
+      }
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [dinnerData.neighborhood, dinnerData.city, googlePlacesLoaded])
+
+  // Handle neighborhood selection
+  const handleSelectNeighborhood = (placeId: string, description: string) => {
+    // Get place details to extract neighborhood name
+    if (placesServiceRef.current) {
+      placesServiceRef.current.getDetails(
+        {
+          placeId: placeId,
+          fields: ['name'],
+        },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+            handleInputChange('neighborhood', place.name || description)
+            setShowNeighborhoodSuggestions(false)
+            setNeighborhoodSuggestions([])
+            setSelectedNeighborhoodIndex(-1)
+          }
+        }
+      )
+    } else {
+      // Fallback to description if service not available
+      handleInputChange('neighborhood', description)
+      setShowNeighborhoodSuggestions(false)
+    }
+  }
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        citySuggestionsRef.current &&
+        !citySuggestionsRef.current.contains(event.target as Node) &&
+        cityInputRef.current &&
+        !cityInputRef.current.contains(event.target as Node)
+      ) {
+        setShowCitySuggestions(false)
+      }
+      if (
+        neighborhoodSuggestionsRef.current &&
+        !neighborhoodSuggestionsRef.current.contains(event.target as Node) &&
+        neighborhoodInputRef.current &&
+        !neighborhoodInputRef.current.contains(event.target as Node)
+      ) {
+        setShowNeighborhoodSuggestions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Handle keyboard navigation for city
+  const handleCityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showCitySuggestions || citySuggestions.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedCityIndex((prev) => {
+          const newIndex = prev < citySuggestions.length - 1 ? prev + 1 : prev
+          if (citySuggestionsRef.current && newIndex >= 0) {
+            const element = citySuggestionsRef.current.children[newIndex] as HTMLElement
+            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+          return newIndex
+        })
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedCityIndex((prev) => {
+          const newIndex = prev > 0 ? prev - 1 : -1
+          if (citySuggestionsRef.current && newIndex >= 0) {
+            const element = citySuggestionsRef.current.children[newIndex] as HTMLElement
+            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+          return newIndex
+        })
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedCityIndex >= 0 && citySuggestions[selectedCityIndex]) {
+          handleSelectCity(citySuggestions[selectedCityIndex].place_id, citySuggestions[selectedCityIndex].description)
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setShowCitySuggestions(false)
+        setSelectedCityIndex(-1)
+        break
+    }
+  }
+
+  // Handle keyboard navigation for neighborhood
+  const handleNeighborhoodKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showNeighborhoodSuggestions || neighborhoodSuggestions.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedNeighborhoodIndex((prev) => {
+          const newIndex = prev < neighborhoodSuggestions.length - 1 ? prev + 1 : prev
+          if (neighborhoodSuggestionsRef.current && newIndex >= 0) {
+            const element = neighborhoodSuggestionsRef.current.children[newIndex] as HTMLElement
+            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+          return newIndex
+        })
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedNeighborhoodIndex((prev) => {
+          const newIndex = prev > 0 ? prev - 1 : -1
+          if (neighborhoodSuggestionsRef.current && newIndex >= 0) {
+            const element = neighborhoodSuggestionsRef.current.children[newIndex] as HTMLElement
+            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+          return newIndex
+        })
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedNeighborhoodIndex >= 0 && neighborhoodSuggestions[selectedNeighborhoodIndex]) {
+          handleSelectNeighborhood(
+            neighborhoodSuggestions[selectedNeighborhoodIndex].place_id,
+            neighborhoodSuggestions[selectedNeighborhoodIndex].description
+          )
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setShowNeighborhoodSuggestions(false)
+        setSelectedNeighborhoodIndex(-1)
+        break
+    }
   }
 
   const handleDietaryToggle = (dietary: string) => {
@@ -365,7 +734,7 @@ function EditDinnerPageContent() {
         city: dinnerData.city,
         state: dinnerData.state,
         zipCode: dinnerData.zipCode,
-        neighborhood: dinnerData.city,
+        neighborhood: dinnerData.neighborhood || dinnerData.city,
         coordinates: {
           lat: 0,
           lng: 0,
@@ -375,6 +744,19 @@ function EditDinnerPageContent() {
       // Validate date and time are provided
       if (!dinnerData.date || !dinnerData.time) {
         setError('Date and time are required')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Validate price
+      if (!dinnerData.pricePerPerson || dinnerData.pricePerPerson <= 0) {
+        setError('Price per person must be greater than 0')
+        setIsSubmitting(false)
+        return
+      }
+
+      if (dinnerData.pricePerPerson > 1000) {
+        setError('Price per person cannot exceed 1000 euros')
         setIsSubmitting(false)
         return
       }
@@ -654,34 +1036,139 @@ function EditDinnerPageContent() {
                     placeholder="123 Main Street"
                     required
                   />
+                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    This address will not be visible to guests until their booking is confirmed
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">City *</label>
-                    <Input
-                      value={dinnerData.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      placeholder="New York"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        ref={cityInputRef}
+                        value={dinnerData.city}
+                        onChange={(e) => handleInputChange('city', e.target.value)}
+                        onKeyDown={handleCityKeyDown}
+                        onFocus={() => {
+                          if (citySuggestions.length > 0) {
+                            setShowCitySuggestions(true)
+                          }
+                        }}
+                        placeholder="Reykjavik, Akureyri, etc."
+                        required
+                        disabled={!googlePlacesLoaded}
+                      />
+                      {!googlePlacesLoaded && (
+                        <p className="text-xs text-muted-foreground mt-1">Loading city suggestions...</p>
+                      )}
+                      {/* Custom City Suggestions Dropdown */}
+                      {showCitySuggestions && citySuggestions.length > 0 && (
+                        <div
+                          ref={citySuggestionsRef}
+                          className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                        >
+                          {citySuggestions.map((suggestion, index) => (
+                            <button
+                              key={suggestion.place_id}
+                              type="button"
+                              onClick={() => handleSelectCity(suggestion.place_id, suggestion.description)}
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                                index === selectedCityIndex ? 'bg-gray-50' : ''
+                              } ${index === 0 ? 'rounded-t-xl' : ''} ${
+                                index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm text-gray-900 truncate">
+                                    {suggestion.structured_formatting.main_text}
+                                  </div>
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {suggestion.structured_formatting.secondary_text}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Area/Neighborhood *</label>
+                    <div className="relative">
+                      <Input
+                        ref={neighborhoodInputRef}
+                        value={dinnerData.neighborhood}
+                        onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+                        onKeyDown={handleNeighborhoodKeyDown}
+                        onFocus={() => {
+                          if (neighborhoodSuggestions.length > 0) {
+                            setShowNeighborhoodSuggestions(true)
+                          }
+                        }}
+                        placeholder={dinnerData.city ? `Neighborhood in ${dinnerData.city}` : 'Select a city first'}
+                        required
+                        disabled={!googlePlacesLoaded || !dinnerData.city}
+                      />
+                      {!dinnerData.city && (
+                        <p className="text-xs text-muted-foreground mt-1">Please select a city first</p>
+                      )}
+                      {/* Custom Neighborhood Suggestions Dropdown */}
+                      {showNeighborhoodSuggestions && neighborhoodSuggestions.length > 0 && (
+                        <div
+                          ref={neighborhoodSuggestionsRef}
+                          className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                        >
+                          {neighborhoodSuggestions.map((suggestion, index) => (
+                            <button
+                              key={suggestion.place_id}
+                              type="button"
+                              onClick={() => handleSelectNeighborhood(suggestion.place_id, suggestion.description)}
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                                index === selectedNeighborhoodIndex ? 'bg-gray-50' : ''
+                              } ${index === 0 ? 'rounded-t-xl' : ''} ${
+                                index === neighborhoodSuggestions.length - 1 ? 'rounded-b-xl' : ''
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm text-gray-900 truncate">
+                                    {suggestion.structured_formatting.main_text}
+                                  </div>
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {suggestion.structured_formatting.secondary_text}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">State *</label>
                     <Input
                       value={dinnerData.state}
                       onChange={(e) => handleInputChange('state', e.target.value)}
-                      placeholder="NY"
+                      placeholder="Iceland"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">ZIP Code *</label>
+                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
                     <Input
                       value={dinnerData.zipCode}
                       onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                      placeholder="10001"
-                      required
+                      placeholder="Optional"
                     />
                   </div>
                 </div>
@@ -802,10 +1289,15 @@ function EditDinnerPageContent() {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">€</span>
                       <Input
                         type="number"
+                        min="1"
+                        max="1000"
                         value={dinnerData.pricePerPerson}
-                        onChange={(e) =>
-                          handleInputChange('pricePerPerson', parseInt(e.target.value))
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value ? parseInt(e.target.value) || 0 : 0
+                          // Prevent values over 1000
+                          const clampedValue = value > 1000 ? 1000 : value
+                          handleInputChange('pricePerPerson', clampedValue)
+                        }}
                         placeholder="85"
                         className="pl-10"
                         required
