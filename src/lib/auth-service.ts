@@ -270,6 +270,8 @@ class AuthService {
         // Store reference to message listener for cleanup
         let messageListener: ((event: MessageEvent) => void) | null = null
         let handled = false // Track if we've already handled the authentication
+        let checkClosed: NodeJS.Timeout | null = null
+        let timeoutId: NodeJS.Timeout | null = null
 
         // Listen for messages from the popup
         messageListener = (event: MessageEvent) => {
@@ -283,9 +285,14 @@ class AuthService {
             if (handled) return
             handled = true
 
-            // Clear the interval if it exists
+            // Clear the interval and timeout if they exist
             if (checkClosed) {
               clearInterval(checkClosed)
+              checkClosed = null
+            }
+            if (timeoutId) {
+              clearTimeout(timeoutId)
+              timeoutId = null
             }
 
             // Authentication succeeded, refresh the page
@@ -306,9 +313,14 @@ class AuthService {
             if (handled) return
             handled = true
 
-            // Clear the interval if it exists
+            // Clear the interval and timeout if they exist
             if (checkClosed) {
               clearInterval(checkClosed)
+              checkClosed = null
+            }
+            if (timeoutId) {
+              clearTimeout(timeoutId)
+              timeoutId = null
             }
 
             // Authentication failed - dispatch custom event for error handling
@@ -325,22 +337,60 @@ class AuthService {
         window.addEventListener('message', messageListener)
 
         // Monitor the popup window for closure (fallback - only if no message received)
-        let checkClosed: NodeJS.Timeout | null = null
-        checkClosed = setInterval(() => {
-          if (newWindow.closed) {
-            clearInterval(checkClosed!)
+        // Use try-catch to handle COOP (Cross-Origin-Opener-Policy) restrictions
+        
+        // Set a maximum timeout for the popup (5 minutes)
+        timeoutId = setTimeout(() => {
+          if (checkClosed) {
+            clearInterval(checkClosed)
             checkClosed = null
+          }
+          if (!handled) {
+            window.removeEventListener('message', messageListener)
+            const errorEvent = new CustomEvent('googleAuthError', {
+              detail: { error: 'Authentication timed out. Please try again.' },
+            })
+            window.dispatchEvent(errorEvent)
+          }
+        }, 5 * 60 * 1000) // 5 minutes
 
-            // Only handle popup closure if we haven't received a message
-            if (!handled) {
-              window.removeEventListener('message', messageListener)
-              // Check if user is authenticated after popup closes (fallback)
-              setTimeout(() => {
-                // Refresh user data in case authentication succeeded
-                if (typeof window !== 'undefined') {
-                  window.location.reload()
-                }
-              }, 500)
+        checkClosed = setInterval(() => {
+          try {
+            // Check if window is closed - this may fail due to COOP policy
+            if (newWindow.closed) {
+              if (checkClosed) {
+                clearInterval(checkClosed)
+                checkClosed = null
+              }
+              if (timeoutId) {
+                clearTimeout(timeoutId)
+                timeoutId = null
+              }
+
+              // Only handle popup closure if we haven't received a message
+              if (!handled) {
+                window.removeEventListener('message', messageListener)
+                // Check if user is authenticated after popup closes (fallback)
+                setTimeout(() => {
+                  // Refresh user data in case authentication succeeded
+                  if (typeof window !== 'undefined') {
+                    window.location.reload()
+                  }
+                }, 500)
+              }
+            }
+          } catch (error) {
+            // COOP policy blocked the window.closed check
+            // This is expected in some production environments
+            // We'll rely on message passing instead, so we can safely ignore this error
+            // Only log in development to avoid console noise in production
+            if (process.env.NODE_ENV === 'development') {
+              console.debug('COOP policy blocked window.closed check, relying on message passing')
+            }
+            // Clear the interval since we can't reliably check window.closed
+            if (checkClosed) {
+              clearInterval(checkClosed)
+              checkClosed = null
             }
           }
         }, 500)
