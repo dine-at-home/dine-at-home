@@ -1427,7 +1427,7 @@ function ProfilePageContent() {
                                         {booking.guests} guest{booking.guests > 1 ? 's' : ''}
                                       </span>
                                       <span className="text-lg font-semibold text-primary-600">
-                                        ${booking.totalAmount}
+                                        €{booking.totalAmount}
                                       </span>
                                     </div>
                                   </div>

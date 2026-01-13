@@ -15,7 +15,6 @@ import {
   Clock,
   Users,
   MapPin,
-  DollarSign,
   ArrowLeft,
   User,
   ChefHat,
@@ -212,10 +211,10 @@ function BookingDetailPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <DollarSign className="w-5 h-5 text-muted-foreground" />
+                  <span className="w-5 h-5 text-muted-foreground text-lg font-medium">€</span>
                   <div>
                     <p className="text-sm font-medium">Total Price</p>
-                    <p className="text-sm text-muted-foreground">${booking.totalPrice}</p>
+                    <p className="text-sm text-muted-foreground">€{booking.totalPrice}</p>
                   </div>
                 </div>
               </div>

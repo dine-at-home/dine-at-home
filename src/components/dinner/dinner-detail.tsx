@@ -629,7 +629,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
             <Card className="sticky top-24 shadow-modal">
               <CardContent className="p-6">
                 <div className="flex items-baseline space-x-2 mb-6">
-                  <span className="text-2xl font-semibold">${dinner.price}</span>
+                  <span className="text-2xl font-semibold">€{dinner.price}</span>
                   <span className="text-muted-foreground">per person</span>
                 </div>
 
@@ -681,18 +681,18 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 <div className="space-y-3 mb-6 text-sm">
                   <div className="flex justify-between">
                     <span>
-                      ${dinner.price} x {selectedGuests} guests
+                      €{dinner.price} x {selectedGuests} guests
                     </span>
-                    <span>${dinner.price * selectedGuests}</span>
+                    <span>€{dinner.price * selectedGuests}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Service fee</span>
-                    <span>${Math.round(dinner.price * selectedGuests * 0.20)}</span>
+                    <span>€{Math.round(dinner.price * selectedGuests * 0.20)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>${Math.round(dinner.price * selectedGuests * 1.20)}</span>
+                    <span>€{Math.round(dinner.price * selectedGuests * 1.20)}</span>
                   </div>
                 </div>
 

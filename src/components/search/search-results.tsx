@@ -229,8 +229,8 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             className="w-full"
           />
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>${priceRange[0]}</span>
-            <span>${priceRange[1]}+</span>
+            <span>€{priceRange[0]}</span>
+            <span>€{priceRange[1]}+</span>
           </div>
         </div>
       </div>
@@ -478,7 +478,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                       className="cursor-pointer hover:bg-secondary/80"
                       onClick={() => setPriceRange([0, 200])}
                     >
-                      ${priceRange[0]} - ${priceRange[1]} ×
+                      €{priceRange[0]} - €{priceRange[1]} ×
                     </Badge>
                   )}
                 </div>

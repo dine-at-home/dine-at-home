@@ -24,7 +24,6 @@ import {
   Calendar,
   Clock,
   Users,
-  DollarSign,
   Camera,
   Upload,
   ChefHat,
@@ -380,10 +379,10 @@ function HostOnboardingPageContent() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="budget">Budget ($20-40 per person)</SelectItem>
-              <SelectItem value="moderate">Moderate ($40-80 per person)</SelectItem>
-              <SelectItem value="premium">Premium ($80-150 per person)</SelectItem>
-              <SelectItem value="luxury">Luxury ($150+ per person)</SelectItem>
+              <SelectItem value="budget">Budget (€20-40 per person)</SelectItem>
+              <SelectItem value="moderate">Moderate (€40-80 per person)</SelectItem>
+              <SelectItem value="premium">Premium (€80-150 per person)</SelectItem>
+              <SelectItem value="luxury">Luxury (€150+ per person)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -459,7 +458,7 @@ function HostOnboardingPageContent() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5" />
+          <span className="w-5 h-5 text-lg font-bold">€</span>
           Payment Setup
         </CardTitle>
         <CardDescription>Connect your Stripe account to receive payments</CardDescription>
@@ -467,7 +466,7 @@ function HostOnboardingPageContent() {
       <CardContent className="space-y-6">
         <div className="text-center py-8">
           <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <DollarSign className="w-8 h-8 text-primary-600" />
+            <span className="w-8 h-8 text-primary-600 text-2xl font-bold">€</span>
           </div>
           <h3 className="text-lg font-semibold mb-2">Connect Stripe Account</h3>
           <p className="text-muted-foreground mb-6">

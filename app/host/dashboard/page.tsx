@@ -24,7 +24,6 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Calendar,
   Users,
-  DollarSign,
   Star,
   Plus,
   Edit,
@@ -50,6 +49,7 @@ import {
   Save,
   X,
   Camera,
+  Wallet,
 } from 'lucide-react'
 import Image from 'next/image'
 import moment from 'moment-timezone'
@@ -1166,9 +1166,9 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">€{stats.totalRevenue.toLocaleString()}</p>
               </div>
-              <DollarSign className="w-8 h-8 text-primary-600" />
+              <Wallet className="w-8 h-8 text-primary-600" />
             </div>
           </CardContent>
         </Card>
@@ -1311,10 +1311,10 @@ function HostDashboardContent() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
                 <p className="text-2xl font-bold">
-                  ${dinners.reduce((sum, d) => sum + d.revenue, 0)}
+                  €{dinners.reduce((sum, d) => sum + d.revenue, 0)}
                 </p>
               </div>
-              <DollarSign className="w-8 h-8 text-primary-600" />
+              <Wallet className="w-8 h-8 text-primary-600" />
             </div>
           </CardContent>
         </Card>
@@ -1396,7 +1396,8 @@ function HostDashboardContent() {
                     {dinner.guests}/{dinner.maxCapacity} guests
                   </div>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />${dinner.price} per person
+                    <span className="text-lg font-bold text-primary-600">€{dinner.price}</span>
+                    <span className="text-sm text-muted-foreground">per person</span>
                   </div>
                 </div>
 
@@ -1408,7 +1409,7 @@ function HostDashboardContent() {
                     </span>
                     <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
                   </div>
-                  <span className="font-semibold text-primary-600">${dinner.revenue}</span>
+                  <span className="font-semibold text-primary-600">€{dinner.revenue}</span>
                 </div>
 
                 <div className="flex gap-2">
@@ -1483,7 +1484,10 @@ function HostDashboardContent() {
         <div className="space-y-4">
           {bookings.map((booking) => (
             <Card key={booking.id}>
-              <CardContent className="p-6">
+              <CardContent className="p-6 relative">
+                <Badge className={`absolute top-4 right-4 ${getStatusColor(booking.status)}`}>
+                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                </Badge>
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => booking.guest.id && handleViewGuestProfile(booking.guest.id)}
@@ -1495,21 +1499,16 @@ function HostDashboardContent() {
                     </Avatar>
                   </button>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <button
-                          onClick={() =>
-                            booking.guest.id && handleViewGuestProfile(booking.guest.id)
-                          }
-                          className="cursor-pointer hover:underline"
-                        >
-                          <h3 className="font-semibold">{booking.guest.name}</h3>
-                        </button>
-                        <p className="text-sm text-muted-foreground">{booking.guest.email}</p>
-                      </div>
-                      <Badge className={getStatusColor(booking.status)}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </Badge>
+                    <div>
+                      <button
+                        onClick={() =>
+                          booking.guest.id && handleViewGuestProfile(booking.guest.id)
+                        }
+                        className="cursor-pointer hover:underline"
+                      >
+                        <h3 className="font-semibold">{booking.guest.name}</h3>
+                      </button>
+                      <p className="text-sm text-muted-foreground">{booking.guest.email}</p>
                     </div>
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
@@ -1529,7 +1528,7 @@ function HostDashboardContent() {
                         {booking.guests} guest{booking.guests > 1 ? 's' : ''}
                       </div>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4" />${booking.totalAmount}
+                        <span className="text-lg font-bold text-primary-600">€{booking.totalAmount}</span>
                       </div>
                       {booking.specialRequests && (
                         <div className="mt-2 p-2 bg-muted rounded text-xs">
