@@ -12,8 +12,14 @@ function GoogleCallbackContent() {
   const { refreshUser } = useAuth()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [message, setMessage] = useState('Authenticating with Google...')
+  const [hasExchanged, setHasExchanged] = useState(false) // Prevent duplicate exchanges
 
   useEffect(() => {
+    // Prevent duplicate code exchanges
+    if (hasExchanged) {
+      return
+    }
+
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
 
@@ -62,6 +68,9 @@ function GoogleCallbackContent() {
       }
       return
     }
+
+    // Mark as exchanging to prevent duplicate calls
+    setHasExchanged(true)
 
     // Exchange code for token
     console.log('Exchanging Google OAuth code for token...')
@@ -145,7 +154,7 @@ function GoogleCallbackContent() {
           }, 3000)
         }
       })
-  }, [searchParams, router, refreshUser])
+  }, [searchParams, router, refreshUser, hasExchanged])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted">
