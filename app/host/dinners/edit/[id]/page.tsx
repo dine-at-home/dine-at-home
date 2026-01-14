@@ -129,7 +129,9 @@ function EditDinnerPageContent() {
             : dinner.houseRules?.[0] || ''
 
           // Parse duration from minutes to hours (from raw backend response)
-          const durationHours = rawDinner.duration ? Math.floor(rawDinner.duration / 60) : 3
+          // Handle cases where duration is less than 60 minutes (e.g., 2 minutes = 0.033333 hours)
+          const durationMinutes = rawDinner.duration || 180
+          const durationHours = durationMinutes < 60 ? durationMinutes / 60 : Math.floor(durationMinutes / 60)
 
           // Get location data from raw response (it has zipCode)
           const locationData = rawDinner.location
@@ -328,7 +330,7 @@ function EditDinnerPageContent() {
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: dinnerData.city,
-              componentRestrictions: { country: 'is' }, // Restrict to Iceland
+              // No country restriction - allow all countries
               types: ['(cities)'],
             },
             (predictions, status) => {
@@ -411,7 +413,7 @@ function EditDinnerPageContent() {
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: searchQuery,
-              componentRestrictions: { country: 'is' }, // Restrict to Iceland
+              // No country restriction - allow all countries
               // Don't restrict types too much - let Google return relevant results
             },
             (predictions, status) => {
@@ -1230,15 +1232,16 @@ function EditDinnerPageContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Duration (hours)</label>
+                    <label className="block text-sm font-medium mb-2">Duration (hours/minutes)</label>
                     <Select
                       value={dinnerData.duration.toString()}
-                      onValueChange={(value) => handleInputChange('duration', parseInt(value))}
+                      onValueChange={(value) => handleInputChange('duration', parseFloat(value))}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="0.033333">2 minutes</SelectItem>
                         <SelectItem value="2">2 hours</SelectItem>
                         <SelectItem value="3">3 hours</SelectItem>
                         <SelectItem value="4">4 hours</SelectItem>
@@ -1433,9 +1436,6 @@ function EditDinnerPageContent() {
                     <SelectContent>
                       <SelectItem value="flexible">Flexible - Full refund 24h before</SelectItem>
                       <SelectItem value="moderate">Moderate - Full refund 5 days before</SelectItem>
-                      <SelectItem value="strict">
-                        Strict - 50% refund up to 7 days before
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

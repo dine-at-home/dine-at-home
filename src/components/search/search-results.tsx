@@ -20,6 +20,15 @@ import {
   ArrowUpDown,
   Search,
 } from 'lucide-react'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '../ui/pagination'
 import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
 import { shouldShowInListings } from '@/lib/dinner-filters'
@@ -42,7 +51,7 @@ const FiltersContent = ({
   clearFilters,
 }: {
   priceRange: number[]
-  setPriceRange: React.Dispatch<React.SetStateAction<number[]>>
+  setPriceRange: (range: number[]) => void
   selectedCuisines: string[]
   toggleCuisine: (val: string) => void
   instantBookOnly: boolean
@@ -110,7 +119,10 @@ const FiltersContent = ({
           <Checkbox
             id="superhost"
             checked={superhostOnly}
-            onCheckedChange={(checked) => setSuperhostOnly(checked === true)}
+            onCheckedChange={(checked) => {
+              setSuperhostOnly(checked === true)
+              // Page reset is handled by parent component
+            }}
           />
           <label htmlFor="superhost" className="text-sm font-medium">
             Superhost only
@@ -127,7 +139,7 @@ const FiltersContent = ({
 
 export function SearchResults({ searchParams }: SearchResultsProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [sortBy, setSortBy] = useState('recommended')
+  const [sortBy, setSortBy] = useState('rating')
   const [priceRange, setPriceRange] = useState([0, 1000])
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([])
   const [instantBookOnly, setInstantBookOnly] = useState(false)
@@ -136,6 +148,9 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   const [dinners, setDinners] = useState<Dinner[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalDinners, setTotalDinners] = useState(0)
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false)
@@ -147,11 +162,29 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         setLoading(true)
         setError(null)
 
-        // Build query parameters
+        // Build query parameters with pagination (6 items per page)
         const queryParams = new URLSearchParams({
-          limit: '100',
-          page: '1',
+          limit: '6',
+          page: currentPage.toString(),
         })
+        
+        // Add sortBy parameter
+        if (sortBy) {
+          queryParams.append('sortBy', sortBy)
+        }
+        
+        // Add price filter
+        if (priceRange[0] > 0) {
+          queryParams.append('minPrice', priceRange[0].toString())
+        }
+        if (priceRange[1] < 1000) {
+          queryParams.append('maxPrice', priceRange[1].toString())
+        }
+        
+        // Add instant book filter
+        if (instantBookOnly) {
+          queryParams.append('instantBook', 'true')
+        }
 
         // Search by query (title or location) - takes precedence over location
         if (searchParams.location) {
@@ -184,9 +217,17 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
           // Filter out booked and past dinners
           const availableDinners = transformedDinners.filter(shouldShowInListings)
           setDinners(availableDinners)
+          
+          // Update pagination info
+          if (result.pagination) {
+            setTotalPages(result.pagination.totalPages || 1)
+            setTotalDinners(result.pagination.total || 0)
+          }
         } else {
           setError(result.error || 'Failed to load dinners')
           setDinners([])
+          setTotalPages(1)
+          setTotalDinners(0)
         }
       } catch (err: any) {
         console.error('Error fetching dinners:', err)
@@ -204,6 +245,10 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     searchParams.month,
     searchParams.guests,
     searchParams.cuisine,
+    sortBy, // Refetch when sort changes
+    currentPage, // Refetch when page changes
+    priceRange, // Refetch when price filter changes
+    instantBookOnly, // Refetch when instant book filter changes
   ])
 
   // Listen for booking created events to remove dinner from listings in real-time
@@ -251,71 +296,53 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Filter and sort dinners
+  // Filter dinners (client-side filtering only for cuisine and superhost since they're not in API yet)
+  // Server handles sorting and pagination
   const filteredDinners = useMemo(() => {
-    let filtered = dinners.filter((dinner) => {
-      // Price filter
-      if (dinner.price < priceRange[0] || dinner.price > priceRange[1]) return false
-
-      // Cuisine filter
+    return dinners.filter((dinner) => {
+      // Cuisine filter (client-side for now)
       if (selectedCuisines.length > 0 && !selectedCuisines.includes(dinner.cuisine)) return false
 
-      // Instant book filter
-      if (instantBookOnly && !dinner.instantBook) return false
-
-      // Superhost filter
+      // Superhost filter (client-side for now)
       if (superhostOnly && !dinner.host.superhost) return false
-
-      // Location filter (basic string matching)
-      if (searchParams.location) {
-        const location = searchParams.location.toLowerCase()
-        const dinnerLocation =
-          `${dinner.location.city} ${dinner.location.state} ${dinner.location.neighborhood}`.toLowerCase()
-        if (!dinnerLocation.includes(location)) return false
-      }
-
-      // Guest capacity filter
-      if (searchParams.guests && dinner.capacity < searchParams.guests) return false
 
       return true
     })
-
-    // Sort results
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price)
-        break
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price)
-        break
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
-        break
-      case 'date':
-        filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        break
-      default:
-        // Keep recommended order (by rating then reviews)
-        filtered.sort((a, b) => {
-          if (b.rating !== a.rating) return b.rating - a.rating
-          return b.reviewCount - a.reviewCount
-        })
-    }
-
-    return filtered
-  }, [dinners, priceRange, selectedCuisines, instantBookOnly, superhostOnly, searchParams, sortBy])
+  }, [dinners, selectedCuisines, superhostOnly])
 
   const toggleCuisine = (cuisine: string) => {
     setSelectedCuisines((prev) =>
       prev.includes(cuisine) ? prev.filter((c) => c !== cuisine) : [...prev, cuisine]
     )
+    setCurrentPage(1) // Reset to first page when filter changes
+  }
+  
+  const handlePriceRangeChange = (newRange: number[]) => {
+    setPriceRange(newRange)
+    setCurrentPage(1) // Reset to first page when price filter changes
+  }
+  
+  const handleInstantBookChange = (value: boolean) => {
+    setInstantBookOnly(value)
+    setCurrentPage(1) // Reset to first page when filter changes
+  }
+  
+  const handleSuperhostChange = (value: boolean) => {
+    setSuperhostOnly(value)
+    setCurrentPage(1) // Reset to first page when filter changes
+  }
+  
+  const handleSortChange = (value: string) => {
+    setSortBy(value)
+    setCurrentPage(1) // Reset to first page when sort changes
   }
 
   const clearFilters = () => {
-    setPriceRange([0, 200])
+    setPriceRange([0, 1000])
     setSelectedCuisines([])
     setInstantBookOnly(false)
     setSuperhostOnly(false)
+    setCurrentPage(1) // Reset to first page
   }
 
   return (
@@ -362,13 +389,13 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
               </div>
               <FiltersContent
                 priceRange={priceRange}
-                setPriceRange={setPriceRange}
+                setPriceRange={handlePriceRangeChange}
                 selectedCuisines={selectedCuisines}
                 toggleCuisine={toggleCuisine}
                 instantBookOnly={instantBookOnly}
-                setInstantBookOnly={setInstantBookOnly}
+                setInstantBookOnly={handleInstantBookChange}
                 superhostOnly={superhostOnly}
-                setSuperhostOnly={setSuperhostOnly}
+                setSuperhostOnly={handleSuperhostChange}
                 clearFilters={clearFilters}
               />
             </div>
@@ -380,7 +407,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl font-semibold">
-                  {loading ? 'Loading...' : `${filteredDinners.length} dinner experiences`}
+                  {loading ? 'Loading...' : `${totalDinners || filteredDinners.length} dinner experience${totalDinners !== 1 ? 's' : ''}`}
                   {searchParams.location && (
                     <span className="text-muted-foreground"> for "{searchParams.location}"</span>
                   )}
@@ -422,11 +449,11 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                       <h2 className="font-semibold mb-6">Filters</h2>
                       <FiltersContent
                         priceRange={priceRange}
-                        setPriceRange={setPriceRange}
+                        setPriceRange={handlePriceRangeChange}
                         selectedCuisines={selectedCuisines}
                         toggleCuisine={toggleCuisine}
                         instantBookOnly={instantBookOnly}
-                        setInstantBookOnly={setInstantBookOnly}
+                        setInstantBookOnly={handleInstantBookChange}
                         superhostOnly={superhostOnly}
                         setSuperhostOnly={setSuperhostOnly}
                         clearFilters={clearFilters}
@@ -436,13 +463,12 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 </Sheet>
 
                 {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-48">
                     <ArrowUpDown className="w-4 h-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="recommended">Recommended</SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
                     <SelectItem value="rating">Highest Rated</SelectItem>
@@ -511,7 +537,10 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                     <Badge
                       variant="secondary"
                       className="cursor-pointer hover:bg-secondary/80"
-                      onClick={() => setInstantBookOnly(false)}
+                      onClick={() => {
+                        setInstantBookOnly(false)
+                        setCurrentPage(1)
+                      }}
                     >
                       Instant Book ×
                     </Badge>
@@ -520,16 +549,21 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                     <Badge
                       variant="secondary"
                       className="cursor-pointer hover:bg-secondary/80"
-                      onClick={() => setSuperhostOnly(false)}
+                      onClick={() => {
+                        handleSuperhostChange(false)
+                      }}
                     >
                       Superhost ×
                     </Badge>
                   )}
-                  {(priceRange[0] > 0 || priceRange[1] < 200) && (
+                  {(priceRange[0] > 0 || priceRange[1] < 1000) && (
                     <Badge
                       variant="secondary"
                       className="cursor-pointer hover:bg-secondary/80"
-                      onClick={() => setPriceRange([0, 200])}
+                      onClick={() => {
+                        setPriceRange([0, 1000])
+                        setCurrentPage(1)
+                      }}
                     >
                       €{priceRange[0]} - €{priceRange[1]} ×
                     </Badge>
@@ -566,6 +600,70 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 ))}
               </div>
             ) : null}
+            
+            {/* Pagination */}
+            {!loading && !error && totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => {
+                          if (currentPage > 1) {
+                            setCurrentPage(currentPage - 1)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }
+                        }}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              isActive={page === currentPage}
+                              onClick={() => {
+                                setCurrentPage(page)
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                              }}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )
+                      }
+                      return null
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => {
+                          if (currentPage < totalPages) {
+                            setCurrentPage(currentPage + 1)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }
+                        }}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         </div>
       </div>

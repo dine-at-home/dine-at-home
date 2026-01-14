@@ -203,7 +203,7 @@ export function SearchWidget({
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: location,
-              componentRestrictions: { country: 'is' }, // Restrict to Iceland
+              // No country restriction - allow all countries
               // Don't restrict types - let Google return relevant results (cities, regions, etc.)
             },
             (predictions, status) => {

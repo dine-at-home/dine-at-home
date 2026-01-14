@@ -235,6 +235,7 @@ export function transformDinner(dinner: any): Dinner {
     instantBook: dinner.instantBook || false,
     rating: dinner.rating || 0,
     reviewCount: dinner.reviewCount || 0,
+    cancellationPolicy: dinner.cancellationPolicy ?? 'flexible',
     thumbnail: dinner.thumbnail || (validImages.length > 0 ? validImages[0] : null),
     images: validImages.length > 0 ? validImages : [], // No hardcoded fallback
     host,

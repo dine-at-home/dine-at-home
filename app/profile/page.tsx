@@ -250,6 +250,8 @@ function ProfilePageContent() {
           // Transform bookings to match frontend format
           const transformedBookings = result.data.map((booking: any) => {
             console.log('🔵 Processing booking:', booking.id, 'dinner:', booking.dinner)
+            console.log('🔵 Backend dinner cancellationPolicy:', booking.dinner?.cancellationPolicy)
+            console.log('🔵 Full backend booking object:', JSON.parse(JSON.stringify(booking)))
 
             // Handle dinner data - backend already transforms it, but we need to ensure compatibility
             let dinner = null
@@ -258,6 +260,14 @@ function ProfilePageContent() {
                 // The backend already provides a transformed dinner object
                 // We need to adapt it to work with transformDinner or use it directly
                 const backendDinner = booking.dinner
+                console.log('🔵 Backend dinner object:', {
+                  id: backendDinner.id,
+                  title: backendDinner.title,
+                  cancellationPolicy: backendDinner.cancellationPolicy,
+                  hasCancellationPolicy: 'cancellationPolicy' in backendDinner,
+                  allKeys: Object.keys(backendDinner),
+                  fullDinnerObject: JSON.parse(JSON.stringify(backendDinner))
+                })
 
                 // Use transformDinner if needed, or use the backend format directly
                 dinner = transformDinner({
@@ -270,6 +280,7 @@ function ProfilePageContent() {
                   instantBook: backendDinner.instantBook || false,
                   rating: backendDinner.rating || 0,
                   reviewCount: backendDinner.reviewCount || 0,
+                  cancellationPolicy: backendDinner.cancellationPolicy ?? 'flexible',
                   // Images might already be an array from backend
                   images: Array.isArray(backendDinner.images)
                     ? backendDinner.images
@@ -280,6 +291,7 @@ function ProfilePageContent() {
                   // Host is already transformed
                   host: backendDinner.host || {},
                 })
+                console.log('🔵 Transformed dinner cancellationPolicy:', dinner.cancellationPolicy)
               } catch (error) {
                 console.error('Error transforming dinner for booking:', booking.id, error)
                 // Fallback: use backend data directly if transform fails
@@ -339,6 +351,7 @@ function ProfilePageContent() {
                     time: dinner.time,
                     price: dinner.price,
                     capacity: dinner.capacity,
+                    cancellationPolicy: dinner.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible',
                   }
                 : null,
               review: booking.review
@@ -357,6 +370,17 @@ function ProfilePageContent() {
           })
 
           console.log('🔵 Transformed bookings:', transformedBookings)
+          // Verify cancellationPolicy is set in each booking
+          transformedBookings.forEach((b: any) => {
+            if (b.dinner) {
+              console.log('🔵 Verification - Booking dinner cancellationPolicy:', {
+                bookingId: b.id,
+                cancellationPolicy: b.dinner.cancellationPolicy,
+                hasCancellationPolicy: 'cancellationPolicy' in b.dinner,
+                dinnerKeys: Object.keys(b.dinner)
+              })
+            }
+          })
           setBookings(transformedBookings)
         } else {
           console.log('🔵 No bookings found or API returned error')
@@ -435,22 +459,23 @@ function ProfilePageContent() {
                 if (booking.dinner) {
                   try {
                     const backendDinner = booking.dinner
-                    dinner = transformDinner({
-                      ...backendDinner,
-                      description: backendDinner.description || '',
-                      cuisine: backendDinner.cuisine || 'Other',
-                      capacity: backendDinner.capacity || 0,
-                      available: backendDinner.available || 0,
-                      instantBook: backendDinner.instantBook || false,
-                      rating: backendDinner.rating || 0,
-                      reviewCount: backendDinner.reviewCount || 0,
-                      images: Array.isArray(backendDinner.images)
-                        ? backendDinner.images
-                        : backendDinner.images || [],
-                      location:
-                        typeof backendDinner.location === 'object' ? backendDinner.location : {},
-                      host: backendDinner.host || {},
-                    })
+                dinner = transformDinner({
+                  ...backendDinner,
+                  description: backendDinner.description || '',
+                  cuisine: backendDinner.cuisine || 'Other',
+                  capacity: backendDinner.capacity || 0,
+                  available: backendDinner.available || 0,
+                  instantBook: backendDinner.instantBook || false,
+                  rating: backendDinner.rating || 0,
+                  reviewCount: backendDinner.reviewCount || 0,
+                  cancellationPolicy: backendDinner.cancellationPolicy ?? 'flexible',
+                  images: Array.isArray(backendDinner.images)
+                    ? backendDinner.images
+                    : backendDinner.images || [],
+                  location:
+                    typeof backendDinner.location === 'object' ? backendDinner.location : {},
+                  host: backendDinner.host || {},
+                })
                   } catch (error) {
                     console.error('Error transforming dinner:', error)
                     dinner = {
@@ -465,6 +490,7 @@ function ProfilePageContent() {
                       price: booking.dinner.price || 0,
                       capacity: booking.dinner.capacity || 0,
                       images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                      cancellationPolicy: booking.dinner.cancellationPolicy || 'flexible',
                       host: {
                         id: booking.dinner.host?.id || '',
                         name: booking.dinner.host?.name || 'Unknown Host',
@@ -483,29 +509,78 @@ function ProfilePageContent() {
                   }
                 }
 
-                return {
+                // Use the cancellationPolicy directly from the transformed dinner
+                // We explicitly pass it to transformDinner, so it should be preserved
+                const cancellationPolicy = dinner?.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible'
+                
+                // Create the dinner object with cancellationPolicy
+                // Use Object.assign to ensure the property is set
+                const dinnerObject = dinner
+                  ? Object.assign({
+                      id: dinner.id,
+                      title: dinner.title,
+                      host: {
+                        name: dinner.host.name,
+                        avatar: dinner.host.avatar || undefined,
+                      },
+                      image: dinner.thumbnail || dinner.images?.[0] || null,
+                      location:
+                        `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                        'Location not available',
+                      date: dinner.date,
+                      time: dinner.time,
+                      price: dinner.price,
+                      capacity: dinner.capacity,
+                    }, { cancellationPolicy: cancellationPolicy }) // Explicitly set as separate property
+                  : null
+                
+                // Double-check it's set - force it if needed
+                if (dinnerObject) {
+                  if (dinnerObject.cancellationPolicy !== cancellationPolicy) {
+                    console.warn('⚠️ WARNING: cancellationPolicy mismatch, forcing correct value:', {
+                      expected: cancellationPolicy,
+                      actual: dinnerObject.cancellationPolicy,
+                      willSet: cancellationPolicy
+                    })
+                  }
+                  // Force set it to ensure it's there
+                  dinnerObject.cancellationPolicy = cancellationPolicy
+                  // Verify it's set
+                  if (!dinnerObject.cancellationPolicy || dinnerObject.cancellationPolicy !== cancellationPolicy) {
+                    console.error('❌ CRITICAL ERROR: cancellationPolicy still not set after force!', {
+                      cancellationPolicy,
+                      dinnerObjectKeys: Object.keys(dinnerObject),
+                      dinnerObject
+                    })
+                  }
+                }
+
+                // CRITICAL: Ensure cancellationPolicy is set - add it explicitly if missing
+                if (dinnerObject && !dinnerObject.cancellationPolicy) {
+                  console.warn('⚠️ WARNING: cancellationPolicy missing in dinnerObject, adding it:', {
+                    bookingId: booking.id,
+                    cancellationPolicy,
+                    dinnerObjectKeys: Object.keys(dinnerObject)
+                  })
+                  dinnerObject.cancellationPolicy = cancellationPolicy
+                }
+
+                console.log('🔵 Final booking transformation:', {
+                  bookingId: booking.id,
+                  backendDinnerCancellationPolicy: booking.dinner?.cancellationPolicy,
+                  transformedDinnerCancellationPolicy: dinner?.cancellationPolicy,
+                  finalPolicy: cancellationPolicy,
+                  dinnerObjectCancellationPolicy: dinnerObject?.cancellationPolicy,
+                  dinnerObjectKeys: dinnerObject ? Object.keys(dinnerObject) : null,
+                  dinnerObjectFull: dinnerObject
+                })
+
+                const finalBooking = {
                   id: booking.id,
                   status: booking.status?.toLowerCase() || 'pending',
                   guests: booking.guests || 1,
                   totalAmount: booking.totalPrice || 0,
-                  dinner: dinner
-                    ? {
-                        id: dinner.id,
-                        title: dinner.title,
-                        host: {
-                          name: dinner.host.name,
-                          avatar: dinner.host.avatar || undefined,
-                        },
-                        image: dinner.thumbnail || dinner.images?.[0] || null,
-                        location:
-                          `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
-                          'Location not available',
-                        date: dinner.date,
-                        time: dinner.time,
-                        price: dinner.price,
-                        capacity: dinner.capacity,
-                      }
-                    : null,
+                  dinner: dinnerObject,
                   dinnerId: dinner?.id || booking.dinnerId,
                   review: booking.review
                     ? {
@@ -520,6 +595,19 @@ function ProfilePageContent() {
                       }
                     : null,
                 }
+
+                // Final verification before returning
+                if (finalBooking.dinner && !finalBooking.dinner.cancellationPolicy) {
+                  console.error('❌ ERROR: cancellationPolicy still missing after setting!', {
+                    bookingId: finalBooking.id,
+                    dinnerObject: finalBooking.dinner,
+                    cancellationPolicy
+                  })
+                  // Force set it one more time
+                  finalBooking.dinner.cancellationPolicy = cancellationPolicy
+                }
+
+                return finalBooking
               })
               setBookings(transformedBookings)
             }
@@ -557,6 +645,7 @@ function ProfilePageContent() {
                   instantBook: backendDinner.instantBook || false,
                   rating: backendDinner.rating || 0,
                   reviewCount: backendDinner.reviewCount || 0,
+                  cancellationPolicy: backendDinner.cancellationPolicy ?? 'flexible',
                   images: Array.isArray(backendDinner.images)
                     ? backendDinner.images
                     : backendDinner.images || [],
@@ -578,6 +667,7 @@ function ProfilePageContent() {
                   price: booking.dinner.price || 0,
                   capacity: booking.dinner.capacity || 0,
                   images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                  cancellationPolicy: booking.dinner.cancellationPolicy || 'flexible',
                   host: {
                     id: booking.dinner.host?.id || '',
                     name: booking.dinner.host?.name || 'Unknown Host',
@@ -595,6 +685,9 @@ function ProfilePageContent() {
                 }
               }
             }
+
+            // Use the cancellationPolicy directly from the transformed dinner
+            const cancellationPolicy = dinner?.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible'
 
             return {
               id: booking.id,
@@ -616,6 +709,7 @@ function ProfilePageContent() {
                     time: dinner.time,
                     price: dinner.price,
                     capacity: dinner.capacity,
+                    cancellationPolicy: cancellationPolicy,
                   }
                 : null,
               dinnerId: dinner?.id || booking.dinnerId,
@@ -1461,7 +1555,23 @@ function ProfilePageContent() {
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             // Calculate cancellation details
-                                            const cancellationPolicy = booking.dinner?.cancellationPolicy || 'flexible'
+                                            // Get cancellation policy from the booking's dinner object
+                                            // It should be set during booking transformation
+                                            // Try multiple sources to find the value
+                                            const cancellationPolicy = 
+                                              booking.dinner?.cancellationPolicy ?? 
+                                              (booking as any)._originalCancellationPolicy ??
+                                              'flexible'
+                                            
+                                            // Debug logging - expand bookingDinner to see all properties
+                                            console.log('🔵 Cancel booking - cancellation policy check:', {
+                                              bookingId: booking.id,
+                                              bookingDinnerKeys: booking.dinner ? Object.keys(booking.dinner) : null,
+                                              cancellationPolicyFromBooking: booking.dinner?.cancellationPolicy,
+                                              originalCancellationPolicy: (booking as any)._originalCancellationPolicy,
+                                              finalCancellationPolicy: cancellationPolicy,
+                                              fullBookingDinner: JSON.parse(JSON.stringify(booking.dinner))
+                                            })
                                             const dinnerDateTime = new Date(booking.dinner.date)
                                             const now = new Date()
                                             const hoursUntilDinner = (dinnerDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
@@ -1489,14 +1599,10 @@ function ProfilePageContent() {
                                                   refundAmount = booking.totalAmount
                                                   refundPercentage = 100
                                                   message = 'Full refund - cancelled 5+ days before dinner'
-                                                } else if (daysUntilDinner >= 1) {
-                                                  refundAmount = booking.totalAmount * 0.5
-                                                  refundPercentage = 50
-                                                  message = '50% refund - cancelled 1-5 days before dinner'
                                                 } else {
                                                   refundAmount = 0
                                                   refundPercentage = 0
-                                                  message = 'No refund - cancelled less than 1 day before dinner'
+                                                  message = 'No refund - cancelled less than 5 days before dinner'
                                                 }
                                                 break
                                               case 'strict':

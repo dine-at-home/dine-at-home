@@ -388,14 +388,14 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                             ? 'Free cancellation'
                             : dinner.cancellationPolicy === 'moderate'
                               ? 'Moderate cancellation'
-                              : 'Strict cancellation'}
+                              : 'Cancellation policy'}
                         </span>
                         <p className="text-muted-foreground mt-1">
                           {dinner.cancellationPolicy === 'flexible'
                             ? 'Cancel up to 24 hours before your dinner for a full refund.'
                             : dinner.cancellationPolicy === 'moderate'
-                              ? 'Full refund if cancelled 5+ days before. 50% refund if cancelled 1-5 days before.'
-                              : '50% refund if cancelled 7+ days before. No refund otherwise.'}
+                              ? 'Full refund if cancelled 5+ days before. No refund if cancelled less than 5 days before.'
+                              : 'Please check cancellation policy details.'}
                         </p>
                       </div>
                     </div>

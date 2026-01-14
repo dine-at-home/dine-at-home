@@ -34,6 +34,8 @@ export interface Host {
   responseRate: number
   responseTime: string
   bio?: string
+  rating?: number // Host's average rating across all their dinners
+  reviewCount?: number // Host's total review count across all their dinners
 }
 
 export interface Location {
