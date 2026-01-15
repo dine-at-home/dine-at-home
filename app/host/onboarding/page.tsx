@@ -34,12 +34,15 @@ import {
   CheckCircle,
   Home,
   Shield,
+  Loader2,
 } from 'lucide-react'
 import Image from 'next/image'
+import { stripeConnectService } from '@/lib/stripe-connect-service'
 
 function HostOnboardingPageContent() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [connectingStripe, setConnectingStripe] = useState(false)
   const [hostData, setHostData] = useState({
     // Step 1: Personal Info
     fullName: '',
@@ -454,6 +457,22 @@ function HostOnboardingPageContent() {
     </Card>
   )
 
+  const handleConnectStripe = async () => {
+    try {
+      setConnectingStripe(true)
+      const result = await stripeConnectService.createOnboardingLink()
+      if (result.onboardingUrl) {
+        // Open Stripe onboarding in new tab
+        window.open(result.onboardingUrl, '_blank', 'noopener,noreferrer')
+      }
+    } catch (error: any) {
+      console.error('Error connecting Stripe:', error)
+      alert(error.message || 'Failed to connect Stripe account')
+    } finally {
+      setConnectingStripe(false)
+    }
+  }
+
   const renderStep5 = () => (
     <Card>
       <CardHeader>
@@ -470,31 +489,41 @@ function HostOnboardingPageContent() {
           </div>
           <h3 className="text-lg font-semibold mb-2">Connect Stripe Account</h3>
           <p className="text-muted-foreground mb-6">
-            Secure payment processing with automatic commission splits
+            Secure payment processing with automatic commission splits. You'll be redirected to Stripe
+            to complete the setup.
           </p>
-          <Button size="lg" className="gap-2">
-            Connect Stripe Account
-            <ArrowRight className="w-4 h-4" />
+          <Button
+            size="lg"
+            className="gap-2"
+            onClick={handleConnectStripe}
+            disabled={connectingStripe}
+          >
+            {connectingStripe ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                Connect Stripe Account
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </Button>
+          {hostData.stripeConnected && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              <span>Stripe account connected</span>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Bank Account (Optional)</label>
-            <Input
-              value={hostData.bankAccount}
-              onChange={(e) => handleInputChange('bankAccount', e.target.value)}
-              placeholder="Account number"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Tax ID (Optional)</label>
-            <Input
-              value={hostData.taxId}
-              onChange={(e) => handleInputChange('taxId', e.target.value)}
-              placeholder="Tax identification number"
-            />
-          </div>
+        <div className="p-4 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            <strong>Note:</strong> Stripe Connect allows you to receive payments directly. The platform
+            takes a {process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE || '15'}% commission fee, and the rest
+            is transferred to your connected account.
+          </p>
         </div>
       </CardContent>
     </Card>

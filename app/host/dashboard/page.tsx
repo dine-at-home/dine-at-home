@@ -51,6 +51,8 @@ import {
   Camera,
   Wallet,
 } from 'lucide-react'
+import { PayoutSection } from '@/components/payout/payout-section'
+import { PaymentDetailsSection } from '@/components/payout/payment-details-section'
 import Image from 'next/image'
 import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
@@ -2182,10 +2184,12 @@ function HostDashboardContent() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="dinners">My Dinners</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="payouts">Payouts</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -2201,6 +2205,14 @@ function HostDashboardContent() {
 
             <TabsContent value="bookings" className="mt-6">
               {renderBookings()}
+            </TabsContent>
+
+            <TabsContent value="payouts" className="mt-6">
+              {user?.id && <PayoutSection hostId={user.id} />}
+            </TabsContent>
+
+            <TabsContent value="payments" className="mt-6">
+              {user?.id && <PaymentDetailsSection hostId={user.id} />}
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-6">
