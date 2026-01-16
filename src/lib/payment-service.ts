@@ -124,6 +124,54 @@ class PaymentService {
   }
 
   /**
+   * Create booking from payment intent (fallback if webhook fails)
+   */
+  async createBookingFromPayment(data: {
+    paymentIntentId?: string
+    sessionId?: string
+  }): Promise<{
+    success: boolean
+    data?: { bookingId: string }
+    error?: string
+  }> {
+    try {
+      const token = getToken()
+      if (!token) {
+        return { success: false, error: 'Authentication required' }
+      }
+
+      const response = await fetch(getApiUrl('/payments/create-booking-from-payment'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || result.message || 'Failed to create booking from payment',
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      }
+    } catch (error: any) {
+      console.error('Error creating booking from payment:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to create booking from payment',
+      }
+    }
+  }
+
+  /**
    * Verify payment status for a booking
    */
   async verifyPayment(bookingId: string): Promise<{

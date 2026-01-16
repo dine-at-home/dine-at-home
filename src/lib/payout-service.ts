@@ -258,6 +258,13 @@ class PayoutService {
       const result = await response.json()
 
       if (!response.ok) {
+        // Provide helpful message for insufficient funds error
+        if (result.code === 'INSUFFICIENT_FUNDS' || result.error?.includes('insufficient')) {
+          throw new Error(
+            'Insufficient funds in platform account. In test mode, add test funds using card 4000000000000077. ' +
+            'See: https://stripe.com/docs/testing#available-balance'
+          )
+        }
         throw new Error(result.error || result.message || 'Failed to request payout')
       }
 

@@ -50,45 +50,85 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
 
   useEffect(() => {
     loadData()
-    // Refresh payment status every minute to update countdown
+    // Refresh payment status every 10 seconds to catch payments that become ready quickly (2 min in dev)
     const interval = setInterval(() => {
-      if (paymentStatus) {
-        loadPaymentStatus()
-      }
-    }, 60000) // Every minute
+      loadPaymentStatus()
+    }, 10000) // Every 10 seconds
 
     return () => clearInterval(interval)
   }, [hostId])
 
-  // Update countdown timers every second
+  // Update countdown timers every second and auto-refresh when payments become ready
   useEffect(() => {
     if (!paymentStatus || paymentStatus.pending.payments.length === 0) return
 
     const interval = setInterval(() => {
       const now = new Date()
       const updates: Record<string, number> = {}
+      let shouldRefresh = false
 
       paymentStatus.pending.payments.forEach((payment) => {
         const readyAt = new Date(payment.readyToWithdrawAt)
         const diff = readyAt.getTime() - now.getTime()
-        const hours = Math.max(0, Math.ceil(diff / (1000 * 60 * 60)))
-        updates[payment.bookingId] = hours
+        // Calculate in minutes for more accurate countdown (especially in dev mode with 2 min wait)
+        const minutes = Math.max(0, Math.ceil(diff / (1000 * 60)))
+        updates[payment.bookingId] = minutes
+        
+        // If payment just became ready (was > 0, now <= 0), trigger refresh
+        const previousMinutes = timeUntilReady[payment.bookingId] ?? payment.hoursUntilReady * 60
+        if (previousMinutes > 0 && minutes <= 0) {
+          shouldRefresh = true
+        }
       })
 
       setTimeUntilReady(updates)
+
+      // Auto-refresh payment status when any payment becomes ready
+      if (shouldRefresh) {
+        console.log('[Payout] Payment became ready, refreshing status...')
+        // Reload payment status to move ready payments from pending to ready section
+        payoutService.getHostPaymentStatus(hostId)
+          .then((statusData) => {
+            if (statusData) {
+              setPaymentStatus(statusData)
+              // Also reload balance to get updated amounts
+              payoutService.getHostBalance(hostId)
+                .then((balanceData) => {
+                  if (balanceData) setBalance(balanceData)
+                })
+                .catch(() => {}) // Ignore errors
+            }
+          })
+          .catch(() => {}) // Ignore errors
+      }
     }, 1000) // Every second
 
     return () => clearInterval(interval)
-  }, [paymentStatus])
+  }, [paymentStatus, timeUntilReady, hostId])
 
   const loadData = async () => {
     try {
       setLoading(true)
+      setError(null)
+      
       const [balanceData, payoutsData, accountData, statusData] = await Promise.all([
-        payoutService.getHostBalance(hostId).catch(() => null),
-        payoutService.getHostPayouts(hostId).catch(() => ({ data: [], pagination: undefined })),
-        stripeConnectService.getAccountStatus().catch(() => null),
-        payoutService.getHostPaymentStatus(hostId).catch(() => null),
+        payoutService.getHostBalance(hostId).catch((err) => {
+          console.warn('[Payout] Failed to load balance:', err)
+          return null
+        }),
+        payoutService.getHostPayouts(hostId).catch((err) => {
+          console.warn('[Payout] Failed to load payouts:', err)
+          return { data: [], pagination: undefined }
+        }),
+        stripeConnectService.getAccountStatus().catch((err) => {
+          console.warn('[Payout] Failed to load Stripe account status:', err)
+          // Don't set error for this - it's optional and might fail if account doesn't exist
+          return null
+        }),
+        payoutService.getHostPaymentStatus(hostId).catch((err) => {
+          console.warn('[Payout] Failed to load payment status:', err)
+          return null
+        }),
       ])
 
       if (balanceData) setBalance(balanceData)
@@ -96,7 +136,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
       if (accountData) setAccountStatus(accountData)
       if (statusData) setPaymentStatus(statusData)
     } catch (err: any) {
-      console.error('Error loading payout data:', err)
+      console.error('[Payout] Error loading payout data:', err)
       setError(err.message || 'Failed to load payout data')
     } finally {
       setLoading(false)
@@ -106,7 +146,15 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
   const loadPaymentStatus = async () => {
     try {
       const statusData = await payoutService.getHostPaymentStatus(hostId)
-      if (statusData) setPaymentStatus(statusData)
+      if (statusData) {
+        setPaymentStatus(statusData)
+        // Also reload balance when status changes to get updated amounts
+        payoutService.getHostBalance(hostId)
+          .then((balanceData) => {
+            if (balanceData) setBalance(balanceData)
+          })
+          .catch(() => {}) // Ignore errors
+      }
     } catch (err) {
       console.error('Error refreshing payment status:', err)
     }
@@ -170,13 +218,23 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
     }).format(amount)
   }
 
-  const formatTimeRemaining = (hours: number) => {
-    if (hours <= 0) return 'Ready now'
-    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''}`
-    const days = Math.floor(hours / 24)
-    const remainingHours = hours % 24
-    if (remainingHours === 0) return `${days} day${days !== 1 ? 's' : ''}`
-    return `${days}d ${remainingHours}h`
+  // Check if we're in development mode (2 min wait) or production (72 hour wait)
+  const isDevMode = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  const waitTimeText = isDevMode ? '2 minutes' : '72 hours'
+  
+  const formatTimeRemaining = (minutes: number) => {
+    // If less than 60 minutes, show in minutes
+    if (minutes < 60) {
+      if (minutes <= 0) return 'Ready now'
+      if (minutes === 1) return '1 minute'
+      return `${minutes} minutes`
+    }
+    // Otherwise show in hours
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    if (hours === 1 && remainingMinutes === 0) return '1 hour'
+    if (remainingMinutes === 0) return `${hours} hours`
+    return `${hours}h ${remainingMinutes}m`
   }
 
   if (loading) {
@@ -210,7 +268,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
             Payouts & Earnings
           </CardTitle>
           <CardDescription>
-            Automatic withdrawal system - Payments become available 72 hours after dinner completion
+            Automatic withdrawal system - Payments become available {waitTimeText} after dinner completion
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -331,7 +389,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                 </div>
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
-              {canRequestPayout && (
+              {canRequestPayout ? (
                 <Button
                   onClick={() => setShowPayoutDialog(true)}
                   className="w-full bg-green-600 hover:bg-green-700"
@@ -339,6 +397,15 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                 >
                   Withdraw Now
                 </Button>
+              ) : (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-800">
+                    {!accountStatus?.kycVerified && 'Complete KYC verification to enable withdrawals. '}
+                    {!accountStatus?.payoutsEnabled && 'Enable payouts in your Stripe account. '}
+                    {payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT') && 'You have a payout in progress. '}
+                    {(!accountStatus?.kycVerified || !accountStatus?.payoutsEnabled) && 'Click "Complete KYC Verification" above to get started.'}
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -357,7 +424,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                   </p>
                   <p className="text-sm text-blue-700 mt-2">
                     {paymentStatus.pending.count} payment{paymentStatus.pending.count !== 1 ? 's' : ''} waiting
-                    for 72-hour period
+                    for {waitTimeText} period
                   </p>
                 </div>
                 <Clock className="w-10 h-10 text-blue-600" />
@@ -365,7 +432,10 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
 
               <div className="mt-4 space-y-3">
                 {paymentStatus.pending.payments.slice(0, 3).map((payment) => {
-                  const hoursRemaining = timeUntilReady[payment.bookingId] ?? payment.hoursUntilReady
+                  // Convert hours to minutes if needed, or use minutes directly from countdown
+                  const minutesRemaining = timeUntilReady[payment.bookingId] 
+                    ? timeUntilReady[payment.bookingId] 
+                    : (payment.hoursUntilReady ? payment.hoursUntilReady * 60 : 0)
                   return (
                     <div
                       key={payment.bookingId}
@@ -381,7 +451,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                         <div className="text-right">
                           <Badge variant="outline" className="border-blue-300 text-blue-700">
                             <Timer className="w-3 h-3 mr-1" />
-                            {formatTimeRemaining(hoursRemaining)}
+                            {formatTimeRemaining(minutesRemaining)}
                           </Badge>
                         </div>
                       </div>
@@ -398,7 +468,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
 
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-xs text-blue-800">
-                  <strong>Automatic System:</strong> Payments automatically become available for withdrawal 72 hours
+                  <strong>Automatic System:</strong> Payments automatically become available for withdrawal {waitTimeText}
                   after dinner completion. No action needed - just wait for the countdown!
                 </p>
               </div>

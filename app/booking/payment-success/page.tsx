@@ -13,14 +13,20 @@ function PaymentSuccessContent() {
   const router = useRouter()
   const dinnerId = searchParams.get('dinnerId')
   const bookingId = searchParams.get('bookingId') // Legacy support
+  // Stripe passes session_id in the URL when redirecting
+  const sessionId = searchParams.get('session_id') || searchParams.get('sessionId')
+  // Also check for payment_intent in case Stripe passes it
+  const paymentIntentId = searchParams.get('payment_intent') || searchParams.get('paymentIntentId')
   const [loading, setLoading] = useState(true)
   const [paymentStatus, setPaymentStatus] = useState<string>('verifying')
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const verifyPayment = async () => {
-      // Wait for webhook to process and create booking
-      // In payment-first flow, booking is created by webhook after payment succeeds
+      console.log('[Payment Success] Starting verification', { dinnerId, bookingId, sessionId, paymentIntentId })
+      
+      // Wait for webhook to process and create booking (give it 3 seconds)
       await new Promise((resolve) => setTimeout(resolve, 3000))
 
       // If we have a bookingId from URL (legacy flow), verify it
@@ -43,17 +49,74 @@ function PaymentSuccessContent() {
         } finally {
           setLoading(false)
         }
+      } else if (dinnerId) {
+        // Payment-first flow: Try to create booking from payment if webhook didn't work
+        console.log('[Payment Success] Payment-first flow, attempting to create booking...')
+        
+        // First, try with session_id if available
+        if (sessionId) {
+          try {
+            console.log('[Payment Success] Creating booking from session:', sessionId)
+            const result = await paymentService.createBookingFromPayment({
+              sessionId: sessionId,
+            })
+
+            if (result.success && result.data?.bookingId) {
+              console.log('[Payment Success] ✅ Booking created successfully:', result.data.bookingId)
+              setCreatedBookingId(result.data.bookingId)
+              setPaymentStatus('success')
+              setLoading(false)
+              return
+            } else {
+              console.warn('[Payment Success] ⚠️ Could not create booking from session:', result.error)
+              setError(result.error || 'Could not create booking')
+            }
+          } catch (error: any) {
+            console.error('[Payment Success] ❌ Error creating booking from session:', error)
+            setError(error.message || 'Failed to create booking')
+          }
+        }
+
+        // If session_id didn't work, try payment_intent
+        if (paymentIntentId && !createdBookingId) {
+          try {
+            console.log('[Payment Success] Creating booking from payment intent:', paymentIntentId)
+            const result = await paymentService.createBookingFromPayment({
+              paymentIntentId: paymentIntentId,
+            })
+
+            if (result.success && result.data?.bookingId) {
+              console.log('[Payment Success] ✅ Booking created successfully:', result.data.bookingId)
+              setCreatedBookingId(result.data.bookingId)
+              setPaymentStatus('success')
+              setError(null)
+            } else {
+              console.warn('[Payment Success] ⚠️ Could not create booking from payment intent:', result.error)
+              if (!error) setError(result.error || 'Could not create booking')
+            }
+          } catch (error: any) {
+            console.error('[Payment Success] ❌ Error creating booking from payment intent:', error)
+            if (!error) setError(error.message || 'Failed to create booking')
+          }
+        }
+
+        // If we still don't have a booking, show success anyway (webhook might have created it)
+        // User can check their bookings page
+        if (!createdBookingId) {
+          console.log('[Payment Success] No booking created yet, but payment succeeded. Webhook may create it.')
+        }
+        
+        setPaymentStatus('success')
+        setLoading(false)
       } else {
-        // Payment-first flow: booking should be created by webhook
-        // We'll show success message and let user check their bookings
-        // In a production app, you might want to poll for the booking or use websockets
+        // No identifiers - just show success
         setPaymentStatus('success')
         setLoading(false)
       }
     }
 
     verifyPayment()
-  }, [bookingId, dinnerId])
+  }, [bookingId, dinnerId, sessionId, paymentIntentId])
 
   return (
     <MainLayout>
@@ -80,14 +143,27 @@ function PaymentSuccessContent() {
           <CardContent className="text-center space-y-4">
             {loading ? (
               <p className="text-muted-foreground">
-                Please wait while we verify your payment...
+                Please wait while we verify your payment and create your booking...
               </p>
             ) : paymentStatus === 'success' ? (
               <>
-                <p className="text-muted-foreground">
-                  Payment successful! Your booking has been created and confirmed. The host will
-                  receive a notification about your booking.
-                </p>
+                {error && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-yellow-800">
+                      {error}. Your payment was successful. Please check your bookings page.
+                    </p>
+                  </div>
+                )}
+                {createdBookingId ? (
+                  <p className="text-muted-foreground">
+                    Payment successful! Your booking has been created and confirmed. The host will
+                    receive a notification about your booking.
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Payment successful! Your booking is being processed. Please check your bookings page in a moment.
+                  </p>
+                )}
                 <div className="pt-4 space-y-2">
                   <Button onClick={() => router.push('/profile?tab=bookings')} className="w-full">
                     View My Bookings

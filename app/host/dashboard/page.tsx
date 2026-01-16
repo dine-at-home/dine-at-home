@@ -631,10 +631,15 @@ function HostDashboardContent() {
           return
         }
 
-        const response = await fetch(getApiUrl(`/host/${user.id}/dinners`), {
+        const apiUrl = getApiUrl(`/host/${user.id}/dinners`)
+        const response = await fetch(apiUrl, {
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
+        }).catch((error) => {
+          console.error('[Host Dashboard] Network error fetching dinners:', error)
+          throw new Error('Unable to connect to server. Please check if the backend is running.')
         })
 
         if (response.ok) {
@@ -687,8 +692,14 @@ function HostDashboardContent() {
           // Fallback to mock data if API fails
           setDinners(mockDinners)
         }
-      } catch (error) {
-        console.error('Error fetching dinners:', error)
+      } catch (error: any) {
+        console.error('[Host Dashboard] Error fetching dinners:', error)
+        // Handle network errors specifically
+        if (error.message && error.message.includes('Unable to connect')) {
+          setDinnersError('Unable to connect to server. Please check if the backend is running.')
+        } else {
+          setDinnersError(error.message || 'Failed to load dinners')
+        }
         // Fallback to mock data on error
         setDinners(mockDinners)
       } finally {
