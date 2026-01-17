@@ -274,6 +274,37 @@ class PayoutService {
       throw error
     }
   }
+
+  /**
+   * Withdraw funds from connected account to bank account
+   */
+  async withdrawToBank(hostId: string, payoutId: string): Promise<PayoutResponse> {
+    try {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/withdraw/${payoutId}`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Failed to withdraw to bank')
+      }
+
+      return result.data
+    } catch (error: any) {
+      console.error('Error withdrawing to bank:', error)
+      throw error
+    }
+  }
 }
 
 export const payoutService = new PayoutService()

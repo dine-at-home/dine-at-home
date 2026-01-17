@@ -43,6 +43,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
   const [payouts, setPayouts] = useState<PayoutResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [requestingPayout, setRequestingPayout] = useState(false)
+  const [withdrawingPayoutId, setWithdrawingPayoutId] = useState<string | null>(null)
   const [showPayoutDialog, setShowPayoutDialog] = useState(false)
   const [accountStatus, setAccountStatus] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -176,6 +177,21 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
     }
   }
 
+  const handleWithdrawToBank = async (payoutId: string) => {
+    try {
+      setWithdrawingPayoutId(payoutId)
+      setError(null)
+
+      await payoutService.withdrawToBank(hostId, payoutId)
+      // Reload data
+      await loadData()
+    } catch (err: any) {
+      setError(err.message || 'Failed to withdraw to bank')
+    } finally {
+      setWithdrawingPayoutId(null)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PAID':
@@ -192,6 +208,13 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
             In Transit
           </Badge>
         )
+      case 'PENDING_SETTLEMENT':
+        return (
+          <Badge variant="default" className="bg-yellow-600">
+            <Clock className="w-3 h-3 mr-1" />
+            Waiting for Funds
+          </Badge>
+        )
       case 'PENDING':
         return (
           <Badge variant="default" className="bg-yellow-600">
@@ -204,6 +227,13 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
           <Badge variant="destructive">
             <XCircle className="w-3 h-3 mr-1" />
             Failed
+          </Badge>
+        )
+      case 'CANCELED':
+        return (
+          <Badge variant="outline">
+            <XCircle className="w-3 h-3 mr-1" />
+            Canceled
           </Badge>
         )
       default:
@@ -252,12 +282,14 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
     )
   }
 
+  // Allow multiple payouts - removed the check that prevents multiple payouts
   const canRequestPayout =
     accountStatus?.kycVerified &&
     accountStatus?.payoutsEnabled &&
     paymentStatus &&
-    paymentStatus.ready.totalAmount > 0 &&
-    !payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT')
+    paymentStatus.ready.totalAmount > 0
+    // Removed: !payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT')
+    // Now allows multiple payouts to be created simultaneously
 
   return (
     <>
@@ -374,39 +406,64 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
             </div>
           )}
 
-          {/* Ready to Withdraw Balance */}
+          {/* Ready Payments - Can Request Payout */}
           {paymentStatus && paymentStatus.ready.totalAmount > 0 && (
-            <div className="p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+            <div className="p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm text-green-800 font-medium">Ready to Withdraw</p>
-                  <p className="text-3xl font-bold text-green-900 mt-1">
+                  <p className="text-sm text-blue-800 font-medium">Ready to Request Payout</p>
+                  <p className="text-3xl font-bold text-blue-900 mt-1">
                     {formatCurrency(paymentStatus.ready.totalAmount, paymentStatus.currency)}
                   </p>
-                  <p className="text-sm text-green-700 mt-2">
-                    {paymentStatus.ready.count} payment{paymentStatus.ready.count !== 1 ? 's' : ''} available
+                  <p className="text-sm text-blue-700 mt-2">
+                    {paymentStatus.ready.count} payment{paymentStatus.ready.count !== 1 ? 's' : ''} ready to request payout
                   </p>
                 </div>
-                <CheckCircle className="w-12 h-12 text-green-600" />
+                <Clock className="w-12 h-12 text-blue-600" />
               </div>
               {canRequestPayout ? (
                 <Button
                   onClick={() => setShowPayoutDialog(true)}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
                   size="lg"
                 >
-                  Withdraw Now
+                  Request Payout
                 </Button>
               ) : (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-xs text-yellow-800">
                     {!accountStatus?.kycVerified && 'Complete KYC verification to enable withdrawals. '}
                     {!accountStatus?.payoutsEnabled && 'Enable payouts in your Stripe account. '}
-                    {payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT') && 'You have a payout in progress. '}
                     {(!accountStatus?.kycVerified || !accountStatus?.payoutsEnabled) && 'Click "Complete KYC Verification" above to get started.'}
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Ready to Withdraw to Bank - IN_TRANSIT Payouts */}
+          {payouts.filter((p) => p.status === 'IN_TRANSIT').length > 0 && (
+            <div className="p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-green-800 font-medium">Ready to Withdraw to Bank</p>
+                  <p className="text-3xl font-bold text-green-900 mt-1">
+                    {formatCurrency(
+                      payouts
+                        .filter((p) => p.status === 'IN_TRANSIT')
+                        .reduce((sum, p) => sum + p.amount, 0),
+                      payouts[0]?.currency || 'eur'
+                    )}
+                  </p>
+                  <p className="text-sm text-green-700 mt-2">
+                    {payouts.filter((p) => p.status === 'IN_TRANSIT').length} payout{payouts.filter((p) => p.status === 'IN_TRANSIT').length !== 1 ? 's' : ''} in your connected account
+                  </p>
+                </div>
+                <CheckCircle className="w-12 h-12 text-green-600" />
+              </div>
+              <p className="text-xs text-green-700 mb-4">
+                Money is in your Stripe connected account. Click "Withdraw to Bank" in payout history below to transfer to your bank account.
+              </p>
             </div>
           )}
 
@@ -506,7 +563,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                     key={payout.id}
                     className="p-4 border rounded-lg flex items-center justify-between"
                   >
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         {getStatusBadge(payout.status)}
                         <span className="font-semibold">
@@ -523,6 +580,16 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                         <p className="text-xs text-destructive mt-1">{payout.failureMessage}</p>
                       )}
                     </div>
+                    {payout.status === 'IN_TRANSIT' && (
+                      <Button
+                        onClick={() => handleWithdrawToBank(payout.id)}
+                        disabled={withdrawingPayoutId === payout.id}
+                        className="ml-4 bg-green-600 hover:bg-green-700"
+                        size="sm"
+                      >
+                        {withdrawingPayoutId === payout.id ? 'Processing...' : 'Withdraw to Bank'}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
