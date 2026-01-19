@@ -74,7 +74,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
         // Calculate in minutes for more accurate countdown (especially in dev mode with 2 min wait)
         const minutes = Math.max(0, Math.ceil(diff / (1000 * 60)))
         updates[payment.bookingId] = minutes
-        
+
         // If payment just became ready (was > 0, now <= 0), trigger refresh
         const previousMinutes = timeUntilReady[payment.bookingId] ?? payment.hoursUntilReady * 60
         if (previousMinutes > 0 && minutes <= 0) {
@@ -97,10 +97,10 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                 .then((balanceData) => {
                   if (balanceData) setBalance(balanceData)
                 })
-                .catch(() => {}) // Ignore errors
+                .catch(() => { }) // Ignore errors
             }
           })
-          .catch(() => {}) // Ignore errors
+          .catch(() => { }) // Ignore errors
       }
     }, 1000) // Every second
 
@@ -111,7 +111,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
     try {
       setLoading(true)
       setError(null)
-      
+
       const [balanceData, payoutsData, accountData, statusData] = await Promise.all([
         payoutService.getHostBalance(hostId).catch((err) => {
           console.warn('[Payout] Failed to load balance:', err)
@@ -154,7 +154,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
           .then((balanceData) => {
             if (balanceData) setBalance(balanceData)
           })
-          .catch(() => {}) // Ignore errors
+          .catch(() => { }) // Ignore errors
       }
     } catch (err) {
       console.error('Error refreshing payment status:', err)
@@ -251,7 +251,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
   // Check if we're in development mode (2 min wait) or production (72 hour wait)
   const isDevMode = typeof window !== 'undefined' && window.location.hostname === 'localhost'
   const waitTimeText = isDevMode ? '2 minutes' : '72 hours'
-  
+
   const formatTimeRemaining = (minutes: number) => {
     // If less than 60 minutes, show in minutes
     if (minutes < 60) {
@@ -288,8 +288,8 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
     accountStatus?.payoutsEnabled &&
     paymentStatus &&
     paymentStatus.ready.totalAmount > 0
-    // Removed: !payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT')
-    // Now allows multiple payouts to be created simultaneously
+  // Removed: !payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT')
+  // Now allows multiple payouts to be created simultaneously
 
   return (
     <>
@@ -441,6 +441,33 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
             </div>
           )}
 
+          {/* Processing Payouts - PENDING_SETTLEMENT */}
+          {payouts.filter((p) => p.status === 'PENDING_SETTLEMENT').length > 0 && (
+            <div className="p-6 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-yellow-800 font-medium">Processing Payouts</p>
+                  <p className="text-3xl font-bold text-yellow-900 mt-1">
+                    {formatCurrency(
+                      payouts
+                        .filter((p) => p.status === 'PENDING_SETTLEMENT')
+                        .reduce((sum, p) => sum + p.amount, 0),
+                      payouts[0]?.currency || 'eur'
+                    )}
+                  </p>
+                  <p className="text-sm text-yellow-700 mt-2">
+                    {payouts.filter((p) => p.status === 'PENDING_SETTLEMENT').length} payout{payouts.filter((p) => p.status === 'PENDING_SETTLEMENT').length !== 1 ? 's' : ''} being processed
+                  </p>
+                </div>
+                <Loader2 className="w-12 h-12 text-yellow-600 animate-spin" />
+              </div>
+              <p className="text-xs text-yellow-700 mb-4">
+                These payouts are being processed. Funds will be moved to your connected account shortly (usually within minutes).
+                Once completed, they will appear below as "Ready to Withdraw".
+              </p>
+            </div>
+          )}
+
           {/* Ready to Withdraw to Bank - IN_TRANSIT Payouts */}
           {payouts.filter((p) => p.status === 'IN_TRANSIT').length > 0 && (
             <div className="p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
@@ -490,8 +517,8 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
               <div className="mt-4 space-y-3">
                 {paymentStatus.pending.payments.slice(0, 3).map((payment) => {
                   // Convert hours to minutes if needed, or use minutes directly from countdown
-                  const minutesRemaining = timeUntilReady[payment.bookingId] 
-                    ? timeUntilReady[payment.bookingId] 
+                  const minutesRemaining = timeUntilReady[payment.bookingId]
+                    ? timeUntilReady[payment.bookingId]
                     : (payment.hoursUntilReady ? payment.hoursUntilReady * 60 : 0)
                   return (
                     <div

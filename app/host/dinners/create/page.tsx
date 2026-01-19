@@ -76,12 +76,12 @@ function CreateDinnerPageContent() {
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
   const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false)
-  
+
   // City autocomplete state
   const [citySuggestions, setCitySuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [selectedCityIndex, setSelectedCityIndex] = useState(-1)
-  
+
   // Neighborhood autocomplete state
   const [neighborhoodSuggestions, setNeighborhoodSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
   const [showNeighborhoodSuggestions, setShowNeighborhoodSuggestions] = useState(false)
@@ -91,8 +91,8 @@ function CreateDinnerPageContent() {
   const isDev =
     typeof window !== 'undefined'
       ? process.env.NODE_ENV === 'development' ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1'
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
       : process.env.NODE_ENV === 'development'
 
   // Auto-scroll to error when it appears
@@ -106,7 +106,7 @@ function CreateDinnerPageContent() {
   useEffect(() => {
     const loadGooglePlaces = () => {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
-      
+
       if (!apiKey) {
         console.warn('Google Places API key is not set. Autocomplete will not work.')
         return
@@ -142,12 +142,12 @@ function CreateDinnerPageContent() {
             clearInterval(checkInterval)
           }
         }, 100)
-        
+
         // Timeout after 10 seconds
         setTimeout(() => {
           clearInterval(checkInterval)
         }, 10000)
-        
+
         return () => clearInterval(checkInterval)
       }
 
@@ -185,8 +185,8 @@ function CreateDinnerPageContent() {
     const isDev =
       typeof window !== 'undefined'
         ? process.env.NODE_ENV === 'development' ||
-          window.location.hostname === 'localhost' ||
-          window.location.hostname === '127.0.0.1'
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
         : process.env.NODE_ENV === 'development'
 
     if (!isDev) {
@@ -210,7 +210,7 @@ function CreateDinnerPageContent() {
         time: '',
         duration: 3,
         maxCapacity: 8,
-        pricePerPerson: 85,
+        pricePerPerson: 100,
         minGuests: 2,
         images: [] as string[],
         experienceLevel: 'beginner',
@@ -247,7 +247,7 @@ function CreateDinnerPageContent() {
       time: '19:00',
       duration: 3,
       maxCapacity: 8,
-      pricePerPerson: 85,
+      pricePerPerson: 100,
       minGuests: 2,
       images: [] as string[],
       experienceLevel: 'beginner',
@@ -264,8 +264,8 @@ function CreateDinnerPageContent() {
     const isDev =
       typeof window !== 'undefined'
         ? process.env.NODE_ENV === 'development' ||
-          window.location.hostname === 'localhost' ||
-          window.location.hostname === '127.0.0.1'
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
         : process.env.NODE_ENV === 'development'
 
     if (isDev) {
@@ -606,8 +606,7 @@ function CreateDinnerPageContent() {
     const totalAfterAdd = selectedImageFiles.length + newFiles.length
     if (totalAfterAdd > 5) {
       setError(
-        `Maximum 5 images allowed. You already have ${
-          selectedImageFiles.length
+        `Maximum 5 images allowed. You already have ${selectedImageFiles.length
         } image${selectedImageFiles.length !== 1 ? 's' : ''} selected.`
       )
       e.target.value = ''
@@ -636,8 +635,7 @@ function CreateDinnerPageContent() {
 
     if (filesToAdd.length < sizeValidFiles.length) {
       setError(
-        `Maximum 5 images allowed. Only ${filesToAdd.length} image${
-          filesToAdd.length !== 1 ? 's' : ''
+        `Maximum 5 images allowed. Only ${filesToAdd.length} image${filesToAdd.length !== 1 ? 's' : ''
         } added.`
       )
     }
@@ -798,9 +796,9 @@ function CreateDinnerPageContent() {
       // Parse menu from string (assuming it's comma-separated or newline-separated)
       const menuItems = dinnerData.menu
         ? dinnerData.menu
-            .split(/[,\n]/)
-            .map((item) => item.trim())
-            .filter((item) => item)
+          .split(/[,\n]/)
+          .map((item) => item.trim())
+          .filter((item) => item)
         : []
 
       // Build location object
@@ -1057,7 +1055,7 @@ function CreateDinnerPageContent() {
                 <CardDescription>Where will the dinner take place?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-             
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Street Address *</label>
                   <Input
@@ -1104,11 +1102,9 @@ function CreateDinnerPageContent() {
                               key={suggestion.place_id}
                               type="button"
                               onClick={() => handleSelectCity(suggestion.place_id, suggestion.description)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                                index === selectedCityIndex ? 'bg-gray-50' : ''
-                              } ${index === 0 ? 'rounded-t-xl' : ''} ${
-                                index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
-                              }`}
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${index === selectedCityIndex ? 'bg-gray-50' : ''
+                                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
+                                }`}
                             >
                               <div className="flex items-start gap-3">
                                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -1158,11 +1154,9 @@ function CreateDinnerPageContent() {
                               key={suggestion.place_id}
                               type="button"
                               onClick={() => handleSelectNeighborhood(suggestion.place_id, suggestion.description)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                                index === selectedNeighborhoodIndex ? 'bg-gray-50' : ''
-                              } ${index === 0 ? 'rounded-t-xl' : ''} ${
-                                index === neighborhoodSuggestions.length - 1 ? 'rounded-b-xl' : ''
-                              }`}
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${index === selectedNeighborhoodIndex ? 'bg-gray-50' : ''
+                                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === neighborhoodSuggestions.length - 1 ? 'rounded-b-xl' : ''
+                                }`}
                             >
                               <div className="flex items-start gap-3">
                                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -1358,7 +1352,7 @@ function CreateDinnerPageContent() {
                         const clampedValue = value > 1000 ? 1000 : value
                         handleInputChange('pricePerPerson', clampedValue)
                       }}
-                      placeholder="85"
+                      placeholder="100"
                       className="pl-10"
                       required
                     />

@@ -132,7 +132,7 @@ export const mockData = {
         joinedDate: '2021-06-10',
         responseTime: 'responds within a few hours',
       },
-      price: 85,
+      price: 100,
       currency: 'EUR',
       date: '2024-02-17',
       time: '19:30',
