@@ -35,14 +35,75 @@ import {
   Home,
   Shield,
   Loader2,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react'
 import Image from 'next/image'
 import { stripeConnectService } from '@/lib/stripe-connect-service'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/components/ui/utils'
+
+const countries = [
+  { label: 'United States', value: 'United States' },
+  { label: 'United Kingdom', value: 'United Kingdom' },
+  { label: 'Canada', value: 'Canada' },
+  { label: 'Australia', value: 'Australia' },
+  { label: 'Germany', value: 'Germany' },
+  { label: 'France', value: 'France' },
+  { label: 'Italy', value: 'Italy' },
+  { label: 'Spain', value: 'Spain' },
+  { label: 'Japan', value: 'Japan' },
+  { label: 'China', value: 'China' },
+  { label: 'India', value: 'India' },
+  { label: 'Brazil', value: 'Brazil' },
+  { label: 'Mexico', value: 'Mexico' },
+  { label: 'Netherlands', value: 'Netherlands' },
+  { label: 'Sweden', value: 'Sweden' },
+  { label: 'Switzerland', value: 'Switzerland' },
+  { label: 'Belgium', value: 'Belgium' },
+  { label: 'Denmark', value: 'Denmark' },
+  { label: 'Norway', value: 'Norway' },
+  { label: 'Finland', value: 'Finland' },
+  { label: 'Ireland', value: 'Ireland' },
+  { label: 'New Zealand', value: 'New Zealand' },
+  { label: 'Singapore', value: 'Singapore' },
+  { label: 'South Korea', value: 'South Korea' },
+  { label: 'Portugal', value: 'Portugal' },
+  { label: 'Greece', value: 'Greece' },
+  { label: 'Austria', value: 'Austria' },
+  { label: 'Poland', value: 'Poland' },
+  { label: 'Czech Republic', value: 'Czech Republic' },
+  { label: 'Hungary', value: 'Hungary' },
+  { label: 'Turkey', value: 'Turkey' },
+  { label: 'Thailand', value: 'Thailand' },
+  { label: 'Vietnam', value: 'Vietnam' },
+  { label: 'Indonesia', value: 'Indonesia' },
+  { label: 'Malaysia', value: 'Malaysia' },
+  { label: 'Philippines', value: 'Philippines' },
+  { label: 'Argentina', value: 'Argentina' },
+  { label: 'Chile', value: 'Chile' },
+  { label: 'Colombia', value: 'Colombia' },
+  { label: 'Peru', value: 'Peru' },
+  { label: 'South Africa', value: 'South Africa' },
+  { label: 'Egypt', value: 'Egypt' },
+  { label: 'United Arab Emirates', value: 'United Arab Emirates' },
+  { label: 'Saudi Arabia', value: 'Saudi Arabia' },
+  { label: 'Israel', value: 'Israel' },
+] as const
 
 function HostOnboardingPageContent() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [connectingStripe, setConnectingStripe] = useState(false)
+  const [openCountry, setOpenCountry] = useState(false)
   const [hostData, setHostData] = useState({
     // Step 1: Personal Info
     fullName: '',
@@ -58,6 +119,8 @@ function HostOnboardingPageContent() {
     zipCode: '',
     country: 'United States',
     timezone: 'America/New_York',
+    directions: '',
+    accessibility: '',
 
     // Step 3: Hosting Preferences
     maxCapacity: 8,
@@ -205,24 +268,6 @@ function HostOnboardingPageContent() {
               placeholder="+1 (555) 123-4567"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Country</label>
-            <Select
-              value={hostData.country}
-              onValueChange={(value) => handleInputChange('country', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="United States">United States</SelectItem>
-                <SelectItem value="Canada">Canada</SelectItem>
-                <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                <SelectItem value="Australia">Australia</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         <div>
@@ -249,15 +294,56 @@ function HostOnboardingPageContent() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Street Address *</label>
-          <Input
-            value={hostData.address}
-            onChange={(e) => handleInputChange('address', e.target.value)}
-            placeholder="123 Main Street"
-          />
+          <label className="block text-sm font-medium mb-2">Country *</label>
+          <Popover open={openCountry} onOpenChange={setOpenCountry}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openCountry}
+                className="w-full justify-between"
+              >
+                {hostData.country
+                  ? countries.find((country) => country.value === hostData.country)?.label
+                  : 'Select country...'}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+              <Command>
+                <CommandInput placeholder="Search country..." />
+                <CommandList>
+                  <CommandEmpty>No country found.</CommandEmpty>
+                  <CommandGroup>
+                    {countries.map((country) => (
+                      <CommandItem
+                        key={country.value}
+                        value={country.value}
+                        onSelect={(currentValue) => {
+                          handleInputChange(
+                            'country',
+                            currentValue === hostData.country ? '' : currentValue
+                          )
+                          setOpenCountry(false)
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            hostData.country === country.value ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                        {country.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">City *</label>
             <Input
@@ -267,13 +353,29 @@ function HostOnboardingPageContent() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">State/Province *</label>
+            <label className="block text-sm font-medium mb-2">Area/Neighborhood *</label>
             <Input
               value={hostData.state}
               onChange={(e) => handleInputChange('state', e.target.value)}
-              placeholder="NY"
+              placeholder="Neighborhood in New York"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Street Address *</label>
+          <Input
+            value={hostData.address}
+            onChange={(e) => handleInputChange('address', e.target.value)}
+            placeholder="123 Main Street"
+          />
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <Shield className="w-3 h-3" />
+            This address will not be visible to guests until their booking is confirmed
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">ZIP/Postal Code *</label>
             <Input
@@ -282,9 +384,6 @@ function HostOnboardingPageContent() {
               placeholder="10001"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Timezone *</label>
             <Select
@@ -304,25 +403,48 @@ function HostOnboardingPageContent() {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Maximum Capacity *</label>
-            <Select
-              value={hostData.maxCapacity.toString()}
-              onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="4">4 guests</SelectItem>
-                <SelectItem value="6">6 guests</SelectItem>
-                <SelectItem value="8">8 guests</SelectItem>
-                <SelectItem value="10">10 guests</SelectItem>
-                <SelectItem value="12">12 guests</SelectItem>
-                <SelectItem value="15">15 guests</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Directions & Access</label>
+          <Textarea
+            value={hostData.directions}
+            onChange={(e) => handleInputChange('directions', e.target.value)}
+            placeholder="Parking instructions, building access, elevator usage, etc."
+            rows={3}
+            className="resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Accessibility Information</label>
+          <Textarea
+            value={hostData.accessibility}
+            onChange={(e) => handleInputChange('accessibility', e.target.value)}
+            placeholder="Wheelchair access, stairs, special accommodations available..."
+            rows={3}
+            className="resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Maximum Capacity *</label>
+          <Select
+            value={hostData.maxCapacity.toString()}
+            onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="4">4 guests</SelectItem>
+              <SelectItem value="6">6 guests</SelectItem>
+              <SelectItem value="8">8 guests</SelectItem>
+              <SelectItem value="10">10 guests</SelectItem>
+              <SelectItem value="12">12 guests</SelectItem>
+              <SelectItem value="15">15 guests</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardContent>
     </Card>
@@ -489,8 +611,8 @@ function HostOnboardingPageContent() {
           </div>
           <h3 className="text-lg font-semibold mb-2">Connect Stripe Account</h3>
           <p className="text-muted-foreground mb-6">
-            Secure payment processing with automatic commission splits. You'll be redirected to Stripe
-            to complete the setup.
+            Secure payment processing with automatic commission splits. You'll be redirected to
+            Stripe to complete the setup.
           </p>
           <Button
             size="lg"
@@ -520,9 +642,9 @@ function HostOnboardingPageContent() {
 
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> Stripe Connect allows you to receive payments directly. The platform
-            takes a {process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE || '15'}% commission fee, and the rest
-            is transferred to your connected account.
+            <strong>Note:</strong> Stripe Connect allows you to receive payments directly. The
+            platform takes a {process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE || '15'}% commission fee,
+            and the rest is transferred to your connected account.
           </p>
         </div>
       </CardContent>

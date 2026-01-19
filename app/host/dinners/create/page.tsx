@@ -30,36 +30,23 @@ import {
   AlertCircle,
   EyeOff,
   Shield,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/components/ui/utils'
 
-const COUNTRIES = [
-  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
-  'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi',
-  'Cabo Verde', 'Cambodia', 'Cameroon', 'Canada', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo, Democratic Republic of the', 'Congo, Republic of the', 'Costa Rica', 'Côte d\'Ivoire', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
-  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
-  'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia',
-  'Fiji', 'Finland', 'France',
-  'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
-  'Haiti', 'Honduras', 'Hungary',
-  'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy',
-  'Jamaica', 'Japan', 'Jordan',
-  'Kazakhstan', 'Kenya', 'Kiribati', 'Korea, North', 'Korea, South', 'Kosovo', 'Kuwait', 'Kyrgyzstan',
-  'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
-  'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
-  'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Macedonia', 'Norway',
-  'Oman',
-  'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
-  'Qatar',
-  'Romania', 'Russia', 'Rwanda',
-  'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria',
-  'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
-  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan',
-  'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
-  'Yemen',
-  'Zambia', 'Zimbabwe'
-]
+import { COUNTRIES } from '@/lib/countries'
 
 function CreateDinnerPageContent() {
   const router = useRouter()
@@ -67,32 +54,30 @@ function CreateDinnerPageContent() {
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
+  const [openCountry, setOpenCountry] = useState(false)
 
   const errorRef = useRef<HTMLDivElement>(null)
   const cityInputRef = useRef<HTMLInputElement>(null)
-  const neighborhoodInputRef = useRef<HTMLInputElement>(null)
   const citySuggestionsRef = useRef<HTMLDivElement>(null)
-  const neighborhoodSuggestionsRef = useRef<HTMLDivElement>(null)
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
   const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false)
 
   // City autocomplete state
-  const [citySuggestions, setCitySuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [citySuggestions, setCitySuggestions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [selectedCityIndex, setSelectedCityIndex] = useState(-1)
 
   // Neighborhood autocomplete state
-  const [neighborhoodSuggestions, setNeighborhoodSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
-  const [showNeighborhoodSuggestions, setShowNeighborhoodSuggestions] = useState(false)
-  const [selectedNeighborhoodIndex, setSelectedNeighborhoodIndex] = useState(-1)
 
   // Check if we're in development mode
   const isDev =
     typeof window !== 'undefined'
       ? process.env.NODE_ENV === 'development' ||
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
       : process.env.NODE_ENV === 'development'
 
   // Auto-scroll to error when it appears
@@ -185,8 +170,8 @@ function CreateDinnerPageContent() {
     const isDev =
       typeof window !== 'undefined'
         ? process.env.NODE_ENV === 'development' ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1'
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1'
         : process.env.NODE_ENV === 'development'
 
     if (!isDev) {
@@ -264,8 +249,8 @@ function CreateDinnerPageContent() {
     const isDev =
       typeof window !== 'undefined'
         ? process.env.NODE_ENV === 'development' ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1'
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1'
         : process.env.NODE_ENV === 'development'
 
     if (isDev) {
@@ -325,10 +310,14 @@ function CreateDinnerPageContent() {
     const timeoutId = setTimeout(() => {
       if (autocompleteServiceRef.current && dinnerData.city.trim()) {
         try {
+          // Find the country code
+          const selectedCountry = COUNTRIES.find((c) => c.value === dinnerData.state)
+          const countryCode = selectedCountry ? selectedCountry.code : undefined
+
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: dinnerData.city,
-              // No country restriction - allow all countries
+              componentRestrictions: countryCode ? { country: countryCode } : undefined,
               types: ['(cities)'],
             },
             (predictions, status) => {
@@ -371,15 +360,16 @@ function CreateDinnerPageContent() {
           if (status === google.maps.places.PlacesServiceStatus.OK && place) {
             // Extract city name
             const cityComponent = place.address_components?.find(
-              (component) => component.types.includes('locality') || component.types.includes('administrative_area_level_1')
+              (component) =>
+                component.types.includes('locality') ||
+                component.types.includes('administrative_area_level_1')
             )
             if (cityComponent) {
               handleInputChange('city', cityComponent.long_name)
             } else {
               handleInputChange('city', place.name || description)
             }
-            // Clear neighborhood when city changes
-            handleInputChange('neighborhood', '')
+
             setShowCitySuggestions(false)
             setCitySuggestions([])
             setSelectedCityIndex(-1)
@@ -389,93 +379,11 @@ function CreateDinnerPageContent() {
     } else {
       // Fallback to description if service not available
       handleInputChange('city', description)
-      handleInputChange('neighborhood', '')
       setShowCitySuggestions(false)
     }
   }
 
-  // Fetch neighborhood suggestions when neighborhood input changes
-  useEffect(() => {
-    if (!googlePlacesLoaded || !autocompleteServiceRef.current || !dinnerData.neighborhood.trim() || !dinnerData.city) {
-      setNeighborhoodSuggestions([])
-      setShowNeighborhoodSuggestions(false)
-      return
-    }
-
-    // Debounce the API call
-    const timeoutId = setTimeout(() => {
-      if (autocompleteServiceRef.current && dinnerData.neighborhood.trim()) {
-        try {
-          // Search for neighborhoods - use a broader search strategy
-          // Try searching with just the neighborhood name first, then with city context
-          const searchQuery = dinnerData.neighborhood.trim()
-          autocompleteServiceRef.current.getPlacePredictions(
-            {
-              input: searchQuery,
-              // No country restriction - allow all countries
-              // Don't restrict types too much - let Google return relevant results
-            },
-            (predictions, status) => {
-              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                // Filter predictions to prioritize neighborhoods/areas in the selected city
-                const filtered = predictions.filter((pred) => {
-                  const desc = pred.description.toLowerCase()
-                  const cityLower = dinnerData.city.toLowerCase()
-                  // Include results that mention the city or Iceland
-                  // Prioritize results that are clearly in the selected city
-                  return desc.includes(cityLower) || desc.includes('iceland')
-                })
-                // Use filtered results if available, otherwise use all predictions
-                const finalResults = filtered.length > 0 ? filtered : predictions
-                setNeighborhoodSuggestions(finalResults)
-                setShowNeighborhoodSuggestions(finalResults.length > 0)
-                setSelectedNeighborhoodIndex(-1)
-              } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-                // Only log errors, not zero results (which is normal)
-                console.warn('Google Places API error for neighborhood search:', status)
-                setNeighborhoodSuggestions([])
-                setShowNeighborhoodSuggestions(false)
-              } else {
-                setNeighborhoodSuggestions([])
-                setShowNeighborhoodSuggestions(false)
-              }
-            }
-          )
-        } catch (error) {
-          console.error('Error fetching neighborhood predictions:', error)
-          setNeighborhoodSuggestions([])
-          setShowNeighborhoodSuggestions(false)
-        }
-      }
-    }, 300) // 300ms debounce
-
-    return () => clearTimeout(timeoutId)
-  }, [dinnerData.neighborhood, dinnerData.city, googlePlacesLoaded])
-
   // Handle neighborhood selection
-  const handleSelectNeighborhood = (placeId: string, description: string) => {
-    // Get place details to extract neighborhood name
-    if (placesServiceRef.current) {
-      placesServiceRef.current.getDetails(
-        {
-          placeId: placeId,
-          fields: ['name'],
-        },
-        (place, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-            handleInputChange('neighborhood', place.name || description)
-            setShowNeighborhoodSuggestions(false)
-            setNeighborhoodSuggestions([])
-            setSelectedNeighborhoodIndex(-1)
-          }
-        }
-      )
-    } else {
-      // Fallback to description if service not available
-      handleInputChange('neighborhood', description)
-      setShowNeighborhoodSuggestions(false)
-    }
-  }
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -487,14 +395,6 @@ function CreateDinnerPageContent() {
         !cityInputRef.current.contains(event.target as Node)
       ) {
         setShowCitySuggestions(false)
-      }
-      if (
-        neighborhoodSuggestionsRef.current &&
-        !neighborhoodSuggestionsRef.current.contains(event.target as Node) &&
-        neighborhoodInputRef.current &&
-        !neighborhoodInputRef.current.contains(event.target as Node)
-      ) {
-        setShowNeighborhoodSuggestions(false)
       }
     }
 
@@ -532,7 +432,10 @@ function CreateDinnerPageContent() {
       case 'Enter':
         e.preventDefault()
         if (selectedCityIndex >= 0 && citySuggestions[selectedCityIndex]) {
-          handleSelectCity(citySuggestions[selectedCityIndex].place_id, citySuggestions[selectedCityIndex].description)
+          handleSelectCity(
+            citySuggestions[selectedCityIndex].place_id,
+            citySuggestions[selectedCityIndex].description
+          )
         }
         break
       case 'Escape':
@@ -544,48 +447,6 @@ function CreateDinnerPageContent() {
   }
 
   // Handle keyboard navigation for neighborhood
-  const handleNeighborhoodKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showNeighborhoodSuggestions || neighborhoodSuggestions.length === 0) return
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedNeighborhoodIndex((prev) => {
-          const newIndex = prev < neighborhoodSuggestions.length - 1 ? prev + 1 : prev
-          if (neighborhoodSuggestionsRef.current && newIndex >= 0) {
-            const element = neighborhoodSuggestionsRef.current.children[newIndex] as HTMLElement
-            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }
-          return newIndex
-        })
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedNeighborhoodIndex((prev) => {
-          const newIndex = prev > 0 ? prev - 1 : -1
-          if (neighborhoodSuggestionsRef.current && newIndex >= 0) {
-            const element = neighborhoodSuggestionsRef.current.children[newIndex] as HTMLElement
-            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }
-          return newIndex
-        })
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (selectedNeighborhoodIndex >= 0 && neighborhoodSuggestions[selectedNeighborhoodIndex]) {
-          handleSelectNeighborhood(
-            neighborhoodSuggestions[selectedNeighborhoodIndex].place_id,
-            neighborhoodSuggestions[selectedNeighborhoodIndex].description
-          )
-        }
-        break
-      case 'Escape':
-        e.preventDefault()
-        setShowNeighborhoodSuggestions(false)
-        setSelectedNeighborhoodIndex(-1)
-        break
-    }
-  }
 
   const handleDietaryToggle = (dietary: string) => {
     setDinnerData((prev) => ({
@@ -606,7 +467,8 @@ function CreateDinnerPageContent() {
     const totalAfterAdd = selectedImageFiles.length + newFiles.length
     if (totalAfterAdd > 5) {
       setError(
-        `Maximum 5 images allowed. You already have ${selectedImageFiles.length
+        `Maximum 5 images allowed. You already have ${
+          selectedImageFiles.length
         } image${selectedImageFiles.length !== 1 ? 's' : ''} selected.`
       )
       e.target.value = ''
@@ -635,7 +497,8 @@ function CreateDinnerPageContent() {
 
     if (filesToAdd.length < sizeValidFiles.length) {
       setError(
-        `Maximum 5 images allowed. Only ${filesToAdd.length} image${filesToAdd.length !== 1 ? 's' : ''
+        `Maximum 5 images allowed. Only ${filesToAdd.length} image${
+          filesToAdd.length !== 1 ? 's' : ''
         } added.`
       )
     }
@@ -750,10 +613,6 @@ function CreateDinnerPageContent() {
         validationErrors.push('City is required')
       }
 
-      if (!dinnerData.neighborhood || dinnerData.neighborhood.trim() === '') {
-        validationErrors.push('Area/Neighborhood is required')
-      }
-
       if (!dinnerData.state || dinnerData.state.trim() === '') {
         validationErrors.push('Country is required')
       }
@@ -796,9 +655,9 @@ function CreateDinnerPageContent() {
       // Parse menu from string (assuming it's comma-separated or newline-separated)
       const menuItems = dinnerData.menu
         ? dinnerData.menu
-          .split(/[,\n]/)
-          .map((item) => item.trim())
-          .filter((item) => item)
+            .split(/[,\n]/)
+            .map((item) => item.trim())
+            .filter((item) => item)
         : []
 
       // Build location object
@@ -1055,19 +914,66 @@ function CreateDinnerPageContent() {
                 <CardDescription>Where will the dinner take place?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Street Address *</label>
-                  <Input
-                    value={dinnerData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="123 Main Street"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5" />
-                    This address will not be visible to guests until their booking is confirmed
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Country *</label>
+                    <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCountry}
+                          className="w-full justify-between"
+                        >
+                          {dinnerData.state
+                            ? COUNTRIES.find((country) => country.value === dinnerData.state)?.label
+                            : 'Select country...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search country..."
+                            className="border-none focus:ring-0 outline-none shadow-none ring-0"
+                          />
+                          <CommandList>
+                            <CommandEmpty>No country found.</CommandEmpty>
+                            <CommandGroup>
+                              {COUNTRIES.map((country) => (
+                                <CommandItem
+                                  key={country.value}
+                                  value={country.label}
+                                  onSelect={(currentValue) => {
+                                    handleInputChange('state', country.value)
+                                    setOpenCountry(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      dinnerData.state === country.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                  {country.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
+                    <Input
+                      value={dinnerData.zipCode}
+                      onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                      placeholder="10001"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1089,7 +995,9 @@ function CreateDinnerPageContent() {
                         disabled={!googlePlacesLoaded}
                       />
                       {!googlePlacesLoaded && (
-                        <p className="text-xs text-muted-foreground mt-1">Loading city suggestions...</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Loading city suggestions...
+                        </p>
                       )}
                       {/* Custom City Suggestions Dropdown */}
                       {showCitySuggestions && citySuggestions.length > 0 && (
@@ -1101,62 +1009,14 @@ function CreateDinnerPageContent() {
                             <button
                               key={suggestion.place_id}
                               type="button"
-                              onClick={() => handleSelectCity(suggestion.place_id, suggestion.description)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${index === selectedCityIndex ? 'bg-gray-50' : ''
-                                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
-                                }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm text-gray-900 truncate">
-                                    {suggestion.structured_formatting.main_text}
-                                  </div>
-                                  <div className="text-xs text-gray-500 truncate">
-                                    {suggestion.structured_formatting.secondary_text}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Area/Neighborhood *</label>
-                    <div className="relative">
-                      <Input
-                        ref={neighborhoodInputRef}
-                        value={dinnerData.neighborhood}
-                        onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                        onKeyDown={handleNeighborhoodKeyDown}
-                        onFocus={() => {
-                          if (neighborhoodSuggestions.length > 0) {
-                            setShowNeighborhoodSuggestions(true)
-                          }
-                        }}
-                        placeholder={dinnerData.city ? `Neighborhood in ${dinnerData.city}` : 'Select a city first'}
-                        required
-                        disabled={!googlePlacesLoaded || !dinnerData.city}
-                      />
-                      {!dinnerData.city && (
-                        <p className="text-xs text-muted-foreground mt-1">Please select a city first</p>
-                      )}
-                      {/* Custom Neighborhood Suggestions Dropdown */}
-                      {showNeighborhoodSuggestions && neighborhoodSuggestions.length > 0 && (
-                        <div
-                          ref={neighborhoodSuggestionsRef}
-                          className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
-                        >
-                          {neighborhoodSuggestions.map((suggestion, index) => (
-                            <button
-                              key={suggestion.place_id}
-                              type="button"
-                              onClick={() => handleSelectNeighborhood(suggestion.place_id, suggestion.description)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${index === selectedNeighborhoodIndex ? 'bg-gray-50' : ''
-                                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === neighborhoodSuggestions.length - 1 ? 'rounded-b-xl' : ''
-                                }`}
+                              onClick={() =>
+                                handleSelectCity(suggestion.place_id, suggestion.description)
+                              }
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                                index === selectedCityIndex ? 'bg-gray-50' : ''
+                              } ${index === 0 ? 'rounded-t-xl' : ''} ${
+                                index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
+                              }`}
                             >
                               <div className="flex items-start gap-3">
                                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -1177,34 +1037,18 @@ function CreateDinnerPageContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Country *</label>
-                    <Select
-                      value={dinnerData.state}
-                      onValueChange={(value) => handleInputChange('state', value)}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COUNTRIES.map((country) => (
-                          <SelectItem key={country} value={country}>
-                            {country}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
-                    <Input
-                      value={dinnerData.zipCode}
-                      onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                      placeholder="10001"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Street Address *</label>
+                  <Input
+                    value={dinnerData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="123 Main Street"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    This address will not be visible to guests until their booking is confirmed
+                  </p>
                 </div>
 
                 <div>
@@ -1340,7 +1184,9 @@ function CreateDinnerPageContent() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Price Per Person *</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">€</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
+                      €
+                    </span>
                     <Input
                       type="number"
                       min="1"
