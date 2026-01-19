@@ -26,6 +26,7 @@ import {
 import { Dinner, NavigationParams } from '@/types'
 import { useAuth } from '@/contexts/auth-context'
 import { bookingService } from '@/lib/booking-service'
+import { paymentService } from '@/lib/payment-service'
 import { dispatchBookingCreated } from '@/lib/booking-events'
 
 interface BookingProps {
@@ -114,8 +115,9 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
         return
       }
 
-      // Create booking with all details
-      const bookingData = {
+      // Payment-first flow: Create checkout session directly
+      // Booking will be created automatically when payment succeeds
+      const paymentResult = await paymentService.createCheckoutSessionForBooking({
         dinnerId: dinner.id,
         guests: guests,
         message: guestDetails.specialRequests || undefined,
@@ -124,38 +126,19 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
           email: guestDetails.email,
           phone: guestDetails.phone.trim(),
         },
-      }
+      })
 
-      const result = await bookingService.createBooking(bookingData)
-
-      console.log('🔵 Booking Response:', result)
-      console.log('🔵 Full result.data:', result.data)
-      console.log('🔵 result.data.dinnerId:', result.data?.dinnerId)
-      console.log('🔵 Component dinner.id:', dinner.id)
-
-      if (result.success && result.data) {
-        // Get dinnerId from backend response (REQUIRED - backend must send this)
-        // Fallback to component prop only if backend doesn't send it (should not happen)
-        const bookedDinnerId = result.data.dinnerId || dinner.id
-
-        console.log('🔵 Using dinnerId:', bookedDinnerId)
-
-        if (!result.data.dinnerId) {
-          console.warn(
-            '⚠️ Warning: Backend did not return dinnerId in booking response. Using fallback.'
-          )
-        }
-
-        // Navigate to home page with booking success and dinnerId to remove
-        // The home page will filter out this dinnerId immediately
-        window.location.href = `/?booking=success&bookedDinnerId=${bookedDinnerId}`
+      if (paymentResult.success && paymentResult.data?.checkoutUrl) {
+        // Redirect to Stripe checkout
+        // Booking will be created automatically when payment succeeds via webhook
+        window.location.href = paymentResult.data.checkoutUrl
       } else {
-        setError(result.error || 'Failed to create booking. Please try again.')
+        setError(paymentResult.error || 'Failed to initiate payment. Please try again.')
+        setIsSubmitting(false)
       }
     } catch (err: any) {
       console.error('Booking error:', err)
       setError('An unexpected error occurred. Please try again.')
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -388,14 +371,14 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                             ? 'Free cancellation'
                             : dinner.cancellationPolicy === 'moderate'
                               ? 'Moderate cancellation'
-                              : 'Strict cancellation'}
+                              : 'Cancellation policy'}
                         </span>
                         <p className="text-muted-foreground mt-1">
                           {dinner.cancellationPolicy === 'flexible'
                             ? 'Cancel up to 24 hours before your dinner for a full refund.'
                             : dinner.cancellationPolicy === 'moderate'
-                              ? 'Full refund if cancelled 5+ days before. 50% refund if cancelled 1-5 days before.'
-                              : '50% refund if cancelled 7+ days before. No refund otherwise.'}
+                              ? 'Full refund if cancelled 5+ days before. No refund if cancelled less than 5 days before.'
+                              : 'Please check cancellation policy details.'}
                         </p>
                       </div>
                     </div>

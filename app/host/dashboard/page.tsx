@@ -51,6 +51,8 @@ import {
   Camera,
   Wallet,
 } from 'lucide-react'
+import { PayoutSection } from '@/components/payout/payout-section'
+import { PaymentDetailsSection } from '@/components/payout/payment-details-section'
 import Image from 'next/image'
 import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
@@ -67,7 +69,7 @@ const mockDinners = [
     time: '19:00',
     guests: 6,
     maxCapacity: 8,
-    price: 85,
+    price: 100,
     status: 'upcoming',
     bookings: 6,
     revenue: 510,
@@ -154,6 +156,7 @@ function HostDashboardContent() {
   const [dinnerFilter, setDinnerFilter] = useState('all')
   const [dinners, setDinners] = useState<any[]>([])
   const [dinnersLoading, setDinnersLoading] = useState(true)
+  const [dinnersError, setDinnersError] = useState<string | null>(null)
   const [bookings, setBookings] = useState<any[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(true)
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null)
@@ -384,9 +387,9 @@ function HostDashboardContent() {
       const languagesArray =
         typeof profileData.languages === 'string' && profileData.languages.trim()
           ? profileData.languages
-              .split(',')
-              .map((l) => l.trim())
-              .filter((l) => l.length > 0)
+            .split(',')
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0)
           : []
 
       const response = await fetch(getApiUrl(`/users/${user.id}`), {
@@ -629,10 +632,15 @@ function HostDashboardContent() {
           return
         }
 
-        const response = await fetch(getApiUrl(`/host/${user.id}/dinners`), {
+        const apiUrl = getApiUrl(`/host/${user.id}/dinners`)
+        const response = await fetch(apiUrl, {
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
+        }).catch((error) => {
+          console.error('[Host Dashboard] Network error fetching dinners:', error)
+          throw new Error('Unable to connect to server. Please check if the backend is running.')
         })
 
         if (response.ok) {
@@ -685,8 +693,14 @@ function HostDashboardContent() {
           // Fallback to mock data if API fails
           setDinners(mockDinners)
         }
-      } catch (error) {
-        console.error('Error fetching dinners:', error)
+      } catch (error: any) {
+        console.error('[Host Dashboard] Error fetching dinners:', error)
+        // Handle network errors specifically
+        if (error.message && error.message.includes('Unable to connect')) {
+          setDinnersError('Unable to connect to server. Please check if the backend is running.')
+        } else {
+          setDinnersError(error.message || 'Failed to load dinners')
+        }
         // Fallback to mock data on error
         setDinners(mockDinners)
       } finally {
@@ -1050,8 +1064,8 @@ function HostDashboardContent() {
     const averageRating =
       dinnersWithRatings.length > 0
         ? (
-            dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length
-          ).toFixed(1)
+          dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length
+        ).toFixed(1)
         : '0.0'
     const totalReviews = dinners.reduce((sum, d) => sum + (d.reviews || 0), 0)
     const upcomingDinners = dinners.filter((d) => d.status === 'upcoming')
@@ -1341,9 +1355,9 @@ function HostDashboardContent() {
                 <p className="text-2xl font-bold">
                   {dinners.filter((d) => d.rating > 0).length > 0
                     ? (
-                        dinners.reduce((sum, d) => sum + d.rating, 0) /
-                        dinners.filter((d) => d.rating > 0).length
-                      ).toFixed(1)
+                      dinners.reduce((sum, d) => sum + d.rating, 0) /
+                      dinners.filter((d) => d.rating > 0).length
+                    ).toFixed(1)
                     : '0.0'}
                 </p>
               </div>
@@ -1544,11 +1558,10 @@ function HostDashboardContent() {
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-3 h-3 ${
-                                    star <= (booking.guestReview?.rating || 0)
+                                  className={`w-3 h-3 ${star <= (booking.guestReview?.rating || 0)
                                       ? 'text-yellow-400 fill-yellow-400'
                                       : 'text-gray-300'
-                                  }`}
+                                    }`}
                                 />
                               ))}
                             </div>
@@ -1607,11 +1620,10 @@ function HostDashboardContent() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-4 h-4 ${
-                                star <= (booking.review?.rating || 0)
+                              className={`w-4 h-4 ${star <= (booking.review?.rating || 0)
                                   ? 'text-yellow-400 fill-yellow-400'
                                   : 'text-gray-300'
-                              }`}
+                                }`}
                             />
                           ))}
                         </div>
@@ -1832,11 +1844,10 @@ function HostDashboardContent() {
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`w-5 h-5 ${
-                          star <= Math.round(reviewsStats.averageRating)
+                        className={`w-5 h-5 ${star <= Math.round(reviewsStats.averageRating)
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-300'
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -1880,11 +1891,10 @@ function HostDashboardContent() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-4 h-4 ${
-                                star <= review.rating
+                              className={`w-4 h-4 ${star <= review.rating
                                   ? 'fill-yellow-400 text-yellow-400'
                                   : 'text-gray-300'
-                              }`}
+                                }`}
                             />
                           ))}
                         </div>
@@ -2182,10 +2192,12 @@ function HostDashboardContent() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="dinners">My Dinners</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="payouts">Payouts</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -2201,6 +2213,14 @@ function HostDashboardContent() {
 
             <TabsContent value="bookings" className="mt-6">
               {renderBookings()}
+            </TabsContent>
+
+            <TabsContent value="payouts" className="mt-6">
+              {user?.id && <PayoutSection hostId={user.id} />}
+            </TabsContent>
+
+            <TabsContent value="payments" className="mt-6">
+              {user?.id && <PaymentDetailsSection hostId={user.id} />}
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-6">
@@ -2436,9 +2456,9 @@ function HostDashboardContent() {
                     <p className="text-sm mt-1">
                       {guestProfile.joinedDate
                         ? new Date(guestProfile.joinedDate).toLocaleDateString('en-US', {
-                            month: 'long',
-                            year: 'numeric',
-                          })
+                          month: 'long',
+                          year: 'numeric',
+                        })
                         : 'Unknown'}
                     </p>
                   </div>
@@ -2495,9 +2515,8 @@ function HostDashboardContent() {
                       className="focus:outline-none"
                     >
                       <Star
-                        className={`w-8 h-8 transition-colors ${
-                          star <= reviewRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
-                        }`}
+                        className={`w-8 h-8 transition-colors ${star <= reviewRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                          }`}
                       />
                     </button>
                   ))}
