@@ -48,6 +48,9 @@ import { cn } from '@/components/ui/utils'
 
 import { COUNTRIES } from '@/lib/countries'
 
+const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'))
+const MINUTE_OPTIONS = ['00', '15', '30', '45']
+
 function CreateDinnerPageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -1097,12 +1100,52 @@ function CreateDinnerPageContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Start Time *</label>
-                    <Input
-                      type="time"
-                      value={dinnerData.time}
-                      onChange={(e) => handleInputChange('time', e.target.value)}
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <Select
+                          value={dinnerData.time ? dinnerData.time.split(':')[0] : ''}
+                          onValueChange={(hour) => {
+                            const currentMinutes = dinnerData.time
+                              ? dinnerData.time.split(':')[1]
+                              : '00'
+                            handleInputChange('time', `${hour}:${currentMinutes}`)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Hour" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[200px]">
+                            {HOUR_OPTIONS.map((hour) => (
+                              <SelectItem key={hour} value={hour}>
+                                {hour}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1 relative">
+                        <Select
+                          value={dinnerData.time ? dinnerData.time.split(':')[1] : ''}
+                          onValueChange={(minute) => {
+                            const currentHour = dinnerData.time
+                              ? dinnerData.time.split(':')[0]
+                              : '19' // Default hour if not selected yet
+                            handleInputChange('time', `${currentHour}:${minute}`)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Min" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MINUTE_OPTIONS.map((minute) => (
+                              <SelectItem key={minute} value={minute}>
+                                {minute}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
