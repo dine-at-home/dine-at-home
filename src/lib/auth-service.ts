@@ -16,6 +16,7 @@ export interface User {
   role: 'guest' | 'host' | 'admin'
   image: string | null
   emailVerified: boolean
+  blocked?: boolean
   needsRoleSelection?: boolean
   needsProfileCompletion?: boolean
   createdAt?: string
@@ -338,7 +339,7 @@ class AuthService {
 
         // Monitor the popup window for closure (fallback - only if no message received)
         // Use try-catch to handle COOP (Cross-Origin-Opener-Policy) restrictions
-        
+
         // Set a maximum timeout for the popup (5 minutes)
         timeoutId = setTimeout(() => {
           if (checkClosed) {

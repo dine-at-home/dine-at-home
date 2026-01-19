@@ -3,6 +3,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService, User, AuthResponse } from '@/lib/auth-service'
+import { getApiUrl } from '@/lib/api-config'
+import { BlockedModal } from '@/components/auth/blocked-modal'
+import { toast } from 'sonner'
 
 interface AuthContextType {
   user: User | null
@@ -40,6 +43,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isBlocked, setIsBlocked] = useState(false)
   const router = useRouter()
 
   // Load user on mount
@@ -52,17 +56,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // First check localStorage
       const storedUser = authService.getUser()
       if (storedUser) {
+        if (storedUser.blocked) {
+          setIsBlocked(true)
+        }
         setUser(storedUser)
       }
 
       // Then verify with backend
-      const currentUser = await authService.getCurrentUser()
-      if (currentUser) {
-        setUser(currentUser)
-      } else {
-        // Token invalid or expired
-        authService.logout()
-        setUser(null)
+      const response = await fetch(getApiUrl('/auth/current-user'), {
+        headers: authService.getAuthHeader()
+      })
+
+      if (response.status === 403) {
+        const data = await response.json()
+        if (data.code === 'USER_BLOCKED' || data.error?.includes('blocked')) {
+          setIsBlocked(true)
+          setUser(null)
+          authService.logout()
+          return
+        }
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          authService.logout()
+          setUser(null)
+        }
+        return
+      }
+
+      const result = await response.json()
+      if (result.success && result.data) {
+        const currentUser = result.data
+        if (currentUser.blocked) {
+          setIsBlocked(true)
+          setUser(null)
+          authService.logout()
+        } else {
+          setUser(currentUser)
+          authService.setUser(currentUser)
+        }
       }
     } catch (error) {
       console.error('Error loading user:', error)
@@ -76,7 +109,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authService.login(email, password)
       if (result.success && result.data?.user) {
+        if (result.data.user.blocked) {
+          setIsBlocked(true)
+          setUser(null)
+          authService.logout()
+          return {
+            success: false,
+            error: 'Your account has been blocked. Please contact info@datthome.com.',
+          }
+        }
         setUser(result.data.user)
+      } else if (!result.success && result.error?.toLowerCase().includes('blocked')) {
+        setIsBlocked(true)
       }
       return result
     } catch (error: any) {
@@ -163,11 +207,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshUser = async () => {
-    const currentUser = await authService.getCurrentUser()
-    if (currentUser) {
-      setUser(currentUser)
-    } else {
-      setUser(null)
+    try {
+      const response = await fetch(getApiUrl('/auth/current-user'), {
+        headers: authService.getAuthHeader()
+      })
+
+      if (response.status === 403) {
+        const data = await response.json()
+        if (data.code === 'USER_BLOCKED') {
+          setIsBlocked(true)
+          setUser(null)
+          authService.logout()
+          return
+        }
+      }
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          if (result.data.blocked) {
+            setIsBlocked(true)
+            setUser(null)
+            authService.logout()
+          } else {
+            setUser(result.data)
+            authService.setUser(result.data)
+          }
+        }
+      } else if (response.status === 401) {
+        setUser(null)
+        authService.logout()
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error)
     }
   }
 
@@ -185,5 +257,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle,
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <BlockedModal isOpen={isBlocked} onClose={() => setIsBlocked(false)} />
+    </AuthContext.Provider>
+  )
 }

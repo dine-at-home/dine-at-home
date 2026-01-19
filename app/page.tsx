@@ -92,6 +92,34 @@ function HomePageContent() {
     fetchDinners()
   }, [bookedDinnerIdFromUrl])
 
+  const [ads, setAds] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchAds = async () => {
+      try {
+        const response = await fetch(getApiUrl('/ads'), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          setAds(result.data)
+        }
+      } catch (err: any) {
+        console.error('Error fetching ads:', err)
+      }
+    }
+
+    fetchAds()
+  }, [])
+
+  const primaryAd = ads.find((ad) => ad.position === 'primary' && ad.isActive)
+  const secondaryAd = ads.find((ad) => ad.position === 'secondary' && ad.isActive)
+
   // Show loading while checking auth or redirecting
   if (authLoading || (user && !user.emailVerified)) {
     return (
@@ -160,27 +188,49 @@ function HomePageContent() {
         <FeaturedDinnersSection dinners={dinners} />
       )}
 
-      <AdBanner
-        title="Elevate Your Culinary Skills"
-        description="Join exclusive online masterclasses with world-renowned chefs. Master the art of pasta, pastry, and more from the comfort of your home."
-        buttonText="View Masterclasses"
-        link="/"
-        imageSrc="/ads/cooking_class.png"
-        variant="primary"
-      />
+      {primaryAd ? (
+        <AdBanner
+          title={primaryAd.title}
+          description={primaryAd.description}
+          buttonText={primaryAd.buttonText}
+          link={primaryAd.link}
+          imageSrc={primaryAd.imageSrc}
+          variant="primary"
+        />
+      ) : (
+        <AdBanner
+          title="Elevate Your Culinary Skills"
+          description="Join exclusive online masterclasses with world-renowned chefs. Master the art of pasta, pastry, and more from the comfort of your home."
+          buttonText="View Masterclasses"
+          link="/"
+          imageSrc="/ads/cooking_class.png"
+          variant="primary"
+        />
+      )}
 
       <SocialProofSection />
 
       <HowItWorksSection />
 
-      <AdBanner
-        title="Premium Kitchenware for Master Chefs"
-        description="Upgrade your kitchen with our curated collection of professional ceramic cookware and artisanal tools. Built to last a lifetime."
-        buttonText="Shop Collection"
-        link="/"
-        imageSrc="/ads/premium_cookware.png"
-        variant="secondary"
-      />
+      {secondaryAd ? (
+        <AdBanner
+          title={secondaryAd.title}
+          description={secondaryAd.description}
+          buttonText={secondaryAd.buttonText}
+          link={secondaryAd.link}
+          imageSrc={secondaryAd.imageSrc}
+          variant="secondary"
+        />
+      ) : (
+        <AdBanner
+          title="Premium Kitchenware for Master Chefs"
+          description="Upgrade your kitchen with our curated collection of professional ceramic cookware and artisanal tools. Built to last a lifetime."
+          buttonText="Shop Collection"
+          link="/"
+          imageSrc="/ads/premium_cookware.png"
+          variant="secondary"
+        />
+      )}
 
       <HostCTASection />
     </MainLayout>

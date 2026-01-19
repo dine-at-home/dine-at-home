@@ -33,20 +33,18 @@ export function AdBanner({
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className={`relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl transition-transform hover:scale-[1.01] duration-700 ${
-            isSecondary ? 'bg-zinc-900 text-white' : 'bg-primary-600 text-white'
-          }`}
+          className={`relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl transition-transform hover:scale-[1.01] duration-700 ${isSecondary ? 'bg-zinc-900 text-white' : 'bg-primary-600 text-white'
+            }`}
         >
           <div className="flex flex-col lg:flex-row items-stretch min-h-[300px] sm:min-h-[360px]">
             {/* Content Side */}
             <div className="flex-1 p-8 sm:p-10 lg:p-16 flex flex-col justify-center gap-6 sm:gap-8 z-10 transition-transform group">
               <div className="space-y-4 sm:space-y-6">
                 <span
-                  className={`inline-block px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-[0.2em] uppercase border ${
-                    isSecondary
+                  className={`inline-block px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-[0.2em] uppercase border ${isSecondary
                       ? 'bg-white/5 text-white/60 border-white/10'
                       : 'bg-black/5 text-white/80 border-black/10'
-                  }`}
+                    }`}
                 >
                   Sponsored Partnership
                 </span>
@@ -63,11 +61,12 @@ export function AdBanner({
               <div>
                 <Link
                   href={link}
-                  className={`inline-flex items-center gap-2 sm:gap-3 px-8 py-4 sm:px-10 sm:py-5 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 group ${
-                    isSecondary
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-2 sm:gap-3 px-8 py-4 sm:px-10 sm:py-5 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 group ${isSecondary
                       ? 'bg-white text-zinc-950 hover:bg-zinc-100'
                       : 'bg-zinc-950 text-white hover:bg-black shadow-xl shadow-black/20'
-                  }`}
+                    }`}
                 >
                   {buttonText}
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
@@ -78,9 +77,8 @@ export function AdBanner({
             {/* Image Side */}
             <div className="relative flex-1 min-h-[300px] lg:min-h-auto overflow-hidden">
               <div
-                className={`absolute inset-0 z-10 lg:block hidden bg-gradient-to-r ${
-                  isSecondary ? 'from-zinc-900' : 'from-primary-600'
-                } via-transparent to-transparent`}
+                className={`absolute inset-0 z-10 lg:block hidden bg-gradient-to-r ${isSecondary ? 'from-zinc-900' : 'from-primary-600'
+                  } via-transparent to-transparent`}
               />
               <Image
                 src={imageSrc}
