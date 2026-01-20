@@ -167,12 +167,12 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
           limit: '6',
           page: currentPage.toString(),
         })
-        
+
         // Add sortBy parameter
         if (sortBy) {
           queryParams.append('sortBy', sortBy)
         }
-        
+
         // Add price filter
         if (priceRange[0] > 0) {
           queryParams.append('minPrice', priceRange[0].toString())
@@ -180,7 +180,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         if (priceRange[1] < 1000) {
           queryParams.append('maxPrice', priceRange[1].toString())
         }
-        
+
         // Add instant book filter
         if (instantBookOnly) {
           queryParams.append('instantBook', 'true')
@@ -193,6 +193,11 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         }
         if (searchParams.month) {
           queryParams.append('month', searchParams.month)
+        } else if (searchParams.startDate) {
+          queryParams.append('startDate', searchParams.startDate.toISOString().split('T')[0])
+          if (searchParams.endDate) {
+            queryParams.append('endDate', searchParams.endDate.toISOString().split('T')[0])
+          }
         } else if (searchParams.date) {
           queryParams.append('date', searchParams.date.toISOString().split('T')[0])
         }
@@ -217,7 +222,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
           // Filter out booked and past dinners
           const availableDinners = transformedDinners.filter(shouldShowInListings)
           setDinners(availableDinners)
-          
+
           // Update pagination info
           if (result.pagination) {
             setTotalPages(result.pagination.totalPages || 1)
@@ -245,6 +250,8 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     searchParams.month,
     searchParams.guests,
     searchParams.cuisine,
+    searchParams.startDate,
+    searchParams.endDate,
     sortBy, // Refetch when sort changes
     currentPage, // Refetch when page changes
     priceRange, // Refetch when price filter changes
@@ -316,22 +323,22 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     )
     setCurrentPage(1) // Reset to first page when filter changes
   }
-  
+
   const handlePriceRangeChange = (newRange: number[]) => {
     setPriceRange(newRange)
     setCurrentPage(1) // Reset to first page when price filter changes
   }
-  
+
   const handleInstantBookChange = (value: boolean) => {
     setInstantBookOnly(value)
     setCurrentPage(1) // Reset to first page when filter changes
   }
-  
+
   const handleSuperhostChange = (value: boolean) => {
     setSuperhostOnly(value)
     setCurrentPage(1) // Reset to first page when filter changes
   }
-  
+
   const handleSortChange = (value: string) => {
     setSortBy(value)
     setCurrentPage(1) // Reset to first page when sort changes
@@ -407,7 +414,9 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl font-semibold">
-                  {loading ? 'Loading...' : `${totalDinners || filteredDinners.length} dinner experience${totalDinners !== 1 ? 's' : ''}`}
+                  {loading
+                    ? 'Loading...'
+                    : `${totalDinners || filteredDinners.length} dinner experience${totalDinners !== 1 ? 's' : ''}`}
                   {searchParams.location && (
                     <span className="text-muted-foreground"> for "{searchParams.location}"</span>
                   )}
@@ -600,7 +609,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 ))}
               </div>
             ) : null}
-            
+
             {/* Pagination */}
             {!loading && !error && totalPages > 1 && (
               <div className="mt-8 flex justify-center">
@@ -614,10 +623,12 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                             window.scrollTo({ top: 0, behavior: 'smooth' })
                           }
                         }}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        className={
+                          currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                        }
                       />
                     </PaginationItem>
-                    
+
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                       // Show first page, last page, current page, and pages around current
                       if (
@@ -648,7 +659,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                       }
                       return null
                     })}
-                    
+
                     <PaginationItem>
                       <PaginationNext
                         onClick={() => {
@@ -657,7 +668,11 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                             window.scrollTo({ top: 0, behavior: 'smooth' })
                           }
                         }}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        className={
+                          currentPage === totalPages
+                            ? 'pointer-events-none opacity-50'
+                            : 'cursor-pointer'
+                        }
                       />
                     </PaginationItem>
                   </PaginationContent>
