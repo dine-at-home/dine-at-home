@@ -51,6 +51,92 @@ import { COUNTRIES } from '@/lib/countries'
 const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'))
 const MINUTE_OPTIONS = ['00', '15', '30', '45']
 
+const MENU_SUGGESTIONS = [
+  {
+    category: '🥘 Hot Dishes',
+    items: [
+      {
+        title: '1. Icelandic Meat Soup (Kjötsúpa)',
+        description:
+          'Put lamb meat in a pot and cover with water.\nBoil for about 45 minutes.\nAdd potatoes, carrots, turnips, and salt.\nSimmer for another 20–30 minutes.',
+      },
+      {
+        title: '2. Plokkfiskur (Fish Stew)',
+        description:
+          'Boil fish and potatoes separately.\nRoughly mash the potatoes.\nMelt butter in a pot and add milk.\nAdd fish and potatoes, stir gently.',
+      },
+      {
+        title: '3. Fish Balls',
+        description:
+          'Heat a frying pan with butter.\nFry fish balls on medium heat for 4–5 minutes per side.\nServe with potatoes and sauce.',
+      },
+      {
+        title: '4. Boiled Haddock',
+        description:
+          'Place haddock in a pot with lightly salted water.\nBoil for 8–10 minutes.\nServe with potatoes and melted butter.',
+      },
+      {
+        title: '5. Boiled Lamb with Potatoes',
+        description:
+          'Put lamb in a pot and cover with water.\nBoil for 1–1.5 hours.\nAdd potatoes for the last 25 minutes.',
+      },
+      {
+        title: '6. Breaded Fish',
+        description:
+          'Lightly salt fish fillets.\nDip in egg, then breadcrumbs.\nFry in butter until golden on both sides.',
+      },
+      {
+        title: '7. Meatballs',
+        description:
+          'Mix ground meat, egg, salt, and breadcrumbs.\nShape into small balls.\nFry on a pan for 8–10 minutes.',
+      },
+      {
+        title: '8. Bread Soup',
+        description:
+          'Put water and torn rye bread into a pot.\nAdd raisins and sugar.\nSimmer for 20 minutes, stirring often.',
+      },
+    ],
+  },
+  {
+    category: '🍞 Bread & Sides',
+    items: [
+      {
+        title: '9. Icelandic Rye Bread (Oven Method)',
+        description:
+          'Mix rye flour, sugar, salt, and baking powder.\nAdd milk and syrup.\nBake at 170°C (340°F) for about 1.5 hours.',
+      },
+      {
+        title: '10. Flatbread (Flatkökur)',
+        description: 'Heat ready-made flatbread on a pan.\nServe with butter or cured meat.',
+      },
+    ],
+  },
+  {
+    category: '🍰 Desserts & Snacks',
+    items: [
+      {
+        title: '11. Icelandic Pancakes',
+        description:
+          'Mix flour, eggs, and milk.\nHeat a pan with butter.\nFry thin pancakes for 1–2 minutes per side.',
+      },
+      {
+        title: '12. Rice Porridge',
+        description:
+          'Boil rice in water for 10 minutes.\nAdd milk and reduce heat.\nSimmer for 20–30 minutes, stirring often.',
+      },
+      {
+        title: '13. Skyr with Cream',
+        description: 'Put skyr in a bowl.\nPour cream on top.\nAdd sugar or berries.',
+      },
+      {
+        title: '14. Dried Fish (Harðfiskur)',
+        description:
+          'Break dried fish into pieces.\nSpread butter on top.\nEat – no cooking needed 😄',
+      },
+    ],
+  },
+]
+
 function CreateDinnerPageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -584,21 +670,51 @@ function CreateDinnerPageContent() {
 
     return result.data.urls
   }
+  /*
+   * Toggle suggestion:
+   * If the exact text block (title + description) is present, remove it.
+   * Otherwise, append it.
+   */
+  const handleToggleSuggestion = (suggestion: { title: string; description: string }) => {
+    const textBlock = `${suggestion.title}\n${suggestion.description}`
+    const currentMenu = dinnerData.menu || ''
+
+    if (currentMenu.includes(textBlock)) {
+      // Remove it
+      // We try to remove the block plus a preceding or following separator to keep it clean
+      let newMenu = currentMenu.replace(`\n\n${textBlock}`, '')
+
+      if (newMenu === currentMenu) {
+        // Try removing with following separator
+        newMenu = currentMenu.replace(`${textBlock}\n\n`, '')
+      }
+
+      if (newMenu === currentMenu) {
+        // Just remove the block
+        newMenu = currentMenu.replace(textBlock, '')
+      }
+
+      handleInputChange('menu', newMenu.trim())
+    } else {
+      // Add it
+      const separator = currentMenu.length > 0 ? '\n\n' : ''
+      handleInputChange('menu', currentMenu + separator + textBlock)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError('')
 
-    try {
-      // Get auth token
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        setError('You must be logged in to create a dinner')
-        setIsSubmitting(false)
-        return
-      }
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      setError('You must be logged in to create a dinner')
+      setIsSubmitting(false)
+      return
+    }
 
+    try {
       // Step 1: Validate all form data before uploading images
       const validationErrors: string[] = []
 
@@ -957,9 +1073,50 @@ function CreateDinnerPageContent() {
                     value={dinnerData.menu}
                     onChange={(e) => handleInputChange('menu', e.target.value)}
                     placeholder="Describe each course, appetizers, main dishes, and any special preparations..."
-                    rows={4}
+                    rows={12}
                     required
                   />
+                </div>
+
+                {/* Menu Suggestions */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Quick Add Suggestions</span>
+                    <span className="text-xs text-muted-foreground">
+                      (Click to add popular dishes to your menu)
+                    </span>
+                  </div>
+                  <div className="grid gap-6">
+                    {MENU_SUGGESTIONS.map((category) => (
+                      <div key={category.category} className="space-y-2">
+                        <h4 className="text-sm font-semibold text-muted-foreground">
+                          {category.category}
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {category.items.map((item) => (
+                            <Button
+                              key={item.title}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                'h-auto py-1 px-3 text-left whitespace-normal text-xs transition-colors',
+                                (dinnerData.menu || '').includes(
+                                  `${item.title}\n${item.description}`
+                                )
+                                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground border-primary'
+                                  : 'hover:border-primary hover:text-primary'
+                              )}
+                              onClick={() => handleToggleSuggestion(item)}
+                              title={item.description}
+                            >
+                              {item.title}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
