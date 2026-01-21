@@ -20,6 +20,11 @@ export interface User {
   needsRoleSelection?: boolean
   needsProfileCompletion?: boolean
   createdAt?: string
+  bankName?: string | null
+  accountHolderName?: string | null
+  iban?: string | null
+  swiftBic?: string | null
+  payoutAddress?: string | null
 }
 
 export interface AuthResponse {
@@ -637,6 +642,52 @@ class AuthService {
       }
 
       return { success: true }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Network error',
+      }
+    }
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(
+    userId: string,
+    data: Partial<User>
+  ): Promise<{ success: boolean; data?: User; error?: string }> {
+    const token = this.getToken()
+    if (!token) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    try {
+      const response = await fetch(getApiUrl(`/users/${userId}`), {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || 'Failed to update profile',
+        }
+      }
+
+      // Update stored user if it's the current user
+      const currentUser = this.getUser()
+      if (currentUser && currentUser.id === userId) {
+        this.setUser(result.data)
+      }
+
+      return { success: true, data: result.data }
     } catch (error: any) {
       return {
         success: false,
