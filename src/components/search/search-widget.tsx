@@ -384,9 +384,9 @@ export function SearchWidget({
     if (location) searchParams.set('location', location)
 
     if (dateRange?.from) {
-      searchParams.set('startDate', dateRange.from.toISOString())
+      searchParams.set('startDate', format(dateRange.from, 'yyyy-MM-dd'))
       if (dateRange.to) {
-        searchParams.set('endDate', dateRange.to.toISOString())
+        searchParams.set('endDate', format(dateRange.to, 'yyyy-MM-dd'))
       } else {
         // If only 'from' is selected, fall back to single date behavior if backend desires,
         // or just send startDate. For now, let's keep 'date' for backward compat or just rely on new logic.

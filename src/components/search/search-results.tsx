@@ -42,6 +42,7 @@ interface SearchResultsProps {
 const FiltersContent = ({
   priceRange,
   setPriceRange,
+  onPriceCommit,
   selectedCuisines,
   toggleCuisine,
   instantBookOnly,
@@ -52,6 +53,7 @@ const FiltersContent = ({
 }: {
   priceRange: number[]
   setPriceRange: (range: number[]) => void
+  onPriceCommit: (range: number | number[]) => void
   selectedCuisines: string[]
   toggleCuisine: (val: string) => void
   instantBookOnly: boolean
@@ -69,6 +71,7 @@ const FiltersContent = ({
           onValueChange={(val) => {
             if (Array.isArray(val)) setPriceRange(val)
           }}
+          onValueCommit={onPriceCommit}
           max={1000}
           min={0}
           step={1}
@@ -76,60 +79,12 @@ const FiltersContent = ({
         />
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>€{priceRange[0]}</span>
-          <span>€{priceRange[1]}+</span>
+          <span>€{priceRange[1]}</span>
         </div>
       </div>
     </div>
 
-    {/* <div>
-      <h3 className="font-semibold mb-3">Cuisine Type</h3>
-      <div className="grid grid-cols-2 gap-2">
-        {cuisines.map(cuisine => (
-          <div key={cuisine} className="flex items-center space-x-2">
-            <Checkbox
-              id={cuisine}
-              checked={selectedCuisines.includes(cuisine)}
-              onCheckedChange={() => toggleCuisine(cuisine)}
-            />
-            <label 
-              htmlFor={cuisine}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              {cuisine}
-            </label>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div>
-      <h3 className="font-semibold mb-3">Booking Options</h3>
-      <div className="space-y-3">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="instant-book"
-            checked={instantBookOnly}
-            onCheckedChange={(checkedState) => setInstantBookOnly(checkedState === true)}
-          />
-          <label htmlFor="instant-book" className="text-sm font-medium">
-            Instant Book only
-          </label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="superhost"
-            checked={superhostOnly}
-            onCheckedChange={(checked) => {
-              setSuperhostOnly(checked === true)
-              // Page reset is handled by parent component
-            }}
-          />
-          <label htmlFor="superhost" className="text-sm font-medium">
-            Superhost only
-          </label>
-        </div>
-      </div>
-    </div> */}
+    {/* ... (commented out cuisine/booking for now as per original file) */}
 
     <Button variant="outline" onClick={clearFilters} className="w-full">
       Clear all filters
@@ -141,6 +96,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('rating')
   const [priceRange, setPriceRange] = useState([0, 1000])
+  const [displayPriceRange, setDisplayPriceRange] = useState([0, 1000])
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([])
   const [instantBookOnly, setInstantBookOnly] = useState(false)
   const [superhostOnly, setSuperhostOnly] = useState(false)
@@ -151,6 +107,11 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalDinners, setTotalDinners] = useState(0)
+
+  // Sync display price with actual price filter when it changes (e.g. clear filters)
+  useEffect(() => {
+    setDisplayPriceRange(priceRange)
+  }, [priceRange])
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false)
@@ -325,8 +286,14 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   }
 
   const handlePriceRangeChange = (newRange: number[]) => {
-    setPriceRange(newRange)
-    setCurrentPage(1) // Reset to first page when price filter changes
+    setDisplayPriceRange(newRange)
+  }
+
+  const handlePriceRangeCommit = (newRange: number | number[]) => {
+    if (Array.isArray(newRange)) {
+      setPriceRange(newRange)
+      setCurrentPage(1) // Reset to first page when price filter changes
+    }
   }
 
   const handleInstantBookChange = (value: boolean) => {
@@ -346,6 +313,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
 
   const clearFilters = () => {
     setPriceRange([0, 1000])
+    setDisplayPriceRange([0, 1000])
     setSelectedCuisines([])
     setInstantBookOnly(false)
     setSuperhostOnly(false)
@@ -364,6 +332,8 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
               initialParams={{
                 location: searchParams.location,
                 date: searchParams.date,
+                startDate: searchParams.startDate,
+                endDate: searchParams.endDate,
                 month: searchParams.month,
                 guests: searchParams.guests,
               }}
@@ -375,6 +345,8 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
               initialParams={{
                 location: searchParams.location,
                 date: searchParams.date,
+                startDate: searchParams.startDate,
+                endDate: searchParams.endDate,
                 month: searchParams.month,
                 guests: searchParams.guests,
               }}
@@ -395,8 +367,9 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 </Button>
               </div>
               <FiltersContent
-                priceRange={priceRange}
+                priceRange={displayPriceRange}
                 setPriceRange={handlePriceRangeChange}
+                onPriceCommit={handlePriceRangeCommit}
                 selectedCuisines={selectedCuisines}
                 toggleCuisine={toggleCuisine}
                 instantBookOnly={instantBookOnly}
@@ -457,8 +430,9 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                     <div className="px-4 py-6">
                       <h2 className="font-semibold mb-6">Filters</h2>
                       <FiltersContent
-                        priceRange={priceRange}
+                        priceRange={displayPriceRange}
                         setPriceRange={handlePriceRangeChange}
+                        onPriceCommit={handlePriceRangeCommit}
                         selectedCuisines={selectedCuisines}
                         toggleCuisine={toggleCuisine}
                         instantBookOnly={instantBookOnly}
