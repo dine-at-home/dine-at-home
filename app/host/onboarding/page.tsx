@@ -39,7 +39,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-react'
 import Image from 'next/image'
-import { stripeConnectService } from '@/lib/stripe-connect-service'
+import { authService } from '@/lib/auth-service'
 import {
   Command,
   CommandEmpty,
@@ -133,10 +133,12 @@ function HostOnboardingPageContent() {
     backgroundCheck: false,
     termsAccepted: false,
 
-    // Step 5: Stripe Connect
-    stripeConnected: false,
-    bankAccount: '',
-    taxId: '',
+    // Step 5: Bank Details (Icelandic Bank Transfer)
+    bankName: '',
+    accountHolderName: '',
+    iban: '',
+    swiftBic: '',
+    payoutAddress: '',
   })
 
   const cuisineTypes = [
@@ -208,11 +210,6 @@ function HostOnboardingPageContent() {
     }
   }
 
-  const completeOnboarding = () => {
-    // TODO: Submit to backend
-    console.log('Host onboarding completed:', hostData)
-    router.push('/host/dashboard')
-  }
 
   const renderStep1 = () => (
     <Card>
@@ -579,19 +576,30 @@ function HostOnboardingPageContent() {
     </Card>
   )
 
-  const handleConnectStripe = async () => {
+  const completeOnboarding = async () => {
     try {
-      setConnectingStripe(true)
-      const result = await stripeConnectService.createOnboardingLink()
-      if (result.onboardingUrl) {
-        // Open Stripe onboarding in new tab
-        window.open(result.onboardingUrl, '_blank', 'noopener,noreferrer')
+      const user = authService.getUser()
+      if (!user) {
+        alert('You must be logged in to complete onboarding')
+        return
       }
+
+      await authService.updateProfile(user.id, {
+        name: hostData.fullName,
+        phone: hostData.phone,
+        country: hostData.country,
+        bankName: hostData.bankName,
+        accountHolderName: hostData.accountHolderName,
+        iban: hostData.iban,
+        swiftBic: hostData.swiftBic,
+        payoutAddress: hostData.payoutAddress,
+      })
+
+      console.log('Host onboarding completed:', hostData)
+      router.push('/host/dashboard')
     } catch (error: any) {
-      console.error('Error connecting Stripe:', error)
-      alert(error.message || 'Failed to connect Stripe account')
-    } finally {
-      setConnectingStripe(false)
+      console.error('Error completing onboarding:', error)
+      alert(error.message || 'Failed to complete onboarding')
     }
   }
 
@@ -599,53 +607,66 @@ function HostOnboardingPageContent() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <span className="w-5 h-5 text-lg font-bold">€</span>
-          Payment Setup
+          <span className="w-5 h-5 text-lg font-bold text-primary-600">IS</span>
+          Payout Details (Iceland)
         </CardTitle>
-        <CardDescription>Connect your Stripe account to receive payments</CardDescription>
+        <CardDescription>Enter your Icelandic bank details to receive payouts</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="w-8 h-8 text-primary-600 text-2xl font-bold">€</span>
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Connect Stripe Account</h3>
-          <p className="text-muted-foreground mb-6">
-            Secure payment processing with automatic commission splits. You'll be redirected to
-            Stripe to complete the setup.
+        <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
+          <p className="text-sm text-primary-800">
+            <strong>Merchant of Record:</strong> The platform collects payments from guests.
+            Hosts are paid via local bank transfer after the dinner is completed.
           </p>
-          <Button
-            size="lg"
-            className="gap-2"
-            onClick={handleConnectStripe}
-            disabled={connectingStripe}
-          >
-            {connectingStripe ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                Connect Stripe Account
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
-          {hostData.stripeConnected && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-green-600">
-              <CheckCircle className="w-5 h-5" />
-              <span>Stripe account connected</span>
-            </div>
-          )}
         </div>
 
-        <div className="p-4 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> Stripe Connect allows you to receive payments directly. The
-            platform takes a {process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE || '15'}% commission fee,
-            and the rest is transferred to your connected account.
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-2">Account Holder Name *</label>
+            <Input
+              value={hostData.accountHolderName}
+              onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
+              placeholder="Full name as it appears on your bank account"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Bank Name *</label>
+            <Input
+              value={hostData.bankName}
+              onChange={(e) => handleInputChange('bankName', e.target.value)}
+              placeholder="e.g. Landsbankinn, Arion banki"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">SWIFT / BIC *</label>
+            <Input
+              value={hostData.swiftBic}
+              onChange={(e) => handleInputChange('swiftBic', e.target.value)}
+              placeholder="e.g. LAIS IS RE"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-2">IBAN *</label>
+            <Input
+              value={hostData.iban}
+              onChange={(e) => handleInputChange('iban', e.target.value)}
+              placeholder="ISXX XXXX XXXX XXXX XXXX XXXX XX"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-2">Payout Address *</label>
+            <Textarea
+              value={hostData.payoutAddress}
+              onChange={(e) => handleInputChange('payoutAddress', e.target.value)}
+              placeholder="Your full residential address (required for bank transfers)"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+          <Shield className="w-4 h-4" />
+          <span>Your bank details are stored securely and used only for payouts.</span>
         </div>
       </CardContent>
     </Card>
@@ -673,7 +694,7 @@ function HostOnboardingPageContent() {
       case 4:
         return hostData.termsAccepted
       case 5:
-        return true // Stripe connection is optional for now
+        return !!(hostData.bankName && hostData.accountHolderName && hostData.iban && hostData.swiftBic && hostData.payoutAddress)
       default:
         return false
     }
@@ -705,19 +726,17 @@ function HostOnboardingPageContent() {
               {[1, 2, 3, 4, 5].map((step) => (
                 <div key={step} className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      step <= currentStep
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step <= currentStep
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-muted text-muted-foreground'
+                      }`}
                   >
                     {step}
                   </div>
                   {step < 5 && (
                     <div
-                      className={`w-16 h-0.5 mx-2 ${
-                        step < currentStep ? 'bg-primary-600' : 'bg-muted'
-                      }`}
+                      className={`w-16 h-0.5 mx-2 ${step < currentStep ? 'bg-primary-600' : 'bg-muted'
+                        }`}
                     />
                   )}
                 </div>

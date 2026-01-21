@@ -18,6 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -49,7 +57,13 @@ import {
   Save,
   X,
   Camera,
+  Image as ImageIcon,
   Wallet,
+  LayoutList,
+  LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
+  Search,
 } from 'lucide-react'
 import { PayoutSection } from '@/components/payout/payout-section'
 import { PaymentDetailsSection } from '@/components/payout/payment-details-section'
@@ -154,6 +168,13 @@ function HostDashboardContent() {
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
   const [dinnerFilter, setDinnerFilter] = useState('all')
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalDinnersCount, setTotalDinnersCount] = useState(0)
+
   const [dinners, setDinners] = useState<any[]>([])
   const [dinnersLoading, setDinnersLoading] = useState(true)
   const [dinnersError, setDinnersError] = useState<string | null>(null)
@@ -387,9 +408,9 @@ function HostDashboardContent() {
       const languagesArray =
         typeof profileData.languages === 'string' && profileData.languages.trim()
           ? profileData.languages
-            .split(',')
-            .map((l) => l.trim())
-            .filter((l) => l.length > 0)
+              .split(',')
+              .map((l) => l.trim())
+              .filter((l) => l.length > 0)
           : []
 
       const response = await fetch(getApiUrl(`/users/${user.id}`), {
@@ -632,7 +653,35 @@ function HostDashboardContent() {
           return
         }
 
-        const apiUrl = getApiUrl(`/host/${user.id}/dinners`)
+        const queryParams = new URLSearchParams()
+        if (dinnerFilter !== 'all') {
+          // Map helper filters to backend status
+          if (
+            dinnerFilter === 'upcoming' ||
+            dinnerFilter === 'ongoing' ||
+            dinnerFilter === 'completed'
+          ) {
+            // For simplicity, we might just fetch 'all' and filter client side if backend doesn't support exact status match
+            // But backend supports 'active' | 'past' | 'all'.
+            // Let's rely on client-side status filtering for specific sub-statuses,
+            // OR send 'all' and filter.
+            // Best to implement full status search in backend later.
+            // For now, let's fetch 'all' (or filtered by date in backend) and then filter in UI?
+            // Wait, if we have 100 dinners, we MUST filter in backend for pagination to work correctly.
+            // The backend `getHostDinners` accepts `status` ('active', 'past', 'all').
+            if (dinnerFilter === 'upcoming') queryParams.append('status', 'active')
+            else if (dinnerFilter === 'completed') queryParams.append('status', 'past')
+            else queryParams.append('status', 'all')
+          }
+        }
+
+        // Client-side pagination: fetch all (limit=1000)
+        queryParams.append('limit', '1000')
+        // queryParams.append('page', page.toString())
+        // queryParams.append('limit', pageSize.toString())
+        if (searchQuery) queryParams.append('query', searchQuery) // Keep search for server-side initial filter if valid, or remove to do full client side
+
+        const apiUrl = getApiUrl(`/host/${user.id}/dinners?${queryParams.toString()}`)
         const response = await fetch(apiUrl, {
           headers: {
             'Content-Type': 'application/json',
@@ -646,6 +695,12 @@ function HostDashboardContent() {
         if (response.ok) {
           const result = await response.json()
           if (result.success && result.data) {
+            // Update pagination info
+            if (result.pagination) {
+              setTotalPages(result.pagination.totalPages)
+              setTotalDinnersCount(result.pagination.total)
+            }
+
             // Transform backend data to match frontend format
             const transformedDinners = result.data.map((dinner: any) => {
               // Transform to Dinner type first
@@ -709,7 +764,7 @@ function HostDashboardContent() {
     }
 
     fetchDinners()
-  }, [user])
+  }, [user, page, pageSize, dinnerFilter, searchQuery])
 
   // Fetch bookings from backend
   useEffect(() => {
@@ -1050,12 +1105,6 @@ function HostDashboardContent() {
     }
   }
 
-  // Filter dinners based on selected filter
-  const filteredDinners = dinners.filter((dinner) => {
-    if (dinnerFilter === 'all') return true
-    return dinner.status === dinnerFilter
-  })
-
   // Calculate stats from real data
   const calculateStats = () => {
     const totalRevenue = dinners.reduce((sum, d) => sum + (d.revenue || 0), 0)
@@ -1064,8 +1113,8 @@ function HostDashboardContent() {
     const averageRating =
       dinnersWithRatings.length > 0
         ? (
-          dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length
-        ).toFixed(1)
+            dinners.reduce((sum, d) => sum + (d.rating || 0), 0) / dinnersWithRatings.length
+          ).toFixed(1)
         : '0.0'
     const totalReviews = dinners.reduce((sum, d) => sum + (d.reviews || 0), 0)
     const upcomingDinners = dinners.filter((d) => d.status === 'upcoming')
@@ -1257,51 +1306,50 @@ function HostDashboardContent() {
     </div>
   )
 
+  // Calculate filtered and paginated dinners for display
+  const getFilteredDinners = () => {
+    let filtered = dinners
+
+    // 1. Client-side Search (if server search isn't sufficient or for immediate feedback)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter((d) => d.title.toLowerCase().includes(query))
+    }
+
+    // 2. Client-side Status Filter
+    if (dinnerFilter !== 'all') {
+      const now = new Date()
+      if (dinnerFilter === 'draft') {
+        filtered = filtered.filter((d) => d.status === 'draft')
+      } else if (dinnerFilter === 'upcoming') {
+        filtered = filtered.filter((d) => new Date(d.date) > now && d.status !== 'draft')
+      } else if (dinnerFilter === 'completed') {
+        filtered = filtered.filter((d) => new Date(d.date) <= now && d.status !== 'draft')
+      } else if (dinnerFilter === 'ongoing') {
+        filtered = filtered.filter((d) => d.status === 'ongoing')
+      }
+    }
+    return filtered
+  }
+
+  const filteredDinnersList = getFilteredDinners()
+  const totalFilteredCount = filteredDinnersList.length
+  // Update total pages based on filtered count
+  // We can't update state during render, so we just use the calculated value in render
+  const calculatedTotalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize))
+
+  const filteredDinners = filteredDinnersList.slice((page - 1) * pageSize, page * pageSize)
+
   const renderDinners = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">My Dinners</h2>
           <p className="text-muted-foreground">Manage your dining experiences</p>
         </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        <Button
-          variant={dinnerFilter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setDinnerFilter('all')}
-        >
-          All ({dinners.length})
-        </Button>
-        <Button
-          variant={dinnerFilter === 'upcoming' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setDinnerFilter('upcoming')}
-        >
-          Upcoming ({dinners.filter((d) => d.status === 'upcoming').length})
-        </Button>
-        <Button
-          variant={dinnerFilter === 'ongoing' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setDinnerFilter('ongoing')}
-        >
-          Ongoing ({dinners.filter((d) => d.status === 'ongoing').length})
-        </Button>
-        <Button
-          variant={dinnerFilter === 'completed' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setDinnerFilter('completed')}
-        >
-          Completed ({dinners.filter((d) => d.status === 'completed').length})
-        </Button>
-        <Button
-          variant={dinnerFilter === 'draft' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setDinnerFilter('draft')}
-        >
-          Draft ({dinners.filter((d) => d.status === 'draft').length})
+        <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Create Dinner
         </Button>
       </div>
 
@@ -1312,7 +1360,7 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Dinners</p>
-                <p className="text-2xl font-bold">{dinners.length}</p>
+                <p className="text-2xl font-bold">{totalDinnersCount || dinners.length}</p>
               </div>
               <Calendar className="w-8 h-8 text-primary-600" />
             </div>
@@ -1355,9 +1403,9 @@ function HostDashboardContent() {
                 <p className="text-2xl font-bold">
                   {dinners.filter((d) => d.rating > 0).length > 0
                     ? (
-                      dinners.reduce((sum, d) => sum + d.rating, 0) /
-                      dinners.filter((d) => d.rating > 0).length
-                    ).toFixed(1)
+                        dinners.reduce((sum, d) => sum + d.rating, 0) /
+                        dinners.filter((d) => d.rating > 0).length
+                      ).toFixed(1)
                     : '0.0'}
                 </p>
               </div>
@@ -1365,6 +1413,103 @@ function HostDashboardContent() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Controls & Filters */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg border shadow-sm">
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+          <Button
+            variant={dinnerFilter === 'all' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setDinnerFilter('all')
+              setPage(1)
+            }}
+            className="rounded-full"
+          >
+            All ({dinners.length})
+          </Button>
+          <Button
+            variant={dinnerFilter === 'upcoming' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setDinnerFilter('upcoming')
+              setPage(1)
+            }}
+            className="rounded-full"
+          >
+            Upcoming (
+            {dinners.filter((d) => new Date(d.date) > new Date() && d.status !== 'draft').length})
+          </Button>
+          <Button
+            variant={dinnerFilter === 'ongoing' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setDinnerFilter('ongoing')
+              setPage(1)
+            }}
+            className="rounded-full"
+          >
+            Ongoing ({dinners.filter((d) => d.status === 'ongoing').length})
+          </Button>
+          <Button
+            variant={dinnerFilter === 'completed' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setDinnerFilter('completed')
+              setPage(1)
+            }}
+            className="rounded-full"
+          >
+            Completed (
+            {dinners.filter((d) => new Date(d.date) <= new Date() && d.status !== 'draft').length})
+          </Button>
+          <Button
+            variant={dinnerFilter === 'draft' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setDinnerFilter('draft')
+              setPage(1)
+            }}
+            className="rounded-full"
+          >
+            Drafts ({dinners.filter((d) => d.status === 'draft').length})
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search dinners..."
+              className="pl-9 w-full"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setPage(1) // Reset to first page on search
+              }}
+            />
+          </div>
+          <div className="flex items-center border rounded-md p-1 bg-background">
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('table')}
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -1375,96 +1520,18 @@ function HostDashboardContent() {
         </div>
       )}
 
-      {/* Dinners Grid */}
-      {!dinnersLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredDinners.map((dinner) => (
-            <Card key={dinner.id} className="overflow-hidden">
-              <div className="relative bg-muted">
-                {dinner.image ? (
-                  <Image
-                    src={dinner.image}
-                    alt={dinner.title}
-                    width={400}
-                    height={200}
-                    className="w-full h-48 object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-48 flex items-center justify-center">
-                    <p className="text-muted-foreground text-sm">No image</p>
-                  </div>
-                )}
-                <Badge className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}>
-                  {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
-                </Badge>
-              </div>
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-lg mb-2">{dinner.title}</h3>
-                <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {formatFriendlyDateTime(dinner.date, dinner.time)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {dinner.guests}/{dinner.maxCapacity} guests
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-primary-600">€{dinner.price}</span>
-                    <span className="text-sm text-muted-foreground">per person</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="font-medium">
-                      {dinner.rating > 0 ? dinner.rating.toFixed(1) : 'No ratings'}
-                    </span>
-                    <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
-                  </div>
-                  <span className="font-semibold text-primary-600">€{dinner.revenue}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => router.push(`/dinners/${dinner.id}`)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View
-                  </Button>
-                  {dinner.status !== 'completed' && dinner.status !== 'ongoing' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {!dinnersLoading && filteredDinners.length === 0 && (
+      {/* Content */}
+      {!dinnersLoading && filteredDinners.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No dinners found</h3>
             <p className="text-muted-foreground mb-6">
-              {dinnerFilter === 'all'
+              {dinnerFilter === 'all' && !searchQuery
                 ? "You haven't created any dinners yet. Create your first dining experience!"
-                : `No dinners with status "${dinnerFilter}" found.`}
+                : `No dinners found matching your current filters.`}
             </p>
-            {dinnerFilter === 'all' && (
+            {dinnerFilter === 'all' && !searchQuery && (
               <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Create Your First Dinner
@@ -1472,6 +1539,253 @@ function HostDashboardContent() {
             )}
           </CardContent>
         </Card>
+      ) : (
+        !dinnersLoading && (
+          <>
+            {viewMode === 'table' ? (
+              <Card className="overflow-hidden border shadow-sm">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead className="w-[80px] text-xs uppercase tracking-wider font-semibold">
+                        Image
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">
+                        Title
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">
+                        Date & Time
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">
+                        Guests
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">
+                        Price
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider font-semibold">
+                        Revenue
+                      </TableHead>
+                      <TableHead className="text-right text-xs uppercase tracking-wider font-semibold">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDinners.map((dinner) => (
+                      <TableRow
+                        key={dinner.id}
+                        className="group hover:bg-muted/30 transition-colors"
+                      >
+                        <TableCell className="p-4">
+                          <div className="relative h-12 w-16 rounded-lg overflow-hidden bg-muted shadow-sm">
+                            {dinner.image ? (
+                              <Image
+                                src={dinner.image}
+                                alt={dinner.title}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full w-full">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] p-4">
+                          <div className="truncate text-base" title={dinner.title}>
+                            {dinner.title}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                            {dinner.rating > 0 ? dinner.rating.toFixed(1) : '-'}
+                            <span className="text-xs ml-0.5">({dinner.reviews})</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="font-medium text-sm">
+                            {formatFriendlyDateTime(dinner.date).split(' at ')[0]}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{dinner.time}</div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium inline-block
+                              ${
+                                dinner.status === 'upcoming'
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : dinner.status === 'completed'
+                                    ? 'bg-slate-100 text-slate-700'
+                                    : dinner.status === 'ongoing'
+                                      ? 'bg-green-50 text-green-700'
+                                      : 'bg-gray-100 text-gray-700'
+                              }`}
+                          >
+                            {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Users className="w-4 h-4" />
+                            <span>
+                              {dinner.guests}/{dinner.maxCapacity}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="font-medium">€{dinner.price}</div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <span className="font-medium text-green-600">€{dinner.revenue}</span>
+                        </TableCell>
+                        <TableCell className="text-right p-4">
+                          <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-background hover:shadow-sm rounded-full"
+                              onClick={() => router.push(`/dinners/${dinner.id}`)}
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                            {dinner.status !== 'completed' && dinner.status !== 'ongoing' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-background hover:shadow-sm rounded-full"
+                                onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredDinners.map((dinner) => (
+                  <Card key={dinner.id} className="overflow-hidden">
+                    <div className="relative bg-muted">
+                      {dinner.image ? (
+                        <Image
+                          src={dinner.image}
+                          alt={dinner.title}
+                          width={400}
+                          height={200}
+                          className="w-full h-48 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-48 flex items-center justify-center">
+                          <p className="text-muted-foreground text-sm">No image</p>
+                        </div>
+                      )}
+                      <Badge
+                        className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}
+                      >
+                        {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
+                      </Badge>
+                    </div>
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold text-lg mb-2 truncate">{dinner.title}</h3>
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          {formatFriendlyDateTime(dinner.date, dinner.time)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          {dinner.guests}/{dinner.maxCapacity} guests
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-primary-600">
+                            €{dinner.price}
+                          </span>
+                          <span className="text-sm text-muted-foreground">per person</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          <span className="font-medium">
+                            {dinner.rating > 0 ? dinner.rating.toFixed(1) : 'No ratings'}
+                          </span>
+                          <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
+                        </div>
+                        <span className="font-semibold text-primary-600">€{dinner.revenue}</span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => router.push(`/dinners/${dinner.id}`)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View
+                        </Button>
+                        {dinner.status !== 'completed' && dinner.status !== 'ongoing' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => router.push(`/host/dinners/edit/${dinner.id}`)}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {calculatedTotalPages > 1 && (
+              <div className="flex items-center justify-between border-t pt-4 mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(page - 1) * pageSize + 1} to{' '}
+                  {Math.min(page * pageSize, totalFilteredCount)} of {totalFilteredCount} dinners
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  <div className="text-sm font-medium">
+                    Page {page} of {calculatedTotalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(calculatedTotalPages, p + 1))}
+                    disabled={page >= calculatedTotalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )
       )}
     </div>
   )
@@ -1515,9 +1829,7 @@ function HostDashboardContent() {
                   <div className="flex-1">
                     <div>
                       <button
-                        onClick={() =>
-                          booking.guest.id && handleViewGuestProfile(booking.guest.id)
-                        }
+                        onClick={() => booking.guest.id && handleViewGuestProfile(booking.guest.id)}
                         className="cursor-pointer hover:underline"
                       >
                         <h3 className="font-semibold">{booking.guest.name}</h3>
@@ -1542,7 +1854,9 @@ function HostDashboardContent() {
                         {booking.guests} guest{booking.guests > 1 ? 's' : ''}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-primary-600">€{booking.totalAmount}</span>
+                        <span className="text-lg font-bold text-primary-600">
+                          €{booking.totalAmount}
+                        </span>
                       </div>
                       {booking.specialRequests && (
                         <div className="mt-2 p-2 bg-muted rounded text-xs">
@@ -1558,10 +1872,11 @@ function HostDashboardContent() {
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-3 h-3 ${star <= (booking.guestReview?.rating || 0)
+                                  className={`w-3 h-3 ${
+                                    star <= (booking.guestReview?.rating || 0)
                                       ? 'text-yellow-400 fill-yellow-400'
                                       : 'text-gray-300'
-                                    }`}
+                                  }`}
                                 />
                               ))}
                             </div>
@@ -1620,10 +1935,11 @@ function HostDashboardContent() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-4 h-4 ${star <= (booking.review?.rating || 0)
+                              className={`w-4 h-4 ${
+                                star <= (booking.review?.rating || 0)
                                   ? 'text-yellow-400 fill-yellow-400'
                                   : 'text-gray-300'
-                                }`}
+                              }`}
                             />
                           ))}
                         </div>
@@ -1844,10 +2160,11 @@ function HostDashboardContent() {
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`w-5 h-5 ${star <= Math.round(reviewsStats.averageRating)
+                        className={`w-5 h-5 ${
+                          star <= Math.round(reviewsStats.averageRating)
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-300'
-                          }`}
+                        }`}
                       />
                     ))}
                   </div>
@@ -1891,10 +2208,11 @@ function HostDashboardContent() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-4 h-4 ${star <= review.rating
+                              className={`w-4 h-4 ${
+                                star <= review.rating
                                   ? 'fill-yellow-400 text-yellow-400'
                                   : 'text-gray-300'
-                                }`}
+                              }`}
                             />
                           ))}
                         </div>
@@ -2456,9 +2774,9 @@ function HostDashboardContent() {
                     <p className="text-sm mt-1">
                       {guestProfile.joinedDate
                         ? new Date(guestProfile.joinedDate).toLocaleDateString('en-US', {
-                          month: 'long',
-                          year: 'numeric',
-                        })
+                            month: 'long',
+                            year: 'numeric',
+                          })
                         : 'Unknown'}
                     </p>
                   </div>
@@ -2515,8 +2833,9 @@ function HostDashboardContent() {
                       className="focus:outline-none"
                     >
                       <Star
-                        className={`w-8 h-8 transition-colors ${star <= reviewRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
-                          }`}
+                        className={`w-8 h-8 transition-colors ${
+                          star <= reviewRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                        }`}
                       />
                     </button>
                   ))}

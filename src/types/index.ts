@@ -64,6 +64,8 @@ export interface Review {
 export interface SearchParams {
   location?: string
   date?: Date
+  startDate?: Date
+  endDate?: Date
   month?: string // Format: "YYYY-MM" (e.g., "2026-01")
   guests?: number
   cuisine?: string

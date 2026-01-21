@@ -48,6 +48,9 @@ import { cn } from '@/components/ui/utils'
 
 import { COUNTRIES } from '@/lib/countries'
 
+const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'))
+const MINUTE_OPTIONS = ['00', '15', '30', '45']
+
 function CreateDinnerPageContent() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -55,6 +58,7 @@ function CreateDinnerPageContent() {
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
   const [openCountry, setOpenCountry] = useState(false)
+  const [additionalDates, setAdditionalDates] = useState<{ date: string; time: string }[]>([])
 
   const errorRef = useRef<HTMLDivElement>(null)
   const cityInputRef = useRef<HTMLInputElement>(null)
@@ -448,6 +452,35 @@ function CreateDinnerPageContent() {
 
   // Handle keyboard navigation for neighborhood
 
+  // Handle additional dates
+  const handleAddDate = () => {
+    // Get the last date/time to copy from
+    // If additional dates exist, take the last one
+    // Otherwise take the main dinner date/time
+    const sourceData =
+      additionalDates.length > 0
+        ? additionalDates[additionalDates.length - 1]
+        : { date: dinnerData.date, time: dinnerData.time }
+
+    // Fallback to today/now if main dinner data is missing
+    const dateToUse = sourceData.date || new Date().toISOString().split('T')[0]
+    const timeToUse = sourceData.time || '19:00'
+
+    setAdditionalDates((prev) => [...prev, { date: dateToUse, time: timeToUse }])
+  }
+
+  const handleRemoveDate = (index: number) => {
+    setAdditionalDates((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleAdditionalDateChange = (index: number, field: 'date' | 'time', value: string) => {
+    setAdditionalDates((prev) => {
+      const newDates = [...prev]
+      newDates[index] = { ...newDates[index], [field]: value }
+      return newDates
+    })
+  }
+
   const handleDietaryToggle = (dietary: string) => {
     setDinnerData((prev) => ({
       ...prev,
@@ -673,54 +706,118 @@ function CreateDinnerPageContent() {
         },
       }
 
-      // Combine date and time into ISO date string
-      const dateTime =
-        dinnerData.date && dinnerData.time
-          ? new Date(`${dinnerData.date}T${dinnerData.time}:00`).toISOString()
-          : new Date(dinnerData.date).toISOString()
+      // Step 3: Create dinners for all selected dates
+      // Step 3: Create dinners for all selected dates - concurrently
+      const allDates = [
+        { date: dinnerData.date, time: dinnerData.time },
+        ...additionalDates,
+      ].filter((d) => d.date && d.time)
 
-      // Prepare request body according to API specification
-      const requestBody = {
-        title: dinnerData.title,
-        description: dinnerData.description,
-        price: dinnerData.pricePerPerson,
-        currency: 'EUR',
-        date: dateTime,
-        time: dinnerData.time,
-        duration: Math.round(dinnerData.duration * 60), // Convert hours to minutes (rounds to integer)
-        capacity: dinnerData.maxCapacity,
-        images: imageUrls, // Use uploaded image URLs
-        cuisine: dinnerData.cuisineType,
-        dietary: dinnerData.dietaryAccommodations,
-        instantBook: false, // Default value
-        menu: menuItems,
-        included: [], // Can be extended later
-        houseRules: dinnerData.houseRules ? [dinnerData.houseRules] : [],
-        location: location,
-        cancellationPolicy: dinnerData.cancellationPolicy || 'flexible',
-      }
+      const createPromises = allDates.map(async (item) => {
+        // Construct the full ISO date string from the date part and the time
+        // We create a Date object which interprets the string as local time
+        // Then we convert to ISO string (UTC) for the backend
+        const fullDateTime = `${item.date}T${item.time}:00`
+        const dateObj = new Date(fullDateTime)
 
-      // Send to backend API
-      const response = await fetch(getApiUrl('/dinners'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
+        // Final sanity check on date
+        const now = new Date()
+        if (dateObj <= now) {
+          return {
+            success: false,
+            error: `Date ${item.date} ${item.time} is in the past`,
+            date: item.date,
+          }
+        }
+
+        const requestBody = {
+          title: dinnerData.title,
+          description: dinnerData.description,
+          cuisine: dinnerData.cuisineType,
+          menu: menuItems,
+          ingredients: dinnerData.ingredients,
+          location: location,
+          directions: dinnerData.directions,
+          accessibility: dinnerData.accessibility,
+
+          // Date & Time
+          // Backend Zod schema requires full ISO string (e.g., 2023-10-27T19:00:00.000Z)
+          date: dateObj.toISOString(),
+          time: item.time,
+          duration: dinnerData.duration,
+
+          capacity: dinnerData.maxCapacity,
+          minGuests: dinnerData.minGuests,
+          price: dinnerData.pricePerPerson,
+          currency: 'EUR',
+
+          images: imageUrls,
+
+          dietary: dinnerData.dietaryAccommodations,
+          experienceLevel: dinnerData.experienceLevel,
+
+          includesDrinks: dinnerData.includesDrinks || false,
+          includesDessert: dinnerData.includesDessert || false,
+
+          cancellationPolicy: dinnerData.cancellationPolicy,
+          houseRules: [dinnerData.houseRules],
+
+          instantBook: false,
+        }
+
+        try {
+          const response = await fetch(getApiUrl('/dinners'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(requestBody),
+          })
+
+          const data = await response.json()
+
+          if (!response.ok) {
+            // Backend middleware returns { error: 'message', details: { ... } }
+            const errorMsg =
+              data.error ||
+              data.message ||
+              (data.details && data.details.message) ||
+              'Unknown error'
+            console.error(`Creation failed for ${item.date}:`, data)
+            return { success: false, error: errorMsg, date: item.date }
+          } else {
+            return { success: true, data: data, date: item.date }
+          }
+        } catch (err: any) {
+          return { success: false, error: err.message, date: item.date }
+        }
       })
 
-      const result = await response.json()
+      const outcomes = await Promise.all(createPromises)
 
-      if (!response.ok) {
-        setError(result.error || 'Failed to create dinner. Please try again.')
+      const results = outcomes.filter((o) => o.success).map((o) => o.data)
+      const errors = outcomes.filter((o) => !o.success).map((o) => (o as any).error)
+
+      if (results.length > 0) {
+        // If at least one dinner was created successfully
+        if (errors.length > 0) {
+          // Mixed success
+          console.warn('Some dinners failed to create:', errors)
+          // Ideally show a toast here, but for now we'll redirect to dashboard
+          // storing the error in session storage or just alerting
+          alert(
+            `Created ${results.length} dinners, but ${errors.length} failed. Check console for details.`
+          )
+        }
+
+        router.push('/host/dashboard?tab=dinners')
+        router.refresh()
+      } else {
+        // complete failure
+        setError(errors.join('. '))
         setIsSubmitting(false)
-        return
       }
-
-      // Success - redirect to dashboard
-      router.push('/host/dashboard?tab=dinners')
-      router.refresh()
     } catch (err: any) {
       console.error('Error creating dinner:', err)
       setError('An unexpected error occurred. Please try again.')
@@ -1085,25 +1182,170 @@ function CreateDinnerPageContent() {
                 <CardDescription>When and how many guests?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Date *</label>
-                    <Input
-                      type="date"
-                      value={dinnerData.date}
-                      onChange={(e) => handleInputChange('date', e.target.value)}
-                      required
-                    />
+                <div className="space-y-4">
+                  {/* Primary Date */}
+                  <div className="p-3 border rounded-lg bg-muted/50 relative">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Date *</label>
+                        <Input
+                          type="date"
+                          value={dinnerData.date}
+                          onChange={(e) => handleInputChange('date', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Start Time *</label>
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1 items-center flex-1">
+                            <div className="flex-1">
+                              <Select
+                                value={dinnerData.time ? dinnerData.time.split(':')[0] : ''}
+                                onValueChange={(hour) => {
+                                  const currentMinutes = dinnerData.time
+                                    ? dinnerData.time.split(':')[1]
+                                    : '00'
+                                  handleInputChange('time', `${hour}:${currentMinutes}`)
+                                }}
+                              >
+                                <SelectTrigger className="text-center h-10">
+                                  <SelectValue placeholder="HH" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[200px]">
+                                  {HOUR_OPTIONS.map((hour) => (
+                                    <SelectItem key={hour} value={hour}>
+                                      {hour}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <span className="text-muted-foreground font-medium pb-0">:</span>
+                            <div className="flex-1">
+                              <Select
+                                value={dinnerData.time ? dinnerData.time.split(':')[1] : ''}
+                                onValueChange={(minute) => {
+                                  const currentHour = dinnerData.time
+                                    ? dinnerData.time.split(':')[0]
+                                    : '19' // Default hour if not selected yet
+                                  handleInputChange('time', `${currentHour}:${minute}`)
+                                }}
+                              >
+                                <SelectTrigger className="text-center h-10">
+                                  <SelectValue placeholder="MM" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {MINUTE_OPTIONS.map((minute) => (
+                                    <SelectItem key={minute} value={minute}>
+                                      {minute}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Start Time *</label>
-                    <Input
-                      type="time"
-                      value={dinnerData.time}
-                      onChange={(e) => handleInputChange('time', e.target.value)}
-                      required
-                    />
-                  </div>
+
+                  {/* Additional Dates */}
+                  {additionalDates.map((item, index) => (
+                    <div key={index} className="p-3 border rounded-lg bg-muted/50 relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveDate(index)}
+                        className="absolute right-2 top-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Date</label>
+                          <Input
+                            type="date"
+                            value={item.date}
+                            onChange={(e) =>
+                              handleAdditionalDateChange(index, 'date', e.target.value)
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Time</label>
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1 items-center flex-1">
+                              <div className="flex-1">
+                                <Select
+                                  value={item.time ? item.time.split(':')[0] : ''}
+                                  onValueChange={(hour) => {
+                                    const currentMinutes = item.time
+                                      ? item.time.split(':')[1]
+                                      : '00'
+                                    handleAdditionalDateChange(
+                                      index,
+                                      'time',
+                                      `${hour}:${currentMinutes}`
+                                    )
+                                  }}
+                                >
+                                  <SelectTrigger className="text-center h-10">
+                                    <SelectValue placeholder="HH" />
+                                  </SelectTrigger>
+                                  <SelectContent className="max-h-[200px]">
+                                    {HOUR_OPTIONS.map((hour) => (
+                                      <SelectItem key={hour} value={hour}>
+                                        {hour}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <span className="text-muted-foreground font-medium pb-0">:</span>
+                              <div className="flex-1">
+                                <Select
+                                  value={item.time ? item.time.split(':')[1] : ''}
+                                  onValueChange={(minute) => {
+                                    const currentHour = item.time ? item.time.split(':')[0] : '19'
+                                    handleAdditionalDateChange(
+                                      index,
+                                      'time',
+                                      `${currentHour}:${minute}`
+                                    )
+                                  }}
+                                >
+                                  <SelectTrigger className="text-center h-10">
+                                    <SelectValue placeholder="MM" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {MINUTE_OPTIONS.map((minute) => (
+                                      <SelectItem key={minute} value={minute}>
+                                        {minute}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddDate}
+                    className="w-full border-dashed"
+                  >
+                    <Plus className="h-3 w-3 mr-2" />
+                    Add Another Date
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

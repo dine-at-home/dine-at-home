@@ -8,6 +8,8 @@ import { Calendar } from '../ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Search, MapPin, Calendar as CalendarIcon, Users, Plus, Minus } from 'lucide-react'
+import { DateRange } from 'react-day-picker'
+import { format } from 'date-fns'
 
 import { SearchParams } from '@/types'
 
@@ -17,6 +19,8 @@ interface SearchWidgetProps {
   initialParams?: {
     location?: string
     date?: Date
+    startDate?: Date
+    endDate?: Date
     month?: string // Format: "YYYY-MM"
     guests?: number
   }
@@ -38,11 +42,37 @@ export function SearchWidget({
 }: SearchWidgetProps) {
   const router = useRouter()
   const [location, setLocation] = useState(initialParams?.location || '')
-  const [date, setDate] = useState<Date | undefined>(initialParams?.date)
+
+  // Date range state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    if (initialParams?.startDate) {
+      return {
+        from: initialParams.startDate,
+        to: initialParams.endDate,
+      }
+    } else if (initialParams?.date) {
+      return {
+        from: initialParams.date,
+        to: undefined,
+      }
+    }
+    return undefined
+  })
+
+  // Helper to format date display
+  const getDateDisplay = () => {
+    if (dateRange?.from) {
+      if (dateRange.to) {
+        return `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}`
+      }
+      return format(dateRange.from, 'MMM d')
+    }
+    return monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select dates'
+  }
   const [guests, setGuests] = useState(initialParams?.guests || 2)
   const [showGuestSelector, setShowGuestSelector] = useState(false)
   const [showDateSelector, setShowDateSelector] = useState(false)
-  
+
   // Google Places autocomplete state
   const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false)
   const [placeSuggestions, setPlaceSuggestions] = useState<PlacePrediction[]>([])
@@ -51,19 +81,23 @@ export function SearchWidget({
   const locationInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
-  
+
   // Month/Year selection
   const currentDate = new Date()
   const currentYear = currentDate.getFullYear()
   const currentMonth = currentDate.getMonth()
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    initialParams?.date 
-      ? `${new Date(initialParams.date).getFullYear()}-${String(new Date(initialParams.date).getMonth() + 1).padStart(2, '0')}`
+    initialParams?.startDate
+      ? `${new Date(initialParams.startDate).getFullYear()}-${String(new Date(initialParams.startDate).getMonth() + 1).padStart(2, '0')}`
       : initialParams?.month || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
   )
-  
+
   // Calendar month state (for controlling which month is displayed)
   const getInitialCalendarMonth = () => {
+    if (initialParams?.startDate) {
+      const dateObj = new Date(initialParams.startDate)
+      return new Date(dateObj.getFullYear(), dateObj.getMonth(), 1)
+    }
     if (initialParams?.date) {
       const dateObj = new Date(initialParams.date)
       return new Date(dateObj.getFullYear(), dateObj.getMonth(), 1)
@@ -79,7 +113,7 @@ export function SearchWidget({
     const currentDate = new Date()
     const currentYear = currentDate.getFullYear()
     const currentMonth = currentDate.getMonth()
-    
+
     // Generate options for current month and next 12 months
     for (let i = 0; i < 13; i++) {
       const date = new Date(currentYear, currentMonth + i, 1)
@@ -98,7 +132,7 @@ export function SearchWidget({
   useEffect(() => {
     const loadGooglePlaces = () => {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
-      
+
       if (!apiKey) {
         console.warn('Google Places API key is not set. Autocomplete will not work.')
         return
@@ -129,12 +163,12 @@ export function SearchWidget({
             clearInterval(checkInterval)
           }
         }, 100)
-        
+
         // Timeout after 10 seconds
         setTimeout(() => {
           clearInterval(checkInterval)
         }, 10000)
-        
+
         return () => clearInterval(checkInterval)
       }
 
@@ -167,9 +201,22 @@ export function SearchWidget({
   useEffect(() => {
     if (initialParams) {
       setLocation(initialParams.location || '')
-      setDate(initialParams.date)
       setGuests(initialParams.guests || 2)
-      if (initialParams.date) {
+
+      if (initialParams.startDate) {
+        setDateRange({
+          from: new Date(initialParams.startDate),
+          to: initialParams.endDate ? new Date(initialParams.endDate) : undefined,
+        })
+        const dateObj = new Date(initialParams.startDate)
+        const monthValue = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
+        setSelectedMonth(monthValue)
+        setCalendarMonth(new Date(dateObj.getFullYear(), dateObj.getMonth(), 1))
+      } else if (initialParams.date) {
+        setDateRange({
+          from: new Date(initialParams.date),
+          to: undefined,
+        })
         const dateObj = new Date(initialParams.date)
         const monthValue = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
         setSelectedMonth(monthValue)
@@ -178,6 +225,7 @@ export function SearchWidget({
         setSelectedMonth(initialParams.month)
         const [year, monthNum] = initialParams.month.split('-').map(Number)
         setCalendarMonth(new Date(year, monthNum - 1, 1))
+        setDateRange(undefined)
       }
     }
   }, [initialParams])
@@ -262,7 +310,8 @@ export function SearchWidget({
   const handleSelectSuggestion = (suggestion: PlacePrediction) => {
     // Extract the main location name (first part before comma, or main_text)
     // This makes the search more effective by using just the location name
-    const locationName = suggestion.structured_formatting.main_text || suggestion.description.split(',')[0]
+    const locationName =
+      suggestion.structured_formatting.main_text || suggestion.description.split(',')[0]
     setLocation(locationName)
     setShowSuggestions(false)
     setPlaceSuggestions([])
@@ -333,12 +382,22 @@ export function SearchWidget({
     const searchParams = new URLSearchParams()
 
     if (location) searchParams.set('location', location)
-    // If date is selected, use date; otherwise use month
-    if (date) {
-      searchParams.set('date', date.toISOString())
+
+    if (dateRange?.from) {
+      searchParams.set('startDate', format(dateRange.from, 'yyyy-MM-dd'))
+      if (dateRange.to) {
+        searchParams.set('endDate', format(dateRange.to, 'yyyy-MM-dd'))
+      } else {
+        // If only 'from' is selected, fall back to single date behavior if backend desires,
+        // or just send startDate. For now, let's keep 'date' for backward compat or just rely on new logic.
+        // The plan said push startDate and endDate.
+        // Let's also set 'date' for backward compatibility if it's a single day?
+        // Actually, stick to the plan: startDate/endDate.
+      }
     } else if (selectedMonth) {
       searchParams.set('month', selectedMonth)
     }
+
     if (guests) searchParams.set('guests', guests.toString())
 
     // Navigate to search page with query parameters
@@ -351,15 +410,12 @@ export function SearchWidget({
     setSelectedMonth(monthValue)
     const [year, monthNum] = monthValue.split('-').map(Number)
     setCalendarMonth(new Date(year, monthNum - 1, 1))
-    if (date) {
-      const dateYear = date.getFullYear()
-      const dateMonth = date.getMonth() + 1
-      if (dateYear !== year || dateMonth !== monthNum) {
-        setDate(undefined)
-      }
-    }
+    // We don't automatically clear the range here to allow cross-month viewing,
+    // but if the user explicitly switches the 'Month' dropdown, maybe we should reset or just let them pick new dates.
+    // For now, let's leave it as is, or maybe checking if the range is completely out of view?
+    // The previous logic cleared 'date'. Let's clear range if it doesn't overlap at all maybe?
+    // Safe bet: just update the calendar view.
   }
-
 
   if (variant === 'compact') {
     return (
@@ -428,11 +484,7 @@ export function SearchWidget({
                   className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl text-foreground"
                 >
                   <CalendarIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                  <span className="text-sm text-foreground">
-                    {date
-                      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      : monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
-                  </span>
+                  <span className="text-sm text-foreground">{getDateDisplay()}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-4" align="start">
@@ -443,7 +495,8 @@ export function SearchWidget({
                     <Select value={selectedMonth} onValueChange={handleMonthChange}>
                       <SelectTrigger className="w-full">
                         <SelectValue>
-                          {monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
+                          {monthOptions.find((m) => m.value === selectedMonth)?.label ||
+                            'Select month'}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -455,19 +508,19 @@ export function SearchWidget({
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {/* Date Picker (Optional) */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Date (optional)</label>
-                      {date && (
+                      <label className="text-sm font-medium">Select dates</label>
+                      {dateRange?.from && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-6 px-2 text-xs"
                           onClick={(e) => {
                             e.preventDefault()
-                            setDate(undefined)
+                            setDateRange(undefined)
                           }}
                         >
                           Clear
@@ -475,23 +528,13 @@ export function SearchWidget({
                       )}
                     </div>
                     <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={(selectedDate) => {
-                        setDate(selectedDate)
-                        if (selectedDate) {
-                          setShowDateSelector(false)
-                        }
-                      }}
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={setDateRange}
                       month={calendarMonth}
                       onMonthChange={setCalendarMonth}
+                      numberOfMonths={2}
                       disabled={(dateToCheck) => {
-                        const [year, monthNum] = selectedMonth.split('-').map(Number)
-                        const checkYear = dateToCheck.getFullYear()
-                        const checkMonth = dateToCheck.getMonth() + 1
-                        // Disable dates outside the selected month
-                        if (checkYear !== year || checkMonth !== monthNum) return true
-                        // Disable past dates
                         const today = new Date()
                         today.setHours(0, 0, 0, 0)
                         return dateToCheck < today
@@ -588,7 +631,11 @@ export function SearchWidget({
                 // Show suggestions if we have any, or trigger a search if there's text
                 if (placeSuggestions.length > 0) {
                   setShowSuggestions(true)
-                } else if (location.trim() && googlePlacesLoaded && autocompleteServiceRef.current) {
+                } else if (
+                  location.trim() &&
+                  googlePlacesLoaded &&
+                  autocompleteServiceRef.current
+                ) {
                   // Trigger a search when focusing with existing text
                   // The useEffect will handle the actual API call
                   setShowSuggestions(true)
@@ -641,11 +688,7 @@ export function SearchWidget({
                 className="w-full justify-start py-3 px-4 h-auto bg-gray-50 hover:bg-gray-100 border-0 rounded-xl text-foreground"
               >
                 <CalendarIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                <span className="text-sm text-foreground">
-                  {date
-                    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                    : monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
-                </span>
+                <span className="text-sm text-foreground">{getDateDisplay()}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-4" align="start">
@@ -656,7 +699,8 @@ export function SearchWidget({
                   <Select value={selectedMonth} onValueChange={handleMonthChange}>
                     <SelectTrigger className="w-full">
                       <SelectValue>
-                        {monthOptions.find((m) => m.value === selectedMonth)?.label || 'Select month'}
+                        {monthOptions.find((m) => m.value === selectedMonth)?.label ||
+                          'Select month'}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -668,19 +712,19 @@ export function SearchWidget({
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 {/* Date Picker (Optional) */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Date (optional)</label>
-                    {date && (
+                    <label className="text-sm font-medium">Select dates</label>
+                    {dateRange?.from && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-xs"
                         onClick={(e) => {
                           e.preventDefault()
-                          setDate(undefined)
+                          setDateRange(undefined)
                         }}
                       >
                         Clear
@@ -688,25 +732,13 @@ export function SearchWidget({
                     )}
                   </div>
                   <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(selectedDate) => {
-                      setDate(selectedDate)
-                      if (selectedDate) {
-                        setShowDateSelector(false)
-                      }
-                    }}
-                    month={date ? new Date(date.getFullYear(), date.getMonth(), 1) : (() => {
-                      const [year, monthNum] = selectedMonth.split('-').map(Number)
-                      return new Date(year, monthNum - 1, 1)
-                    })()}
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    month={calendarMonth}
+                    onMonthChange={setCalendarMonth}
+                    numberOfMonths={2}
                     disabled={(dateToCheck) => {
-                      const [year, monthNum] = selectedMonth.split('-').map(Number)
-                      const checkYear = dateToCheck.getFullYear()
-                      const checkMonth = dateToCheck.getMonth() + 1
-                      // Disable dates outside the selected month
-                      if (checkYear !== year || checkMonth !== monthNum) return true
-                      // Disable past dates
                       const today = new Date()
                       today.setHours(0, 0, 0, 0)
                       return dateToCheck < today
