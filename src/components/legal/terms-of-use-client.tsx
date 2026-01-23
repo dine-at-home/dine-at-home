@@ -81,7 +81,7 @@ export default function TermsOfUseClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>For questions about these Terms, contact us at legal@datthome.com</p>
+                <p>For questions about these Terms, contact us at info@datthome.com</p>
               </CardContent>
             </Card>
           </section>
