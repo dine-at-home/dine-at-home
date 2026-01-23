@@ -71,7 +71,7 @@ export default function RoleSelectionPage() {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-2xl w-full">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-4">Welcome to DineWithUs!</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-4">Welcome to Dine at Home!</h1>
             <p className="text-lg text-muted-foreground">
               Please choose how you'd like to use our platform
             </p>

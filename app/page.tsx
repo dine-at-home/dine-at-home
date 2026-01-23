@@ -15,6 +15,7 @@ import { shouldShowInListings } from '@/lib/dinner-filters'
 import { Dinner } from '@/types'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
+import { JsonLd, getFaqSchema } from '@/components/seo/JsonLd'
 
 function HomePageContent() {
   const router = useRouter()
@@ -185,54 +186,105 @@ function HomePageContent() {
           <p className="text-muted-foreground">Please refresh the page to try again.</p>
         </div>
       ) : (
-        <FeaturedDinnersSection dinners={dinners} />
+        <article>
+          <FeaturedDinnersSection dinners={dinners} />
+        </article>
       )}
 
       {primaryAd ? (
-        <AdBanner
-          title={primaryAd.title}
-          description={primaryAd.description}
-          buttonText={primaryAd.buttonText}
-          link={primaryAd.link}
-          imageSrc={primaryAd.imageSrc}
-          variant="primary"
-        />
+        <aside>
+          <AdBanner
+            title={primaryAd.title}
+            description={primaryAd.description}
+            buttonText={primaryAd.buttonText}
+            link={primaryAd.link}
+            imageSrc={primaryAd.imageSrc}
+            variant="primary"
+          />
+        </aside>
       ) : (
-        <AdBanner
-          title="Elevate Your Culinary Skills"
-          description="Join exclusive online masterclasses with world-renowned chefs. Master the art of pasta, pastry, and more from the comfort of your home."
-          buttonText="View Masterclasses"
-          link="/"
-          imageSrc="/ads/cooking_class.png"
-          variant="primary"
-        />
+        <aside>
+          <AdBanner
+            title="Elevate Your Culinary Skills"
+            description="Join exclusive online masterclasses with world-renowned chefs. Master the art of pasta, pastry, and more from the comfort of your home."
+            buttonText="View Masterclasses"
+            link="/"
+            imageSrc="/ads/cooking_class.png"
+            variant="primary"
+          />
+        </aside>
       )}
 
-      <SocialProofSection />
+      <section>
+        <SocialProofSection />
+      </section>
 
-      <HowItWorksSection />
+      <section>
+        <HowItWorksSection />
+      </section>
 
       {secondaryAd ? (
-        <AdBanner
-          title={secondaryAd.title}
-          description={secondaryAd.description}
-          buttonText={secondaryAd.buttonText}
-          link={secondaryAd.link}
-          imageSrc={secondaryAd.imageSrc}
-          variant="secondary"
-        />
+        <aside>
+          <AdBanner
+            title={secondaryAd.title}
+            description={secondaryAd.description}
+            buttonText={secondaryAd.buttonText}
+            link={secondaryAd.link}
+            imageSrc={secondaryAd.imageSrc}
+            variant="secondary"
+          />
+        </aside>
       ) : (
-        <AdBanner
-          title="Premium Kitchenware for Master Chefs"
-          description="Upgrade your kitchen with our curated collection of professional ceramic cookware and artisanal tools. Built to last a lifetime."
-          buttonText="Shop Collection"
-          link="/"
-          imageSrc="/ads/premium_cookware.png"
-          variant="secondary"
-        />
+        <aside>
+          <AdBanner
+            title="Premium Kitchenware for Master Chefs"
+            description="Upgrade your kitchen with our curated collection of professional ceramic cookware and artisanal tools. Built to last a lifetime."
+            buttonText="Shop Collection"
+            link="/"
+            imageSrc="/ads/premium_cookware.png"
+            variant="secondary"
+          />
+        </aside>
       )}
 
-      <HostCTASection />
+      <section>
+        <HostCTASection />
+      </section>
+
+      {/* FAQ Schema for AEO */}
+      <section className="py-16 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-3xl font-bold mb-8">Frequently Asked Questions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-xl font-semibold mb-2">How do I book a dinner?</h3>
+            <p className="text-muted-foreground">
+              Simply browse available dinners, select one you like, choose the number of guests, and
+              proceed to payment.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-2">Is it safe?</h3>
+            <p className="text-muted-foreground">
+              Yes, we verify all our hosts and use secure payment processing. We also have a review
+              system to ensure quality.
+            </p>
+          </div>
+        </div>
+        <JsonLd
+          data={getFaqSchema([
+            {
+              question: 'How do I book a dinner?',
+              answer:
+                'Simply browse available dinners, select one you like, choose the number of guests, and proceed to payment.',
+            },
+            {
+              question: 'Is it safe?',
+              answer:
+                'Yes, we verify all our hosts and use secure payment processing. We also have a review system to ensure quality.',
+            },
+          ])}
+        />
+      </section>
     </MainLayout>
   )
 }

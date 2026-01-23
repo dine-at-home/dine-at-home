@@ -23,6 +23,7 @@ export interface Dinner {
   houseRules?: string[]
   dietary?: string[]
   cancellationPolicy?: string
+  currency: string
 }
 
 export interface Host {

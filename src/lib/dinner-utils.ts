@@ -201,7 +201,7 @@ export function transformDinner(dinner: any): Dinner {
 
   // Preserve reviews if they exist (from backend API response)
   // Backend sends reviews as an array with structure: { id, userId, userName, userAvatar, rating, comment, date, helpful }
-  const reviews = Array.isArray(dinner.reviews) 
+  const reviews = Array.isArray(dinner.reviews)
     ? dinner.reviews.map((r: any) => ({
         id: r.id || '',
         userId: r.userId || '',
@@ -244,6 +244,7 @@ export function transformDinner(dinner: any): Dinner {
     included,
     houseRules,
     dietary,
+    currency: dinner.currency || 'GEL',
     reviews, // Include reviews array if present
   }
 }

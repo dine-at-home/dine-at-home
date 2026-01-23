@@ -58,7 +58,7 @@ export function Header({ onSearch }: HeaderProps = {}) {
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">D</span>
               </div>
-              <span className="hidden sm:block font-bold text-xl text-primary">DineWithUs</span>
+              <span className="hidden sm:block font-bold text-xl text-primary">Dine at Home</span>
             </a>
           </div>
 
