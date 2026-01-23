@@ -859,6 +859,11 @@ function CreateDinnerPageContent() {
           }
         }
 
+        console.log(
+          '🚀 [DEBUG-BUILD-FIX-V2] Submitting dinner with rules:',
+          dinnerData.houseRules || ''
+        )
+
         const requestBody = {
           title: dinnerData.title || '',
           description: dinnerData.description || '',
