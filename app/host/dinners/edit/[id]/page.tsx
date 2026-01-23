@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
@@ -28,12 +28,116 @@ import {
   ChefHat,
   Image as ImageIcon,
   AlertCircle,
-  Loader2,
+  EyeOff,
   Shield,
+  Check,
+  ChevronsUpDown,
+  Loader2,
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
 import { transformDinner } from '@/lib/dinner-utils'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/components/ui/utils'
+
+import { COUNTRIES } from '@/lib/countries'
+
+const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'))
+const MINUTE_OPTIONS = ['00', '15', '30', '45']
+
+const MENU_SUGGESTIONS = [
+  {
+    category: '🥘 Hot Dishes',
+    items: [
+      {
+        title: '1. Icelandic Meat Soup (Kjötsúpa)',
+        description:
+          'Put lamb meat in a pot and cover with water.\nBoil for about 45 minutes.\nAdd potatoes, carrots, turnips, and salt.\nSimmer for another 20–30 minutes.',
+      },
+      {
+        title: '2. Plokkfiskur (Fish Stew)',
+        description:
+          'Boil fish and potatoes separately.\nRoughly mash the potatoes.\nMelt butter in a pot and add milk.\nAdd fish and potatoes, stir gently.',
+      },
+      {
+        title: '3. Fish Balls',
+        description:
+          'Heat a frying pan with butter.\nFry fish balls on medium heat for 4–5 minutes per side.\nServe with potatoes and sauce.',
+      },
+      {
+        title: '4. Boiled Haddock',
+        description:
+          'Place haddock in a pot with lightly salted water.\nBoil for 8–10 minutes.\nServe with potatoes and melted butter.',
+      },
+      {
+        title: '5. Boiled Lamb with Potatoes',
+        description:
+          'Put lamb in a pot and cover with water.\nBoil for 1–1.5 hours.\nAdd potatoes for the last 25 minutes.',
+      },
+      {
+        title: '6. Breaded Fish',
+        description:
+          'Lightly salt fish fillets.\nDip in egg, then breadcrumbs.\nFry in butter until golden on both sides.',
+      },
+      {
+        title: '7. Meatballs',
+        description:
+          'Mix ground meat, egg, salt, and breadcrumbs.\nShape into small balls.\nFry on a pan for 8–10 minutes.',
+      },
+      {
+        title: '8. Bread Soup',
+        description:
+          'Put water and torn rye bread into a pot.\nAdd raisins and sugar.\nSimmer for 20 minutes, stirring often.',
+      },
+    ],
+  },
+  {
+    category: '🍞 Bread & Sides',
+    items: [
+      {
+        title: '9. Icelandic Rye Bread (Oven Method)',
+        description:
+          'Mix rye flour, sugar, salt, and baking powder.\nAdd milk and syrup.\nBake at 170°C (340°F) for about 1.5 hours.',
+      },
+      {
+        title: '10. Flatbread (Flatkökur)',
+        description: 'Heat ready-made flatbread on a pan.\nServe with butter or cured meat.',
+      },
+    ],
+  },
+  {
+    category: '🍰 Desserts & Snacks',
+    items: [
+      {
+        title: '11. Icelandic Pancakes',
+        description:
+          'Mix flour, eggs, and milk.\nHeat a pan with butter.\nFry thin pancakes for 1–2 minutes per side.',
+      },
+      {
+        title: '12. Rice Porridge',
+        description:
+          'Boil rice in water for 10 minutes.\nAdd milk and reduce heat.\nSimmer for 20–30 minutes, stirring often.',
+      },
+      {
+        title: '13. Skyr with Cream',
+        description: 'Put skyr in a bowl.\nPour cream on top.\nAdd sugar or berries.',
+      },
+      {
+        title: '14. Dried Fish (Harðfiskur)',
+        description:
+          'Break dried fish into pieces.\nSpread butter on top.\nEat – no cooking needed 😄',
+      },
+    ],
+  },
+]
 
 function EditDinnerPageContent() {
   const router = useRouter()
@@ -45,25 +149,23 @@ function EditDinnerPageContent() {
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
+  const [openCountry, setOpenCountry] = useState(false)
 
+  const errorRef = useRef<HTMLDivElement>(null)
   const cityInputRef = useRef<HTMLInputElement>(null)
-  const neighborhoodInputRef = useRef<HTMLInputElement>(null)
   const citySuggestionsRef = useRef<HTMLDivElement>(null)
-  const neighborhoodSuggestionsRef = useRef<HTMLDivElement>(null)
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
   const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false)
 
   // City autocomplete state
-  const [citySuggestions, setCitySuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [citySuggestions, setCitySuggestions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [selectedCityIndex, setSelectedCityIndex] = useState(-1)
 
-  // Neighborhood autocomplete state
-  const [neighborhoodSuggestions, setNeighborhoodSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
-  const [showNeighborhoodSuggestions, setShowNeighborhoodSuggestions] = useState(false)
-  const [selectedNeighborhoodIndex, setSelectedNeighborhoodIndex] = useState(-1)
-
+  // Initial State (empty, populated by useEffect)
   const [dinnerData, setDinnerData] = useState({
     title: '',
     description: '',
@@ -71,7 +173,7 @@ function EditDinnerPageContent() {
     dietaryAccommodations: [] as string[],
     menu: '',
     ingredients: '',
-    specialInstructions: '',
+    houseRules: '',
     address: '',
     city: '',
     neighborhood: '',
@@ -91,6 +193,69 @@ function EditDinnerPageContent() {
     includesDessert: false,
     cancellationPolicy: 'flexible',
   })
+
+  // Auto-scroll to error when it appears
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [error])
+
+  // Load Google Places API
+  useEffect(() => {
+    const loadGooglePlaces = () => {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+      if (!apiKey) {
+        console.warn('Google Places API key is not set. Autocomplete will not work.')
+        return
+      }
+
+      if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
+        setGooglePlacesLoaded(true)
+        try {
+          autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+          const dummyDiv = document.createElement('div')
+          placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+        } catch (error) {
+          console.error('Error initializing Google Places services:', error)
+        }
+        return
+      }
+
+      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+        const checkInterval = setInterval(() => {
+          if ((window as any).google?.maps?.places) {
+            setGooglePlacesLoaded(true)
+            try {
+              autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+              const dummyDiv = document.createElement('div')
+              placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+            } catch (error) {}
+            clearInterval(checkInterval)
+          }
+        }, 100)
+        setTimeout(() => clearInterval(checkInterval), 10000)
+        return () => clearInterval(checkInterval)
+      }
+
+      const script = document.createElement('script')
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en&loading=async`
+      script.async = true
+      script.defer = true
+      script.onload = () => {
+        if ((window as any).google?.maps?.places) {
+          setGooglePlacesLoaded(true)
+          try {
+            autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+            const dummyDiv = document.createElement('div')
+            placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
+          } catch (error) {}
+        }
+      }
+      document.head.appendChild(script)
+    }
+    loadGooglePlaces()
+  }, [])
 
   // Fetch dinner data
   useEffect(() => {
@@ -117,30 +282,26 @@ function EditDinnerPageContent() {
         const result = await response.json()
 
         if (result.success && result.data) {
-          const rawDinner = result.data // Get raw data before transformation
+          const rawDinner = result.data
           const dinner = transformDinner(result.data)
 
-          // Parse menu array to string
-          const menuString = Array.isArray(dinner.menu) ? dinner.menu.join(', ') : dinner.menu || ''
-
-          // Parse houseRules array to string
+          const menuString = Array.isArray(dinner.menu)
+            ? dinner.menu.join('\\n')
+            : dinner.menu || ''
           const houseRulesString = Array.isArray(dinner.houseRules)
-            ? dinner.houseRules.join(', ')
+            ? dinner.houseRules.join('\\n')
             : dinner.houseRules?.[0] || ''
 
-          // Parse duration from minutes to hours (from raw backend response)
-          // Handle cases where duration is less than 60 minutes (e.g., 2 minutes = 0.033333 hours)
           const durationMinutes = rawDinner.duration || 180
-          const durationHours = durationMinutes < 60 ? durationMinutes / 60 : Math.floor(durationMinutes / 60)
+          const durationHours =
+            durationMinutes < 60 ? durationMinutes / 60 : Math.floor(durationMinutes / 60)
 
-          // Get location data from raw response (it has zipCode)
           const locationData = rawDinner.location
             ? typeof rawDinner.location === 'string'
               ? JSON.parse(rawDinner.location)
               : rawDinner.location
             : {}
 
-          // Format date for HTML date input (YYYY-MM-DD)
           let formattedDate = ''
           if (dinner.date) {
             try {
@@ -148,9 +309,7 @@ function EditDinnerPageContent() {
               if (!isNaN(dateObj.getTime())) {
                 formattedDate = dateObj.toISOString().split('T')[0]
               }
-            } catch (e) {
-              console.error('Error parsing date:', e)
-            }
+            } catch (e) {}
           }
 
           setDinnerData({
@@ -159,28 +318,28 @@ function EditDinnerPageContent() {
             cuisineType: dinner.cuisine || '',
             dietaryAccommodations: Array.isArray(dinner.dietary) ? dinner.dietary : [],
             menu: menuString,
-            ingredients: '',
-            specialInstructions: houseRulesString,
+            ingredients: dinner.ingredients || '',
+            houseRules: houseRulesString,
             address: locationData.address || dinner.location?.address || '',
             city: locationData.city || dinner.location?.city || '',
             neighborhood: locationData.neighborhood || dinner.location?.neighborhood || '',
             state: locationData.state || dinner.location?.state || '',
             zipCode: locationData.zipCode || '',
-            directions: '',
-            accessibility: '',
+            directions: dinner.directions || '',
+            accessibility: dinner.accessibility || '',
             date: formattedDate,
             time: dinner.time || '',
             duration: durationHours,
             maxCapacity: dinner.capacity || 8,
             pricePerPerson: dinner.price || 100,
-            minGuests: 2,
+            minGuests: dinner.minGuests || 2,
             images: Array.isArray(dinner.images)
               ? dinner.images.filter((img: any) => img && typeof img === 'string')
               : [],
-            experienceLevel: 'beginner',
-            includesDrinks: false,
-            includesDessert: false,
-            cancellationPolicy: 'flexible',
+            experienceLevel: dinner.experienceLevel || 'beginner',
+            includesDrinks: !!dinner.includesDrinks,
+            includesDessert: !!dinner.includesDessert,
+            cancellationPolicy: dinner.cancellationPolicy || 'flexible',
           })
         } else {
           setError(result.error || 'Dinner not found')
@@ -213,11 +372,6 @@ function EditDinnerPageContent() {
     'Ethiopian',
     'Vietnamese',
     'Fusion',
-    'Icelandic',
-    'Scandinavian',
-    'Swedish',
-    'Danish',
-    'Norwegian',
     'Other',
   ]
 
@@ -240,81 +394,6 @@ function EditDinnerPageContent() {
     }))
   }
 
-  // Load Google Places API
-  useEffect(() => {
-    const loadGooglePlaces = () => {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
-
-      if (!apiKey) {
-        console.warn('Google Places API key is not set. Autocomplete will not work.')
-        return
-      }
-
-      if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-        setGooglePlacesLoaded(true)
-        // Initialize services
-        try {
-          autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-          const dummyDiv = document.createElement('div')
-          placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
-        } catch (error) {
-          console.error('Error initializing Google Places services:', error)
-        }
-        return
-      }
-
-      // Check if script is already loading
-      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-        // Wait for it to load
-        const checkInterval = setInterval(() => {
-          if ((window as any).google?.maps?.places) {
-            setGooglePlacesLoaded(true)
-            try {
-              autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-              const dummyDiv = document.createElement('div')
-              placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
-            } catch (error) {
-              console.error('Error initializing Google Places services:', error)
-            }
-            clearInterval(checkInterval)
-          }
-        }, 100)
-
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          clearInterval(checkInterval)
-        }, 10000)
-
-        return () => clearInterval(checkInterval)
-      }
-
-      // Load Google Maps API with Places library
-      const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en`
-      script.async = true
-      script.defer = true
-      script.onload = () => {
-        if ((window as any).google?.maps?.places) {
-          setGooglePlacesLoaded(true)
-          try {
-            autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-            const dummyDiv = document.createElement('div')
-            placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
-          } catch (error) {
-            console.error('Error initializing Google Places services:', error)
-          }
-        }
-      }
-      script.onerror = (error) => {
-        console.error('Failed to load Google Places API:', error)
-        console.error('Please check your NEXT_PUBLIC_GOOGLE_PLACES_API_KEY environment variable')
-      }
-      document.head.appendChild(script)
-    }
-
-    loadGooglePlaces()
-  }, [])
-
   // Fetch city suggestions when city input changes
   useEffect(() => {
     if (!googlePlacesLoaded || !autocompleteServiceRef.current || !dinnerData.city.trim()) {
@@ -323,46 +402,34 @@ function EditDinnerPageContent() {
       return
     }
 
-    // Debounce the API call
     const timeoutId = setTimeout(() => {
       if (autocompleteServiceRef.current && dinnerData.city.trim()) {
-        try {
-          autocompleteServiceRef.current.getPlacePredictions(
-            {
-              input: dinnerData.city,
-              // No country restriction - allow all countries
-              types: ['(cities)'],
-            },
-            (predictions, status) => {
-              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                setCitySuggestions(predictions)
-                setShowCitySuggestions(predictions.length > 0)
-                setSelectedCityIndex(-1)
-              } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-                // Only log errors, not zero results (which is normal)
-                console.warn('Google Places API error for city search:', status)
-                setCitySuggestions([])
-                setShowCitySuggestions(false)
-              } else {
-                setCitySuggestions([])
-                setShowCitySuggestions(false)
-              }
+        const selectedCountry = COUNTRIES.find((c) => c.value === dinnerData.state)
+        const countryCode = selectedCountry ? selectedCountry.code : undefined
+
+        autocompleteServiceRef.current.getPlacePredictions(
+          {
+            input: dinnerData.city,
+            componentRestrictions: countryCode ? { country: countryCode } : undefined,
+            types: ['(cities)'],
+          },
+          (predictions, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setCitySuggestions(predictions)
+              setShowCitySuggestions(predictions.length > 0)
+              setSelectedCityIndex(-1)
+            } else {
+              setCitySuggestions([])
+              setShowCitySuggestions(false)
             }
-          )
-        } catch (error) {
-          console.error('Error fetching city predictions:', error)
-          setCitySuggestions([])
-          setShowCitySuggestions(false)
-        }
+          }
+        )
       }
-    }, 300) // 300ms debounce
-
+    }, 300)
     return () => clearTimeout(timeoutId)
-  }, [dinnerData.city, googlePlacesLoaded])
+  }, [dinnerData.city, googlePlacesLoaded, dinnerData.state])
 
-  // Handle city selection
   const handleSelectCity = (placeId: string, description: string) => {
-    // Get place details to extract city name
     if (placesServiceRef.current) {
       placesServiceRef.current.getDetails(
         {
@@ -371,17 +438,16 @@ function EditDinnerPageContent() {
         },
         (place, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-            // Extract city name
             const cityComponent = place.address_components?.find(
-              (component) => component.types.includes('locality') || component.types.includes('administrative_area_level_1')
+              (component) =>
+                component.types.includes('locality') ||
+                component.types.includes('administrative_area_level_1')
             )
             if (cityComponent) {
               handleInputChange('city', cityComponent.long_name)
             } else {
               handleInputChange('city', place.name || description)
             }
-            // Clear neighborhood when city changes
-            handleInputChange('neighborhood', '')
             setShowCitySuggestions(false)
             setCitySuggestions([])
             setSelectedCityIndex(-1)
@@ -389,95 +455,12 @@ function EditDinnerPageContent() {
         }
       )
     } else {
-      // Fallback to description if service not available
       handleInputChange('city', description)
-      handleInputChange('neighborhood', '')
       setShowCitySuggestions(false)
     }
   }
 
-  // Fetch neighborhood suggestions when neighborhood input changes
-  useEffect(() => {
-    if (!googlePlacesLoaded || !autocompleteServiceRef.current || !dinnerData.neighborhood.trim() || !dinnerData.city) {
-      setNeighborhoodSuggestions([])
-      setShowNeighborhoodSuggestions(false)
-      return
-    }
-
-    // Debounce the API call
-    const timeoutId = setTimeout(() => {
-      if (autocompleteServiceRef.current && dinnerData.neighborhood.trim()) {
-        try {
-          // Search for neighborhoods - use a broader search strategy
-          const searchQuery = dinnerData.neighborhood.trim()
-          autocompleteServiceRef.current.getPlacePredictions(
-            {
-              input: searchQuery,
-              // No country restriction - allow all countries
-              // Don't restrict types too much - let Google return relevant results
-            },
-            (predictions, status) => {
-              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                // Filter predictions to prioritize neighborhoods/areas in the selected city
-                const filtered = predictions.filter((pred) => {
-                  const desc = pred.description.toLowerCase()
-                  const cityLower = dinnerData.city.toLowerCase()
-                  // Include results that mention the city or Iceland
-                  return desc.includes(cityLower) || desc.includes('iceland')
-                })
-                // Use filtered results if available, otherwise use all predictions
-                const finalResults = filtered.length > 0 ? filtered : predictions
-                setNeighborhoodSuggestions(finalResults)
-                setShowNeighborhoodSuggestions(finalResults.length > 0)
-                setSelectedNeighborhoodIndex(-1)
-              } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-                // Only log errors, not zero results (which is normal)
-                console.warn('Google Places API error for neighborhood search:', status)
-                setNeighborhoodSuggestions([])
-                setShowNeighborhoodSuggestions(false)
-              } else {
-                setNeighborhoodSuggestions([])
-                setShowNeighborhoodSuggestions(false)
-              }
-            }
-          )
-        } catch (error) {
-          console.error('Error fetching neighborhood predictions:', error)
-          setNeighborhoodSuggestions([])
-          setShowNeighborhoodSuggestions(false)
-        }
-      }
-    }, 300) // 300ms debounce
-
-    return () => clearTimeout(timeoutId)
-  }, [dinnerData.neighborhood, dinnerData.city, googlePlacesLoaded])
-
-  // Handle neighborhood selection
-  const handleSelectNeighborhood = (placeId: string, description: string) => {
-    // Get place details to extract neighborhood name
-    if (placesServiceRef.current) {
-      placesServiceRef.current.getDetails(
-        {
-          placeId: placeId,
-          fields: ['name'],
-        },
-        (place, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-            handleInputChange('neighborhood', place.name || description)
-            setShowNeighborhoodSuggestions(false)
-            setNeighborhoodSuggestions([])
-            setSelectedNeighborhoodIndex(-1)
-          }
-        }
-      )
-    } else {
-      // Fallback to description if service not available
-      handleInputChange('neighborhood', description)
-      setShowNeighborhoodSuggestions(false)
-    }
-  }
-
-  // Handle click outside to close suggestions
+  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -488,101 +471,36 @@ function EditDinnerPageContent() {
       ) {
         setShowCitySuggestions(false)
       }
-      if (
-        neighborhoodSuggestionsRef.current &&
-        !neighborhoodSuggestionsRef.current.contains(event.target as Node) &&
-        neighborhoodInputRef.current &&
-        !neighborhoodInputRef.current.contains(event.target as Node)
-      ) {
-        setShowNeighborhoodSuggestions(false)
-      }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Handle keyboard navigation for city
   const handleCityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showCitySuggestions || citySuggestions.length === 0) return
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setSelectedCityIndex((prev) => {
-          const newIndex = prev < citySuggestions.length - 1 ? prev + 1 : prev
-          if (citySuggestionsRef.current && newIndex >= 0) {
-            const element = citySuggestionsRef.current.children[newIndex] as HTMLElement
-            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }
-          return newIndex
-        })
+        setSelectedCityIndex((prev) => (prev < citySuggestions.length - 1 ? prev + 1 : prev))
         break
       case 'ArrowUp':
         e.preventDefault()
-        setSelectedCityIndex((prev) => {
-          const newIndex = prev > 0 ? prev - 1 : -1
-          if (citySuggestionsRef.current && newIndex >= 0) {
-            const element = citySuggestionsRef.current.children[newIndex] as HTMLElement
-            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }
-          return newIndex
-        })
+        setSelectedCityIndex((prev) => (prev > 0 ? prev - 1 : -1))
         break
       case 'Enter':
         e.preventDefault()
         if (selectedCityIndex >= 0 && citySuggestions[selectedCityIndex]) {
-          handleSelectCity(citySuggestions[selectedCityIndex].place_id, citySuggestions[selectedCityIndex].description)
+          handleSelectCity(
+            citySuggestions[selectedCityIndex].place_id,
+            citySuggestions[selectedCityIndex].description
+          )
         }
         break
       case 'Escape':
         e.preventDefault()
         setShowCitySuggestions(false)
         setSelectedCityIndex(-1)
-        break
-    }
-  }
-
-  // Handle keyboard navigation for neighborhood
-  const handleNeighborhoodKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showNeighborhoodSuggestions || neighborhoodSuggestions.length === 0) return
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedNeighborhoodIndex((prev) => {
-          const newIndex = prev < neighborhoodSuggestions.length - 1 ? prev + 1 : prev
-          if (neighborhoodSuggestionsRef.current && newIndex >= 0) {
-            const element = neighborhoodSuggestionsRef.current.children[newIndex] as HTMLElement
-            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }
-          return newIndex
-        })
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedNeighborhoodIndex((prev) => {
-          const newIndex = prev > 0 ? prev - 1 : -1
-          if (neighborhoodSuggestionsRef.current && newIndex >= 0) {
-            const element = neighborhoodSuggestionsRef.current.children[newIndex] as HTMLElement
-            if (element) element.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }
-          return newIndex
-        })
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (selectedNeighborhoodIndex >= 0 && neighborhoodSuggestions[selectedNeighborhoodIndex]) {
-          handleSelectNeighborhood(
-            neighborhoodSuggestions[selectedNeighborhoodIndex].place_id,
-            neighborhoodSuggestions[selectedNeighborhoodIndex].description
-          )
-        }
-        break
-      case 'Escape':
-        e.preventDefault()
-        setShowNeighborhoodSuggestions(false)
-        setSelectedNeighborhoodIndex(-1)
         break
     }
   }
@@ -596,19 +514,31 @@ function EditDinnerPageContent() {
     }))
   }
 
+  const handleToggleSuggestion = (suggestion: { title: string; description: string }) => {
+    const textBlock = `${suggestion.title}\\n${suggestion.description}`
+    const currentMenu = dinnerData.menu || ''
+
+    if (currentMenu.includes(textBlock)) {
+      let newMenu = currentMenu.replace(`\\n\\n${textBlock}`, '')
+      if (newMenu === currentMenu) newMenu = currentMenu.replace(`${textBlock}\\n\\n`, '')
+      if (newMenu === currentMenu) newMenu = currentMenu.replace(textBlock, '')
+      handleInputChange('menu', newMenu.trim())
+    } else {
+      const separator = currentMenu.length > 0 ? '\\n\\n' : ''
+      handleInputChange('menu', currentMenu + separator + textBlock)
+    }
+  }
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     const newFiles = Array.from(files)
-
-    // Check total image count (max 5) - existing images + new files
     const existingImageCount = dinnerData.images.length
     const totalAfterAdd = existingImageCount + selectedImageFiles.length + newFiles.length
+
     if (totalAfterAdd > 5) {
-      setError(
-        `Maximum 5 images allowed. You have ${existingImageCount} existing image${existingImageCount !== 1 ? 's' : ''} and ${selectedImageFiles.length} new image${selectedImageFiles.length !== 1 ? 's' : ''} selected.`
-      )
+      setError(`Maximum 5 images allowed.`)
       e.target.value = ''
       return
     }
@@ -627,22 +557,15 @@ function EditDinnerPageContent() {
       return
     }
 
-    // Limit to 5 total images (existing + new)
-    const remainingSlots = 5 - existingImageCount - selectedImageFiles.length
-    const filesToAdd = sizeValidFiles.slice(0, remainingSlots)
-
-    if (filesToAdd.length < sizeValidFiles.length) {
-      setError(
-        `Maximum 5 images allowed. Only ${filesToAdd.length} image${filesToAdd.length !== 1 ? 's' : ''} added.`
-      )
-    }
-
-    setSelectedImageFiles((prev) => [...prev, ...filesToAdd])
+    setSelectedImageFiles((prev) => [...prev, ...sizeValidFiles])
     e.target.value = ''
   }
 
   const removeImage = (index: number) => {
     setSelectedImageFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const removeExistingImage = (index: number) => {
     setDinnerData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
@@ -651,148 +574,116 @@ function EditDinnerPageContent() {
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return []
-
     const token = localStorage.getItem('auth_token')
-    if (!token) {
-      throw new Error('You must be logged in to upload images')
-    }
+    if (!token) throw new Error('You must be logged in to upload images')
 
     const formData = new FormData()
-    files.forEach((file) => {
-      formData.append('images[]', file)
-    })
+    files.forEach((file) => formData.append('images[]', file))
 
     const response = await fetch(getApiUrl('/upload/images'), {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     })
 
     const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Failed to upload images')
-    }
-
-    if (!result.success || !result.data?.urls) {
-      throw new Error('Invalid response from upload endpoint')
-    }
-
+    if (!response.ok) throw new Error(result.error || 'Failed to upload images')
     return result.data.urls
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted', { dinnerData, selectedImageFiles })
     setIsSubmitting(true)
     setError('')
 
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      setError('You must be logged in')
+      setIsSubmitting(false)
+      return
+    }
+
     try {
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        setError('You must be logged in to update a dinner')
+      // Validation
+      const validationErrors: string[] = []
+      if (!dinnerData.title.trim()) validationErrors.push('Title is required')
+      if (!dinnerData.description.trim()) validationErrors.push('Description is required')
+      if (!dinnerData.cuisineType) validationErrors.push('Cuisine type is required')
+      if (!dinnerData.menu.trim()) validationErrors.push('Menu description is required')
+      if (!dinnerData.date) validationErrors.push('Date is required')
+      if (!dinnerData.time) validationErrors.push('Time is required')
+      if (dinnerData.pricePerPerson <= 0) validationErrors.push('Price must be greater than 0')
+      if (dinnerData.maxCapacity <= 0) validationErrors.push('Max capacity must be greater than 0')
+      if (!dinnerData.address.trim()) validationErrors.push('Address is required')
+      if (!dinnerData.city.trim()) validationErrors.push('City is required')
+      if (!dinnerData.state.trim()) validationErrors.push('Country is required')
+
+      if (dinnerData.images.length === 0 && selectedImageFiles.length === 0) {
+        validationErrors.push('Please upload at least one image')
+      }
+
+      if (validationErrors.length > 0) {
+        setError(validationErrors.join('. ') + '.')
         setIsSubmitting(false)
         return
       }
 
-      // Upload new images if any
-      let imageUrls: string[] = []
+      // Upload Images
+      let newImageUrls: string[] = []
       if (selectedImageFiles.length > 0) {
         setUploadingImages(true)
         try {
-          imageUrls = await uploadImages(selectedImageFiles)
+          newImageUrls = await uploadImages(selectedImageFiles)
           setUploadingImages(false)
-        } catch (uploadError: any) {
+        } catch (err: any) {
           setUploadingImages(false)
-          setError(uploadError.message || 'Failed to upload images. Please try again.')
+          setError(err.message || 'Failed to upload images')
           setIsSubmitting(false)
           return
         }
       }
 
-      // Combine existing images with new ones
-      const allImages = [...dinnerData.images, ...imageUrls]
+      const allImages = [...dinnerData.images, ...newImageUrls]
 
-      // Validate total images don't exceed 5
-      if (allImages.length > 5) {
-        setError('Maximum 5 images allowed per dinner')
-        setIsSubmitting(false)
-        return
-      }
-
-      // Parse menu from string
       const menuItems = dinnerData.menu
-        ? dinnerData.menu
-          .split(/[,\n]/)
-          .map((item) => item.trim())
-          .filter((item) => item)
-        : []
-
-      // Build location object
-      const location = {
-        address: dinnerData.address,
-        city: dinnerData.city,
-        state: dinnerData.state,
-        zipCode: dinnerData.zipCode,
-        neighborhood: dinnerData.neighborhood || dinnerData.city,
-        coordinates: {
-          lat: 0,
-          lng: 0,
-        },
-      }
-
-      // Validate date and time are provided
-      if (!dinnerData.date || !dinnerData.time) {
-        setError('Date and time are required')
-        setIsSubmitting(false)
-        return
-      }
-
-      // Validate price
-      if (!dinnerData.pricePerPerson || dinnerData.pricePerPerson <= 0) {
-        setError('Price per person must be greater than 0')
-        setIsSubmitting(false)
-        return
-      }
-
-      if (dinnerData.pricePerPerson > 1000) {
-        setError('Price per person cannot exceed 1000 euros')
-        setIsSubmitting(false)
-        return
-      }
-
-      // Combine date and time into ISO date string
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter((item) => item)
       const dateTime = new Date(`${dinnerData.date}T${dinnerData.time}:00`).toISOString()
 
-      // Validate date is valid
-      if (isNaN(new Date(dateTime).getTime())) {
-        setError('Invalid date or time format')
-        setIsSubmitting(false)
-        return
-      }
-
-      // Prepare request body
       const requestBody = {
         title: dinnerData.title,
         description: dinnerData.description,
-        price: dinnerData.pricePerPerson,
-        currency: 'EUR',
-        cancellationPolicy: dinnerData.cancellationPolicy || 'flexible',
+        cuisine: dinnerData.cuisineType,
+        menu: menuItems,
+        ingredients: dinnerData.ingredients,
+        location: {
+          address: dinnerData.address,
+          city: dinnerData.city,
+          state: dinnerData.state,
+          zipCode: dinnerData.zipCode,
+          neighborhood: dinnerData.neighborhood || dinnerData.city,
+          coordinates: { lat: 0, lng: 0 },
+        },
+        directions: dinnerData.directions,
+        accessibility: dinnerData.accessibility,
         date: dateTime,
         time: dinnerData.time,
         duration: dinnerData.duration * 60,
         capacity: dinnerData.maxCapacity,
+        minGuests: dinnerData.minGuests,
+        price: dinnerData.pricePerPerson,
+        currency: 'EUR',
         images: allImages,
-        cuisine: dinnerData.cuisineType,
         dietary: dinnerData.dietaryAccommodations,
-        menu: menuItems,
-        houseRules: dinnerData.specialInstructions ? [dinnerData.specialInstructions] : [],
-        location: location,
+        experienceLevel: dinnerData.experienceLevel,
+        includesDrinks: dinnerData.includesDrinks,
+        includesDessert: dinnerData.includesDessert,
+        cancellationPolicy: dinnerData.cancellationPolicy,
+        houseRules: [dinnerData.houseRules],
+        instantBook: false,
       }
 
-      // Send PATCH request
       const response = await fetch(getApiUrl(`/dinners/${dinnerId}`), {
         method: 'PATCH',
         headers: {
@@ -805,34 +696,27 @@ function EditDinnerPageContent() {
       const result = await response.json()
 
       if (!response.ok) {
-        console.error('Update failed:', result)
-        setError(result.error || result.message || 'Failed to update dinner. Please try again.')
-        setIsSubmitting(false)
-        return
+        throw new Error(result.error || 'Failed to update dinner')
       }
 
-      console.log('Update successful:', result)
-
-      // Success - redirect to dashboard
       router.push('/host/dashboard?tab=dinners')
       router.refresh()
-    } catch (err: any) {
-      console.error('Error updating dinner:', err)
-      setError('An unexpected error occurred. Please try again.')
+    } catch (error: any) {
+      console.error('Submission error:', error)
+      setError(error.message || 'An error occurred')
+    } finally {
       setIsSubmitting(false)
     }
   }
 
   if (loading) {
     return (
-      <HostGuard>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Loading dinner details...</p>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading dinner details...</p>
         </div>
-      </HostGuard>
+      </div>
     )
   }
 
@@ -840,7 +724,7 @@ function EditDinnerPageContent() {
     <HostGuard>
       <div className="min-h-screen bg-background">
         {error && (
-          <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="max-w-4xl mx-auto px-4 py-4" ref={errorRef}>
             <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-destructive" />
               <span className="text-destructive text-sm font-medium">{error}</span>
@@ -853,7 +737,7 @@ function EditDinnerPageContent() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Edit Dinner</h1>
-                <p className="text-muted-foreground mt-1">Update your dining experience details</p>
+                <p className="text-muted-foreground mt-1">Update your dinner listing details</p>
               </div>
               <Button variant="outline" onClick={() => router.push('/host/dashboard')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -966,9 +850,50 @@ function EditDinnerPageContent() {
                     value={dinnerData.menu}
                     onChange={(e) => handleInputChange('menu', e.target.value)}
                     placeholder="Describe each course, appetizers, main dishes, and any special preparations..."
-                    rows={4}
+                    rows={12}
                     required
                   />
+                </div>
+
+                {/* Menu Suggestions */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Quick Add Suggestions</span>
+                    <span className="text-xs text-muted-foreground">
+                      (Click to add popular dishes to your menu)
+                    </span>
+                  </div>
+                  <div className="grid gap-6">
+                    {MENU_SUGGESTIONS.map((category) => (
+                      <div key={category.category} className="space-y-2">
+                        <h4 className="text-sm font-semibold text-muted-foreground">
+                          {category.category}
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {category.items.map((item) => (
+                            <Button
+                              key={item.title}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                'h-auto py-1 px-3 text-left whitespace-normal text-xs transition-colors',
+                                (dinnerData.menu || '').includes(
+                                  `${item.title}\\n${item.description}`
+                                )
+                                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground border-primary'
+                                  : 'hover:border-primary hover:text-primary'
+                              )}
+                              onClick={() => handleToggleSuggestion(item)}
+                              title={item.description}
+                            >
+                              {item.title}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
@@ -977,16 +902,6 @@ function EditDinnerPageContent() {
                     value={dinnerData.ingredients}
                     onChange={(e) => handleInputChange('ingredients', e.target.value)}
                     placeholder="List main ingredients, any allergens, or special ingredients you'll be using..."
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Special Instructions</label>
-                  <Textarea
-                    value={dinnerData.specialInstructions}
-                    onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-                    placeholder="Any special preparation methods, cooking techniques, or guest participation details..."
                     rows={3}
                   />
                 </div>
@@ -1030,18 +945,66 @@ function EditDinnerPageContent() {
                 <CardDescription>Where will the dinner take place?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Street Address *</label>
-                  <Input
-                    value={dinnerData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="123 Main Street"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5" />
-                    This address will not be visible to guests until their booking is confirmed
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Country *</label>
+                    <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCountry}
+                          className="w-full justify-between"
+                        >
+                          {dinnerData.state
+                            ? COUNTRIES.find((country) => country.value === dinnerData.state)?.label
+                            : 'Select country...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search country..."
+                            className="border-none focus:ring-0 outline-none shadow-none ring-0"
+                          />
+                          <CommandList>
+                            <CommandEmpty>No country found.</CommandEmpty>
+                            <CommandGroup>
+                              {COUNTRIES.map((country) => (
+                                <CommandItem
+                                  key={country.value}
+                                  value={country.label}
+                                  onSelect={(currentValue) => {
+                                    handleInputChange('state', country.value)
+                                    setOpenCountry(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      dinnerData.state === country.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                  {country.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
+                    <Input
+                      value={dinnerData.zipCode}
+                      onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                      placeholder="10001"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1063,7 +1026,9 @@ function EditDinnerPageContent() {
                         disabled={!googlePlacesLoaded}
                       />
                       {!googlePlacesLoaded && (
-                        <p className="text-xs text-muted-foreground mt-1">Loading city suggestions...</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Loading city suggestions...
+                        </p>
                       )}
                       {/* Custom City Suggestions Dropdown */}
                       {showCitySuggestions && citySuggestions.length > 0 && (
@@ -1075,62 +1040,14 @@ function EditDinnerPageContent() {
                             <button
                               key={suggestion.place_id}
                               type="button"
-                              onClick={() => handleSelectCity(suggestion.place_id, suggestion.description)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${index === selectedCityIndex ? 'bg-gray-50' : ''
-                                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
-                                }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm text-gray-900 truncate">
-                                    {suggestion.structured_formatting.main_text}
-                                  </div>
-                                  <div className="text-xs text-gray-500 truncate">
-                                    {suggestion.structured_formatting.secondary_text}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Area/Neighborhood *</label>
-                    <div className="relative">
-                      <Input
-                        ref={neighborhoodInputRef}
-                        value={dinnerData.neighborhood}
-                        onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                        onKeyDown={handleNeighborhoodKeyDown}
-                        onFocus={() => {
-                          if (neighborhoodSuggestions.length > 0) {
-                            setShowNeighborhoodSuggestions(true)
-                          }
-                        }}
-                        placeholder={dinnerData.city ? `Neighborhood in ${dinnerData.city}` : 'Select a city first'}
-                        required
-                        disabled={!googlePlacesLoaded || !dinnerData.city}
-                      />
-                      {!dinnerData.city && (
-                        <p className="text-xs text-muted-foreground mt-1">Please select a city first</p>
-                      )}
-                      {/* Custom Neighborhood Suggestions Dropdown */}
-                      {showNeighborhoodSuggestions && neighborhoodSuggestions.length > 0 && (
-                        <div
-                          ref={neighborhoodSuggestionsRef}
-                          className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
-                        >
-                          {neighborhoodSuggestions.map((suggestion, index) => (
-                            <button
-                              key={suggestion.place_id}
-                              type="button"
-                              onClick={() => handleSelectNeighborhood(suggestion.place_id, suggestion.description)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${index === selectedNeighborhoodIndex ? 'bg-gray-50' : ''
-                                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === neighborhoodSuggestions.length - 1 ? 'rounded-b-xl' : ''
-                                }`}
+                              onClick={() =>
+                                handleSelectCity(suggestion.place_id, suggestion.description)
+                              }
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                                index === selectedCityIndex ? 'bg-gray-50' : ''
+                              } ${index === 0 ? 'rounded-t-xl' : ''} ${
+                                index === citySuggestions.length - 1 ? 'rounded-b-xl' : ''
+                              }`}
                             >
                               <div className="flex items-start gap-3">
                                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -1151,24 +1068,18 @@ function EditDinnerPageContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">State *</label>
-                    <Input
-                      value={dinnerData.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      placeholder="Iceland"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
-                    <Input
-                      value={dinnerData.zipCode}
-                      onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                      placeholder="Optional"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Street Address *</label>
+                  <Input
+                    value={dinnerData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="123 Main Street"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    This address will not be visible to guests until their booking is confirmed
+                  </p>
                 </div>
 
                 <div>
@@ -1205,33 +1116,85 @@ function EditDinnerPageContent() {
                 <CardDescription>When and how many guests?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Date *</label>
-                    <Input
-                      type="date"
-                      value={dinnerData.date}
-                      onChange={(e) => handleInputChange('date', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Start Time *</label>
-                    <Input
-                      type="time"
-                      value={dinnerData.time}
-                      onChange={(e) => handleInputChange('time', e.target.value)}
-                      required
-                    />
+                <div className="space-y-4">
+                  {/* Primary Date */}
+                  <div className="p-3 border rounded-lg bg-muted/50 relative">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Date *</label>
+                        <Input
+                          type="date"
+                          value={dinnerData.date}
+                          onChange={(e) => handleInputChange('date', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Start Time *</label>
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1 items-center flex-1">
+                            <div className="flex-1">
+                              <Select
+                                value={dinnerData.time ? dinnerData.time.split(':')[0] : ''}
+                                onValueChange={(hour) => {
+                                  const currentMinutes = dinnerData.time
+                                    ? dinnerData.time.split(':')[1]
+                                    : '00'
+                                  handleInputChange('time', `${hour}:${currentMinutes}`)
+                                }}
+                              >
+                                <SelectTrigger className="text-center h-10">
+                                  <SelectValue placeholder="HH" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[200px]">
+                                  {HOUR_OPTIONS.map((hour) => (
+                                    <SelectItem key={hour} value={hour}>
+                                      {hour}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <span className="text-muted-foreground font-medium pb-0">:</span>
+                            <div className="flex-1">
+                              <Select
+                                value={dinnerData.time ? dinnerData.time.split(':')[1] : ''}
+                                onValueChange={(minute) => {
+                                  const currentHour = dinnerData.time
+                                    ? dinnerData.time.split(':')[0]
+                                    : '19' // Default hour if not selected yet
+                                  handleInputChange('time', `${currentHour}:${minute}`)
+                                }}
+                              >
+                                <SelectTrigger className="text-center h-10">
+                                  <SelectValue placeholder="MM" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {MINUTE_OPTIONS.map((minute) => (
+                                    <SelectItem key={minute} value={minute}>
+                                      {minute}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Duration (hours/minutes)</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Duration (hours/minutes)
+                    </label>
                     <Select
-                      value={dinnerData.duration.toString()}
-                      onValueChange={(value) => handleInputChange('duration', parseFloat(value))}
+                      value={dinnerData.duration?.toString() || '3'}
+                      onValueChange={(value) =>
+                        handleInputChange('duration', parseFloat(value) || 3)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1248,17 +1211,26 @@ function EditDinnerPageContent() {
                   <div>
                     <label className="block text-sm font-medium mb-2">Max Capacity *</label>
                     <Select
-                      value={dinnerData.maxCapacity.toString()}
-                      onValueChange={(value) => handleInputChange('maxCapacity', parseInt(value))}
+                      value={dinnerData.maxCapacity?.toString() || '8'}
+                      onValueChange={(value) =>
+                        handleInputChange('maxCapacity', parseInt(value) || 8)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="1">1 guest</SelectItem>
+                        <SelectItem value="2">2 guests</SelectItem>
+                        <SelectItem value="3">3 guests</SelectItem>
                         <SelectItem value="4">4 guests</SelectItem>
+                        <SelectItem value="5">5 guests</SelectItem>
                         <SelectItem value="6">6 guests</SelectItem>
+                        <SelectItem value="7">7 guests</SelectItem>
                         <SelectItem value="8">8 guests</SelectItem>
+                        <SelectItem value="9">9 guests</SelectItem>
                         <SelectItem value="10">10 guests</SelectItem>
+                        <SelectItem value="11">11 guests</SelectItem>
                         <SelectItem value="12">12 guests</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1266,42 +1238,49 @@ function EditDinnerPageContent() {
                   <div>
                     <label className="block text-sm font-medium mb-2">Min Guests</label>
                     <Select
-                      value={dinnerData.minGuests.toString()}
-                      onValueChange={(value) => handleInputChange('minGuests', parseInt(value))}
+                      value={dinnerData.minGuests?.toString() || '2'}
+                      onValueChange={(value) =>
+                        handleInputChange('minGuests', parseInt(value) || 2)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="1">1 guest</SelectItem>
                         <SelectItem value="2">2 guests</SelectItem>
+                        <SelectItem value="3">3 guests</SelectItem>
                         <SelectItem value="4">4 guests</SelectItem>
+                        <SelectItem value="5">5 guests</SelectItem>
                         <SelectItem value="6">6 guests</SelectItem>
+                        <SelectItem value="7">7 guests</SelectItem>
+                        <SelectItem value="8">8 guests</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Price Per Person *</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">€</span>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="1000"
-                        value={dinnerData.pricePerPerson}
-                        onChange={(e) => {
-                          const value = e.target.value ? parseInt(e.target.value) || 0 : 0
-                          // Prevent values over 1000
-                          const clampedValue = value > 1000 ? 1000 : value
-                          handleInputChange('pricePerPerson', clampedValue)
-                        }}
-                        placeholder="100"
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Price Per Person *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
+                      €
+                    </span>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={dinnerData.pricePerPerson}
+                      onChange={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value) || 0 : 0
+                        // Prevent values over 1000
+                        const clampedValue = value > 1000 ? 1000 : value
+                        handleInputChange('pricePerPerson', clampedValue)
+                      }}
+                      placeholder="100"
+                      className="pl-10"
+                      required
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -1318,11 +1297,14 @@ function EditDinnerPageContent() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Upload Photos</label>
+                  <label className="block text-sm font-medium mb-2">
+                    Upload Photos <span className="text-destructive">*</span>
+                  </label>
                   <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                     <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground mb-2">
-                      Upload additional photos (maximum 5 images total)
+                      Upload at least one photo (maximum 5 images) of your dishes, kitchen, or
+                      dining space
                     </p>
                     {(dinnerData.images.length > 0 || selectedImageFiles.length > 0) && (
                       <p className="text-xs text-muted-foreground mb-2">
@@ -1339,7 +1321,10 @@ function EditDinnerPageContent() {
                       id="photo-upload"
                     />
                     <Button type="button" variant="outline" asChild>
-                      <label htmlFor="photo-upload" className="cursor-pointer">
+                      <label
+                        htmlFor="photo-upload"
+                        className="cursor-pointer flex items-center justify-center"
+                      >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Photos
                       </label>
@@ -1368,7 +1353,7 @@ function EditDinnerPageContent() {
                             size="sm"
                             variant="destructive"
                             className="absolute top-2 right-2 w-6 h-6 p-0"
-                            onClick={() => removeImage(index)}
+                            onClick={() => removeExistingImage(index)}
                           >
                             <X className="w-3 h-3" />
                           </Button>
@@ -1382,7 +1367,7 @@ function EditDinnerPageContent() {
                 {selectedImageFiles.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium mb-2">
-                      New Photos ({selectedImageFiles.length})
+                      Selected Photos ({selectedImageFiles.length})
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {selectedImageFiles.map((file, index) => (
@@ -1399,9 +1384,7 @@ function EditDinnerPageContent() {
                             size="sm"
                             variant="destructive"
                             className="absolute top-2 right-2 w-6 h-6 p-0"
-                            onClick={() => {
-                              setSelectedImageFiles((prev) => prev.filter((_, i) => i !== index))
-                            }}
+                            onClick={() => removeImage(index)}
                           >
                             <X className="w-3 h-3" />
                           </Button>
@@ -1435,6 +1418,16 @@ function EditDinnerPageContent() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">House Rules</label>
+                  <Textarea
+                    value={dinnerData.houseRules}
+                    onChange={(e) => handleInputChange('houseRules', e.target.value)}
+                    placeholder="No smoking, no pets, shoes off, etc..."
+                    rows={3}
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -1451,12 +1444,12 @@ function EditDinnerPageContent() {
               <Button type="submit" className="gap-2" disabled={isSubmitting || uploadingImages}>
                 {uploadingImages ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Uploading images...
                   </>
                 ) : isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Updating...
                   </>
                 ) : (
