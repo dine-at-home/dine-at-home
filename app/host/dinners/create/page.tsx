@@ -1264,11 +1264,10 @@ function CreateDinnerPageContent() {
                         }}
                         placeholder="Reykjavik, Akureyri, etc."
                         required
-                        disabled={!googlePlacesLoaded}
                       />
                       {!googlePlacesLoaded && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Loading city suggestions...
+                          Google Places loading... (You can still type)
                         </p>
                       )}
                       {/* Custom City Suggestions Dropdown */}
