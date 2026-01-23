@@ -24,6 +24,13 @@ export interface Dinner {
   dietary?: string[]
   cancellationPolicy?: string
   currency: string
+  ingredients?: string
+  directions?: string
+  accessibility?: string
+  minGuests?: number
+  experienceLevel?: string
+  includesDrinks?: boolean
+  includesDessert?: boolean
 }
 
 export interface Host {

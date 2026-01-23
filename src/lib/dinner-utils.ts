@@ -246,5 +246,12 @@ export function transformDinner(dinner: any): Dinner {
     dietary,
     currency: dinner.currency || 'GEL',
     reviews, // Include reviews array if present
+    ingredients: dinner.ingredients || '',
+    directions: dinner.directions || '',
+    accessibility: dinner.accessibility || '',
+    minGuests: dinner.minGuests || 1,
+    experienceLevel: dinner.experienceLevel || 'beginner',
+    includesDrinks: !!dinner.includesDrinks,
+    includesDessert: !!dinner.includesDessert,
   }
 }
