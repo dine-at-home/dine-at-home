@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useGooglePlaces } from '@/hooks/use-google-places'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -149,9 +150,8 @@ function CreateDinnerPageContent() {
   const errorRef = useRef<HTMLDivElement>(null)
   const cityInputRef = useRef<HTMLInputElement>(null)
   const citySuggestionsRef = useRef<HTMLDivElement>(null)
-  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
-  const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false)
+
+  const { googlePlacesLoaded, autocompleteServiceRef, placesServiceRef } = useGooglePlaces()
 
   // City autocomplete state
   const [citySuggestions, setCitySuggestions] = useState<
@@ -176,83 +176,6 @@ function CreateDinnerPageContent() {
       errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [error])
-
-  // Load Google Places API
-  useEffect(() => {
-    const loadGooglePlaces = () => {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
-      console.log('🔍 [DEBUG] Loading Google Places. API Key present:', !!apiKey)
-
-      if (!apiKey) {
-        console.warn('Google Places API key is not set. Autocomplete will not work.')
-        return
-      }
-
-      if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-        setGooglePlacesLoaded(true)
-        // Initialize services
-        try {
-          autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-          // Create a dummy div for PlacesService (it needs a map or div)
-          const dummyDiv = document.createElement('div')
-          placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
-        } catch (error) {
-          console.error('Error initializing Google Places services:', error)
-        }
-        return
-      }
-
-      // Check if script is already loading
-      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-        // Wait for it to load
-        const checkInterval = setInterval(() => {
-          if ((window as any).google?.maps?.places) {
-            setGooglePlacesLoaded(true)
-            try {
-              autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-              const dummyDiv = document.createElement('div')
-              placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
-            } catch (error) {
-              console.error('Error initializing Google Places services:', error)
-            }
-            clearInterval(checkInterval)
-          }
-        }, 100)
-
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          clearInterval(checkInterval)
-        }, 10000)
-
-        return () => clearInterval(checkInterval)
-      }
-
-      // Load Google Maps API with Places library
-      const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en&loading=async`
-      script.async = true
-      script.defer = true
-      script.onload = () => {
-        if ((window as any).google?.maps?.places) {
-          setGooglePlacesLoaded(true)
-          try {
-            autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-            const dummyDiv = document.createElement('div')
-            placesServiceRef.current = new google.maps.places.PlacesService(dummyDiv)
-          } catch (error) {
-            console.error('Error initializing Google Places services:', error)
-          }
-        }
-      }
-      script.onerror = (error) => {
-        console.error('Failed to load Google Places API:', error)
-        console.error('Please check your NEXT_PUBLIC_GOOGLE_PLACES_API_KEY environment variable')
-      }
-      document.head.appendChild(script)
-    }
-
-    loadGooglePlaces()
-  }, [])
 
   // Sample data for development mode
   const getDefaultDinnerData = () => {
