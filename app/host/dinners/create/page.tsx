@@ -181,6 +181,7 @@ function CreateDinnerPageContent() {
   useEffect(() => {
     const loadGooglePlaces = () => {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+      console.log('🔍 [DEBUG] Loading Google Places. API Key present:', !!apiKey)
 
       if (!apiKey) {
         console.warn('Google Places API key is not set. Autocomplete will not work.')
@@ -228,7 +229,7 @@ function CreateDinnerPageContent() {
 
       // Load Google Maps API with Places library
       const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en&loading=async`
       script.async = true
       script.defer = true
       script.onload = () => {
@@ -404,6 +405,13 @@ function CreateDinnerPageContent() {
           const selectedCountry = COUNTRIES.find((c) => c.value === dinnerData.state)
           const countryCode = selectedCountry ? selectedCountry.code : undefined
 
+          console.log('🔍 [DEBUG] Searching for city:', {
+            input: dinnerData.city,
+            country: dinnerData.state,
+            countryCode,
+            serviceAvailable: !!autocompleteServiceRef.current,
+          })
+
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: dinnerData.city,
@@ -411,6 +419,11 @@ function CreateDinnerPageContent() {
               types: ['(cities)'],
             },
             (predictions, status) => {
+              console.log('🔍 [DEBUG] City search result:', {
+                status,
+                predictionsCount: predictions?.length,
+              })
+
               if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
                 setCitySuggestions(predictions)
                 setShowCitySuggestions(predictions.length > 0)
@@ -847,36 +860,36 @@ function CreateDinnerPageContent() {
         }
 
         const requestBody = {
-          title: dinnerData.title,
-          description: dinnerData.description,
-          cuisine: dinnerData.cuisineType,
+          title: dinnerData.title || '',
+          description: dinnerData.description || '',
+          cuisine: dinnerData.cuisineType || '',
           menu: menuItems,
-          ingredients: dinnerData.ingredients,
+          ingredients: dinnerData.ingredients || '',
           location: location,
-          directions: dinnerData.directions,
-          accessibility: dinnerData.accessibility,
+          directions: dinnerData.directions || '',
+          accessibility: dinnerData.accessibility || '',
 
           // Date & Time
           // Backend Zod schema requires full ISO string (e.g., 2023-10-27T19:00:00.000Z)
           date: dateObj.toISOString(),
           time: item.time,
-          duration: dinnerData.duration,
+          duration: dinnerData.duration || 3,
 
-          capacity: dinnerData.maxCapacity,
-          minGuests: dinnerData.minGuests,
-          price: dinnerData.pricePerPerson,
+          capacity: dinnerData.maxCapacity || 1,
+          minGuests: dinnerData.minGuests || 1,
+          price: dinnerData.pricePerPerson || 0,
           currency: 'EUR',
 
           images: imageUrls,
 
-          dietary: dinnerData.dietaryAccommodations,
-          experienceLevel: dinnerData.experienceLevel,
+          dietary: dinnerData.dietaryAccommodations || [],
+          experienceLevel: dinnerData.experienceLevel || 'beginner',
 
-          includesDrinks: dinnerData.includesDrinks || false,
-          includesDessert: dinnerData.includesDessert || false,
+          includesDrinks: !!dinnerData.includesDrinks,
+          includesDessert: !!dinnerData.includesDessert,
 
-          cancellationPolicy: dinnerData.cancellationPolicy,
-          houseRules: [dinnerData.houseRules],
+          cancellationPolicy: dinnerData.cancellationPolicy || 'flexible',
+          houseRules: [dinnerData.houseRules || ''],
 
           instantBook: false,
         }
