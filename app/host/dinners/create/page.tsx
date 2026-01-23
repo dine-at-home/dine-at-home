@@ -328,13 +328,6 @@ function CreateDinnerPageContent() {
           const selectedCountry = COUNTRIES.find((c) => c.value === dinnerData.state)
           const countryCode = selectedCountry ? selectedCountry.code : undefined
 
-          console.log('🔍 [DEBUG] Searching for city:', {
-            input: dinnerData.city,
-            country: dinnerData.state,
-            countryCode,
-            serviceAvailable: !!autocompleteServiceRef.current,
-          })
-
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: dinnerData.city,
@@ -342,11 +335,6 @@ function CreateDinnerPageContent() {
               types: ['(cities)'],
             },
             (predictions, status) => {
-              console.log('🔍 [DEBUG] City search result:', {
-                status,
-                predictionsCount: predictions?.length,
-              })
-
               if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
                 setCitySuggestions(predictions)
                 setShowCitySuggestions(predictions.length > 0)

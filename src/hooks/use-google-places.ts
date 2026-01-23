@@ -85,7 +85,6 @@ export function useGooglePlaces() {
 
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
         if (existingScript) {
-          console.log('Found existing Google Maps script in DOM, waiting for it to be ready...')
           // If script is in DOM but object not ready, poll for it
           const checkInterval = setInterval(() => {
             if (window.google?.maps?.places) {
@@ -103,7 +102,6 @@ export function useGooglePlaces() {
           return
         }
 
-        console.log('Appending new Google Maps script...')
         const script = document.createElement('script')
         script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=en&loading=async`
         script.async = true
