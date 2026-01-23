@@ -94,7 +94,7 @@ function SignInPageContent() {
           <div className="w-full max-w-md bg-card rounded-2xl shadow-lg p-6 md:p-8">
             {/* Form Header */}
             <h2 className="text-2xl md:text-3xl font-bold leading-tight text-foreground mb-6 text-center">
-              Sign in to DineWithUs
+              Sign in to Dine at Home
             </h2>
 
             {/* Error Alert */}

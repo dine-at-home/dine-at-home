@@ -124,11 +124,11 @@ export function Footer() {
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-lg">D</span>
                 </div>
-                <span className="font-bold text-xl text-primary">DineWithUs</span>
+                <span className="font-bold text-xl text-primary">Dine at Home</span>
               </div>
 
               <p className="text-sm text-muted-foreground">
-                © 2024 DineWithUs. All rights reserved.
+                © 2026 Dine at Home. All rights reserved.
               </p>
             </div>
 
