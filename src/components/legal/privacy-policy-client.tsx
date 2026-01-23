@@ -59,7 +59,7 @@ export default function PrivacyPolicyClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>Questions? Contact us at privacy@dineathome.com</p>
+                <p>Questions? Contact us at info@datthome.com</p>
               </CardContent>
             </Card>
           </section>
