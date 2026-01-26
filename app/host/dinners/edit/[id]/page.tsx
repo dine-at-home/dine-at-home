@@ -150,6 +150,7 @@ function EditDinnerPageContent() {
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
   const [openCountry, setOpenCountry] = useState(false)
+  const [isManualCuisine, setIsManualCuisine] = useState(false)
 
   const errorRef = useRef<HTMLDivElement>(null)
   const cityInputRef = useRef<HTMLInputElement>(null)
@@ -164,6 +165,13 @@ function EditDinnerPageContent() {
   >([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [selectedCityIndex, setSelectedCityIndex] = useState(-1)
+
+  // Address Suggestion State
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([])
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
+  const [cityBounds, setCityBounds] = useState<google.maps.LatLngBounds | null>(null)
 
   // Initial State (empty, populated by useEffect)
   const [dinnerData, setDinnerData] = useState({
@@ -341,6 +349,13 @@ function EditDinnerPageContent() {
             includesDessert: !!dinner.includesDessert,
             cancellationPolicy: dinner.cancellationPolicy || 'flexible',
           })
+          if (
+            dinner.cuisine &&
+            !cuisineTypes.includes(dinner.cuisine) &&
+            dinner.cuisine !== 'Other'
+          ) {
+            setIsManualCuisine(true)
+          }
         } else {
           setError(result.error || 'Dinner not found')
         }
@@ -357,22 +372,14 @@ function EditDinnerPageContent() {
 
   const cuisineTypes = [
     'Italian',
+    'Icelandic',
     'French',
     'Japanese',
     'Chinese',
     'Indian',
     'Mexican',
     'Mediterranean',
-    'American',
     'Thai',
-    'Korean',
-    'Spanish',
-    'Greek',
-    'Lebanese',
-    'Ethiopian',
-    'Vietnamese',
-    'Fusion',
-    'Other',
   ]
 
   const dietaryAccommodations = [
@@ -434,7 +441,7 @@ function EditDinnerPageContent() {
       placesServiceRef.current.getDetails(
         {
           placeId: placeId,
-          fields: ['address_components', 'name'],
+          fields: ['address_components', 'name', 'geometry'],
         },
         (place, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && place) {
@@ -448,6 +455,12 @@ function EditDinnerPageContent() {
             } else {
               handleInputChange('city', place.name || description)
             }
+
+            // Set city bounds if available
+            if (place.geometry?.viewport) {
+              setCityBounds(place.geometry.viewport)
+            }
+
             setShowCitySuggestions(false)
             setCitySuggestions([])
             setSelectedCityIndex(-1)
@@ -459,6 +472,58 @@ function EditDinnerPageContent() {
       setShowCitySuggestions(false)
     }
   }
+
+  // Fetch address suggestions
+  useEffect(() => {
+    if (
+      !googlePlacesLoaded ||
+      !autocompleteServiceRef.current ||
+      !dinnerData.address.trim() ||
+      !cityBounds
+    ) {
+      setAddressSuggestions([])
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (autocompleteServiceRef.current) {
+        try {
+          // Find country code
+          const countryCode = COUNTRIES.find((c) => c.value === dinnerData.state)?.code
+
+          const request: google.maps.places.AutocompletionRequest = {
+            input: dinnerData.address,
+            types: ['address'],
+            componentRestrictions: { country: countryCode || null },
+            bounds: cityBounds,
+          }
+
+          // @ts-ignore
+          request.strictBounds = true
+
+          autocompleteServiceRef.current.getPlacePredictions(request, (predictions, status) => {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              predictions &&
+              predictions.length > 0
+            ) {
+              setAddressSuggestions(predictions)
+              setShowAddressSuggestions(true)
+            } else {
+              setAddressSuggestions([])
+              setShowAddressSuggestions(false)
+            }
+          })
+        } catch (error) {
+          console.error('Error fetching address predictions:', error)
+          setAddressSuggestions([])
+          setShowAddressSuggestions(false)
+        }
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [dinnerData.address, googlePlacesLoaded, cityBounds, dinnerData.state])
 
   // Handle click outside
   useEffect(() => {
@@ -781,21 +846,56 @@ function EditDinnerPageContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Cuisine Type *</label>
-                    <Select
-                      value={dinnerData.cuisineType}
-                      onValueChange={(value) => handleInputChange('cuisineType', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select cuisine type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cuisineTypes.map((cuisine) => (
-                          <SelectItem key={cuisine} value={cuisine}>
-                            {cuisine}
+                    {isManualCuisine ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Type your cuisine (e.g. Georgian)"
+                          value={dinnerData.cuisineType}
+                          onChange={(e) => handleInputChange('cuisineType', e.target.value)}
+                          required
+                          autoFocus
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setIsManualCuisine(false)
+                            handleInputChange('cuisineType', '')
+                          }}
+                          className="h-10 w-10 shrink-0"
+                          title="Back to list"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select
+                        value={dinnerData.cuisineType}
+                        onValueChange={(value) => {
+                          if (value === 'manual_trigger') {
+                            setIsManualCuisine(true)
+                            handleInputChange('cuisineType', '')
+                          } else {
+                            handleInputChange('cuisineType', value)
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select cuisine type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual_trigger" className="text-primary font-medium">
+                            Can't find my cuisine type?
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                          {cuisineTypes.map((cuisine) => (
+                            <SelectItem key={cuisine} value={cuisine}>
+                              {cuisine}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Experience Level</label>
@@ -1069,12 +1169,60 @@ function EditDinnerPageContent() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Street Address *</label>
-                  <Input
-                    value={dinnerData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="123 Main Street"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      value={dinnerData.address}
+                      onChange={(e) => {
+                        handleInputChange('address', e.target.value)
+                        if (!e.target.value.trim()) {
+                          setShowAddressSuggestions(false)
+                        }
+                      }}
+                      onFocus={() => {
+                        if (dinnerData.address.trim() && addressSuggestions.length > 0) {
+                          setShowAddressSuggestions(true)
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay hiding to allow click event to register
+                        setTimeout(() => setShowAddressSuggestions(false), 200)
+                      }}
+                      placeholder="123 Main Street"
+                      required
+                      className="w-full"
+                      autoComplete="off"
+                    />
+                    {showAddressSuggestions && addressSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {addressSuggestions.map((suggestion, index) => (
+                          <button
+                            key={suggestion.place_id}
+                            type="button"
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors border-b last:border-b-0 border-gray-100"
+                            onClick={() => {
+                              handleInputChange(
+                                'address',
+                                suggestion.structured_formatting.main_text
+                              )
+                              setShowAddressSuggestions(false)
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm text-gray-900 truncate">
+                                  {suggestion.structured_formatting.main_text}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">
+                                  {suggestion.structured_formatting.secondary_text}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" />
                     This address will not be visible to guests until their booking is confirmed

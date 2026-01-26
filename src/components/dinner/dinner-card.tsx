@@ -50,12 +50,12 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
 
   return (
     <motion.div
-      whileHover={{ y: -8 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className={`group cursor-pointer ${className}`}
       onClick={handleCardClick}
     >
-      <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-zinc-100 flex flex-col h-full">
+      <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-zinc-100 flex flex-col h-full">
         {/* Image Container */}
         <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
           <AnimatePresence mode="wait">
@@ -76,123 +76,125 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
                 alt={dinner.title}
                 fill
                 sizes="(max-width: 768px) 100vw, 33vw"
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
             </motion.div>
           </AnimatePresence>
 
           {/* Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
           {/* Image Navigation */}
           {dinner.images && dinner.images.length > 1 && (
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 border-0"
+                className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border-0"
                 onClick={prevImage}
               >
-                <ArrowRight className="w-4 h-4 rotate-180" />
+                <ArrowRight className="w-3.5 h-3.5 rotate-180" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 border-0"
+                className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border-0"
                 onClick={nextImage}
               >
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </div>
           )}
 
           {/* Price & Badges */}
-          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+          <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
             {dinner.instantBook && (
-              <Badge className="bg-white text-zinc-900 border-0 shadow-sm py-1.5 px-3 rounded-full flex items-center gap-1.5 font-bold">
-                <Zap className="w-3.5 h-3.5 fill-primary-500 text-primary-500" />
+              <Badge className="bg-white/95 backdrop-blur text-zinc-900 border-0 shadow-sm py-1 px-2.5 rounded-full flex items-center gap-1 font-bold">
+                <Zap className="w-3 h-3 fill-amber-500 text-amber-500" />
                 <span className="text-[10px] uppercase tracking-wider">Instant</span>
               </Badge>
             )}
             {dinner.host.superhost && (
-              <Badge className="bg-primary-500 text-white border-0 shadow-sm py-1.5 px-3 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              <Badge className="bg-rose-500 text-white border-0 shadow-sm py-1 px-2.5 rounded-full font-bold text-[10px] uppercase tracking-wider">
                 Superhost
               </Badge>
             )}
           </div>
 
-          <div className="absolute bottom-4 left-4 z-10">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
-              <span className="text-white font-bold text-lg">€{dinner.price}</span>
-              <span className="text-white/80 text-xs ml-1 font-medium">/ person</span>
+          <div className="absolute bottom-3 left-3 z-10">
+            <div className="bg-black/30 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 shadow-lg">
+              <span className="text-white font-bold text-base">€{dinner.price}</span>
+              <span className="text-white/80 text-[11px] ml-1 font-medium">/ person</span>
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 flex flex-col flex-1 gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-primary-600">
-              <span className="flex items-center gap-1.5">
+        <div className="p-5 flex flex-col flex-1 gap-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-primary">
                 <Calendar className="w-3.5 h-3.5" />
-                {moment.utc(dinner.date).local().format('MMM D, HH:mm')}
+                {moment.utc(dinner.date).local().format('MMM D • HH:mm')}
               </span>
               <Badge
                 variant="secondary"
-                className="bg-zinc-100 text-zinc-600 border-0 text-[10px] px-2 py-0"
+                className="bg-zinc-50 text-zinc-500 border-zinc-100 text-[10px] px-2 py-0.5 font-medium"
               >
                 {dinner.cuisine}
               </Badge>
             </div>
-            <h3 className="font-bold text-xl text-zinc-900 line-clamp-1 group-hover:text-primary-600 transition-colors">
+            <h3 className="font-bold text-lg text-zinc-900 line-clamp-1 group-hover:text-primary transition-colors">
               {dinner.title}
             </h3>
           </div>
 
-          <div className="flex items-center gap-3 text-zinc-500 text-sm">
-            <div className="flex items-start gap-1.5">
-              <MapPin className="w-4 h-4 text-zinc-400 mt-0.5" />
-              <div className="flex flex-col truncate max-w-[120px]">
-                {dinner.location.neighborhood && (
-                  <span className="truncate">{dinner.location.neighborhood}</span>
-                )}
-                {dinner.location.city && (
-                  <span className="truncate text-zinc-400">{dinner.location.city}</span>
-                )}
-                {!dinner.location.neighborhood && !dinner.location.city && (
-                  <span>Location</span>
-                )}
-              </div>
+          <div className="flex items-center gap-3 text-zinc-500 text-sm mt-1">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span className="truncate">
+                {[dinner.location.neighborhood, dinner.location.city]
+                  .filter(Boolean)
+                  .filter((val, index, arr) => arr.indexOf(val) === index)
+                  .join(', ') || 'Location'}
+              </span>
             </div>
-            <div className="w-1 h-1 rounded-full bg-zinc-300" />
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-zinc-400" />
+            <div className="w-1 h-1 rounded-full bg-zinc-300 shrink-0" />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Users className="w-3.5 h-3.5 text-zinc-400" />
               <span>{dinner.available} left</span>
             </div>
           </div>
 
-          <div className="pt-2 mt-auto border-t border-zinc-50 flex items-center justify-between gap-4">
+          <div className="pt-3 mt-auto border-t border-zinc-50/50 flex items-center justify-between gap-4">
             <div className="flex items-center gap-1.5">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-bold text-zinc-900">{dinner.rating}</span>
-              <span className="text-zinc-400 text-xs">({dinner.reviewCount})</span>
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              {dinner.reviewCount > 0 ? (
+                <>
+                  <span className="font-bold text-zinc-900 text-sm">{dinner.rating}</span>
+                  <span className="text-zinc-400 text-xs">({dinner.reviewCount})</span>
+                </>
+              ) : (
+                <span className="font-medium text-zinc-600 text-sm">New</span>
+              )}
             </div>
 
-            <Avatar className="w-8 h-8 border-2 border-white shadow-sm">
+            <Avatar className="w-7 h-7 border border-white shadow-sm ring-1 ring-zinc-50">
               {dinner.host.avatar && (
-                <AvatarImage
-                  src={dinner.host.avatar}
-                  alt={dinner.host.name}
-                />
+                <AvatarImage src={dinner.host.avatar} alt={dinner.host.name} />
               )}
-              <AvatarFallback>{dinner.host.name[0]}</AvatarFallback>
+              <AvatarFallback className="text-[10px] bg-zinc-100 text-zinc-600">
+                {dinner.host.name[0]}
+              </AvatarFallback>
             </Avatar>
           </div>
 
-          {/* Quick Action Button - Floating on top of everything or slide up? Let's do slide up */}
-          <div className="pt-2 h-0 group-hover:h-12 overflow-hidden transition-all duration-300">
+          {/* Quick Action Button */}
+          <div className="pt-1 h-0 group-hover:h-10 overflow-hidden transition-all duration-300 ease-out opacity-0 group-hover:opacity-100">
             <Button
-              className={`w-full ${isHost ? 'bg-zinc-100 text-zinc-400' : 'bg-primary-600 hover:bg-primary-700 text-white'} rounded-xl font-bold transition-all`}
+              className={`w-full h-9 text-sm ${
+                isHost ? 'bg-zinc-100 text-zinc-400' : 'bg-primary hover:bg-primary/90 text-white'
+              } rounded-lg font-semibold transition-all shadow-md`}
               onClick={handleQuickBook}
               disabled={isHost}
             >

@@ -207,32 +207,7 @@ const COUNTRIES = [
   'Zimbabwe',
 ]
 
-const LANGUAGE_OPTIONS = [
-  'English',
-  'Spanish',
-  'French',
-  'German',
-  'Italian',
-  'Portuguese',
-  'Dutch',
-  'Chinese',
-  'Japanese',
-  'Korean',
-  'Arabic',
-  'Hindi',
-  'Russian',
-  'Turkish',
-  'Polish',
-  'Swedish',
-  'Norwegian',
-  'Danish',
-  'Finnish',
-  'Greek',
-  'Czech',
-  'Hungarian',
-  'Romanian',
-  'Other',
-]
+const LANGUAGE_OPTIONS = ['English']
 
 export default function CompleteProfilePage() {
   const router = useRouter()

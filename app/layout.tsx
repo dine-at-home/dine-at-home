@@ -97,6 +97,8 @@ export const metadata: Metadata = {
   },
 }
 
+import { GoogleAnalytics } from '@next/third-parties/google'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Get BASE_URL from environment (server-side only)
   const baseUrl = process.env.BASE_URL || 'http://localhost:3001/api'
@@ -118,6 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <Toaster position="top-center" />
         </AuthProvider>
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''} />
       </body>
     </html>
   )

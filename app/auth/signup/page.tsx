@@ -208,20 +208,7 @@ const COUNTRIES = [
   'Zimbabwe',
 ]
 
-const LANGUAGE_OPTIONS = [
-  'English',
-  'Spanish',
-  'French',
-  'German',
-  'Italian',
-  'Portuguese',
-  'Dutch',
-  'Chinese',
-  'Japanese',
-  'Korean',
-  'Arabic',
-  'Hindi',
-]
+const LANGUAGE_OPTIONS = ['English']
 
 export default function SignUpPage() {
   const router = useRouter()
