@@ -168,6 +168,15 @@ function CreateDinnerPageContent() {
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
   const [cityBounds, setCityBounds] = useState<google.maps.LatLngBounds | null>(null)
 
+  // Host Profile Address State (for "Use your address" feature)
+  const [hostProfileAddress, setHostProfileAddress] = useState<{
+    address: string
+    city: string
+    state: string
+    zipCode: string
+    neighborhood: string
+  } | null>(null)
+
   // Neighborhood autocomplete state
 
   // Check if we're in development mode
@@ -184,6 +193,47 @@ function CreateDinnerPageContent() {
       errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [error])
+
+  // Fetch host profile address on mount
+  useEffect(() => {
+    const fetchHostProfile = async () => {
+      try {
+        const token = localStorage.getItem('auth_token')
+        if (!token) return
+
+        // Decode JWT to get user ID
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const userId = payload.id || payload.userId
+        if (!userId) return
+
+        const response = await fetch(getApiUrl(`/users/${userId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          const user = result.data || result
+
+          // Only set if host has address saved
+          if (user.hostAddress && user.hostCity && user.hostState) {
+            setHostProfileAddress({
+              address: user.hostAddress,
+              city: user.hostCity,
+              state: user.hostState,
+              zipCode: user.hostZipCode || '',
+              neighborhood: user.hostNeighborhood || '',
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching host profile:', error)
+      }
+    }
+
+    fetchHostProfile()
+  }, [])
 
   // Sample data for development mode
   const getDefaultDinnerData = () => {
@@ -1182,11 +1232,36 @@ function CreateDinnerPageContent() {
             {/* Location & Access */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Location & Access
-                </CardTitle>
-                <CardDescription>Where will the dinner take place?</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5" />
+                      Location & Access
+                    </CardTitle>
+                    <CardDescription>Where will the dinner take place?</CardDescription>
+                  </div>
+                  {hostProfileAddress && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-primary-600 border-primary-600 hover:bg-primary-50"
+                      onClick={() => {
+                        setDinnerData((prev) => ({
+                          ...prev,
+                          address: hostProfileAddress.address,
+                          city: hostProfileAddress.city,
+                          state: hostProfileAddress.state,
+                          zipCode: hostProfileAddress.zipCode,
+                          neighborhood: hostProfileAddress.neighborhood,
+                        }))
+                      }}
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Use your address
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

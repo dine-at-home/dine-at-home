@@ -25,6 +25,12 @@ export interface User {
   iban?: string | null
   swiftBic?: string | null
   payoutAddress?: string | null
+  // Host address fields
+  hostAddress?: string | null
+  hostCity?: string | null
+  hostState?: string | null
+  hostZipCode?: string | null
+  hostNeighborhood?: string | null
 }
 
 export interface AuthResponse {
@@ -346,19 +352,22 @@ class AuthService {
         // Use try-catch to handle COOP (Cross-Origin-Opener-Policy) restrictions
 
         // Set a maximum timeout for the popup (5 minutes)
-        timeoutId = setTimeout(() => {
-          if (checkClosed) {
-            clearInterval(checkClosed)
-            checkClosed = null
-          }
-          if (!handled) {
-            window.removeEventListener('message', messageListener)
-            const errorEvent = new CustomEvent('googleAuthError', {
-              detail: { error: 'Authentication timed out. Please try again.' },
-            })
-            window.dispatchEvent(errorEvent)
-          }
-        }, 5 * 60 * 1000) // 5 minutes
+        timeoutId = setTimeout(
+          () => {
+            if (checkClosed) {
+              clearInterval(checkClosed)
+              checkClosed = null
+            }
+            if (!handled) {
+              window.removeEventListener('message', messageListener)
+              const errorEvent = new CustomEvent('googleAuthError', {
+                detail: { error: 'Authentication timed out. Please try again.' },
+              })
+              window.dispatchEvent(errorEvent)
+            }
+          },
+          5 * 60 * 1000
+        ) // 5 minutes
 
         checkClosed = setInterval(() => {
           try {

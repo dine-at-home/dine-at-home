@@ -73,6 +73,26 @@ import { getApiUrl } from '@/lib/api-config'
 import { getDinnerStatus } from '@/lib/dinner-filters'
 import { transformDinner, formatFriendlyDateTime } from '@/lib/dinner-utils'
 import { bookingService } from '@/lib/booking-service'
+import { useGooglePlaces } from '@/hooks/use-google-places'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { COUNTRIES } from '@/lib/countries'
+import { cn } from '@/components/ui/utils'
 
 // Mock data for demonstration (fallback)
 const mockDinners = [
@@ -244,7 +264,242 @@ function HostDashboardContent() {
     country: '',
     languages: '',
     joinedDate: null as Date | null,
+    // Host address fields
+    hostAddress: '',
+    hostCity: '',
+    hostState: '',
+    hostZipCode: '',
+    hostNeighborhood: '',
   })
+
+  // Google Places Autocomplete State
+  const { googlePlacesLoaded, autocompleteServiceRef, placesServiceRef } = useGooglePlaces()
+  const [openCountry, setOpenCountry] = useState(false)
+  const [citySuggestions, setCitySuggestions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([])
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false)
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([])
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
+  const [cityBounds, setCityBounds] = useState<google.maps.LatLngBounds | null>(null)
+  const [selectedCityIndex, setSelectedCityIndex] = useState(-1)
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState(-1)
+
+  const cityInputRef = useRef<HTMLInputElement>(null)
+  const citySuggestionsRef = useRef<HTMLDivElement>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+  const addressSuggestionsRef = useRef<HTMLDivElement>(null)
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // City suggestions
+      if (
+        citySuggestionsRef.current &&
+        !citySuggestionsRef.current.contains(event.target as Node) &&
+        cityInputRef.current &&
+        !cityInputRef.current.contains(event.target as Node)
+      ) {
+        setShowCitySuggestions(false)
+      }
+
+      // Address suggestions
+      if (
+        addressSuggestionsRef.current &&
+        !addressSuggestionsRef.current.contains(event.target as Node) &&
+        addressInputRef.current &&
+        !addressInputRef.current.contains(event.target as Node)
+      ) {
+        setShowAddressSuggestions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Fetch city suggestions
+  useEffect(() => {
+    if (!googlePlacesLoaded || !autocompleteServiceRef.current || !profileData.hostCity.trim()) {
+      setCitySuggestions([])
+      setShowCitySuggestions(false)
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (autocompleteServiceRef.current && profileData.hostCity.trim()) {
+        try {
+          // Find country code from profileData.hostState (which stores country label)
+          const selectedCountry = COUNTRIES.find(
+            (c) => c.label === profileData.hostState || c.value === profileData.hostState
+          )
+          const countryCode = selectedCountry ? selectedCountry.code : undefined
+
+          autocompleteServiceRef.current.getPlacePredictions(
+            {
+              input: profileData.hostCity,
+              componentRestrictions: countryCode ? { country: countryCode } : undefined,
+              types: ['(cities)'],
+            },
+            (predictions, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                setCitySuggestions(predictions)
+                setShowCitySuggestions(predictions.length > 0)
+                setSelectedCityIndex(-1)
+              } else {
+                setCitySuggestions([])
+                setShowCitySuggestions(false)
+              }
+            }
+          )
+        } catch (error) {
+          console.error('Error fetching city predictions:', error)
+          setCitySuggestions([])
+          setShowCitySuggestions(false)
+        }
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [profileData.hostCity, profileData.hostState, googlePlacesLoaded])
+
+  // Fetch address suggestions
+  useEffect(() => {
+    if (!googlePlacesLoaded || !autocompleteServiceRef.current || !profileData.hostAddress.trim()) {
+      setAddressSuggestions([])
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (autocompleteServiceRef.current) {
+        try {
+          // Find country code
+          const selectedCountry = COUNTRIES.find(
+            (c) => c.label === profileData.hostState || c.value === profileData.hostState
+          )
+          const countryCode = selectedCountry ? selectedCountry.code : undefined
+
+          const request: google.maps.places.AutocompletionRequest = {
+            input: profileData.hostAddress,
+            types: ['address'],
+            componentRestrictions: { country: countryCode || null },
+          }
+
+          if (cityBounds) {
+            request.bounds = cityBounds
+            // @ts-ignore
+            request.strictBounds = true
+          }
+
+          autocompleteServiceRef.current.getPlacePredictions(request, (predictions, status) => {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              predictions &&
+              predictions.length > 0
+            ) {
+              setAddressSuggestions(predictions)
+              setShowAddressSuggestions(true)
+            } else {
+              setAddressSuggestions([])
+              setShowAddressSuggestions(false)
+            }
+          })
+        } catch (error) {
+          console.error('Error fetching address predictions:', error)
+          setAddressSuggestions([])
+          setShowAddressSuggestions(false)
+        }
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [profileData.hostAddress, profileData.hostState, cityBounds, googlePlacesLoaded])
+
+  // Handle city selection
+  const handleSelectCity = (placeId: string, description: string) => {
+    if (placesServiceRef.current) {
+      placesServiceRef.current.getDetails(
+        {
+          placeId: placeId,
+          fields: ['address_components', 'name', 'geometry'],
+        },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+            if (place.geometry?.viewport) {
+              setCityBounds(place.geometry.viewport)
+            }
+
+            const cityComponent = place.address_components?.find(
+              (component) =>
+                component.types.includes('locality') ||
+                component.types.includes('administrative_area_level_1')
+            )
+
+            const cityName = cityComponent ? cityComponent.long_name : place.name || description
+
+            setProfileData((prev) => ({ ...prev, hostCity: cityName }))
+
+            setShowCitySuggestions(false)
+            setCitySuggestions([])
+            setSelectedCityIndex(-1)
+          }
+        }
+      )
+    } else {
+      setProfileData((prev) => ({ ...prev, hostCity: description }))
+      setShowCitySuggestions(false)
+    }
+  }
+
+  // Handle address selection
+  const handleSelectAddress = (placeId: string, description: string) => {
+    if (placesServiceRef.current) {
+      placesServiceRef.current.getDetails(
+        {
+          placeId: placeId,
+          fields: ['address_components', 'name', 'geometry', 'formatted_address'],
+        },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+            // Parse components to get precise address parts if needed
+            // For now just use the main address or formatted address
+            // We mainly want to extract Zip Code if possible
+
+            let zipCode = ''
+            const zipComponent = place.address_components?.find((c) =>
+              c.types.includes('postal_code')
+            )
+            if (zipComponent) {
+              zipCode = zipComponent.long_name
+            }
+
+            // Extract street address (route + street_number)
+            const route =
+              place.address_components?.find((c) => c.types.includes('route'))?.long_name || ''
+            const streetNum =
+              place.address_components?.find((c) => c.types.includes('street_number'))?.long_name ||
+              ''
+            const streetAddr =
+              streetNum && route ? `${streetNum} ${route}` : place.name || description
+
+            setProfileData((prev) => ({
+              ...prev,
+              hostAddress: streetAddr,
+              hostZipCode: zipCode || prev.hostZipCode,
+            }))
+
+            setShowAddressSuggestions(false)
+            setAddressSuggestions([])
+          }
+        }
+      )
+    } else {
+      setProfileData((prev) => ({ ...prev, hostAddress: description }))
+      setShowAddressSuggestions(false)
+    }
+  }
 
   useEffect(() => {
     if (user) {
@@ -282,6 +537,12 @@ function HostDashboardContent() {
         languages: languagesString,
         joinedDate: joinedDate,
         profileImage: user.image || '', // No placeholder - show initial fallback instead
+        // Host address fields
+        hostAddress: user.hostAddress || '',
+        hostCity: user.hostCity || '',
+        hostState: user.hostState || user.country || '',
+        hostZipCode: user.hostZipCode || '',
+        hostNeighborhood: user.hostNeighborhood || '',
       }))
     }
   }, [user])
@@ -420,12 +681,17 @@ function HostDashboardContent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: profileData.name || undefined,
           phone: profileData.phone || null,
-          country: profileData.country || undefined,
+          country: profileData.hostState || undefined, // Sync country with hostState (Address Country)
           gender: profileData.gender || undefined,
           languages: languagesArray.length > 0 ? languagesArray : undefined,
           image: profileData.profileImage || undefined,
+          // Host address fields
+          hostAddress: profileData.hostAddress || undefined,
+          hostCity: profileData.hostCity || undefined,
+          hostState: profileData.hostState || undefined,
+          hostZipCode: profileData.hostZipCode || undefined,
+          hostNeighborhood: profileData.hostNeighborhood || undefined,
         }),
       })
 
@@ -2395,20 +2661,6 @@ function HostDashboardContent() {
                     </p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Country</label>
-                  {isEditingProfile ? (
-                    <Input
-                      value={profileData.country}
-                      onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      {profileData.country || 'Not specified'}
-                    </p>
-                  )}
-                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Languages</label>
@@ -2434,6 +2686,227 @@ function HostDashboardContent() {
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-md font-semibold mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Host Address
+                  <span className="text-xs text-muted-foreground font-normal ml-2">
+                    (Used as default for dinner creation)
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Country *</label>
+                    {isEditingProfile ? (
+                      <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCountry}
+                            className="w-full justify-between"
+                          >
+                            {profileData.hostState
+                              ? COUNTRIES.find(
+                                  (country) =>
+                                    country.label === profileData.hostState ||
+                                    country.value === profileData.hostState
+                                )?.label || profileData.hostState
+                              : 'Select country...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search country..."
+                              className="border-none focus:ring-0 outline-none shadow-none ring-0"
+                            />
+                            <CommandList>
+                              <CommandEmpty>No country found.</CommandEmpty>
+                              <CommandGroup>
+                                {COUNTRIES.map((country) => (
+                                  <CommandItem
+                                    key={country.value}
+                                    value={country.label}
+                                    onSelect={(currentValue) => {
+                                      setProfileData({ ...profileData, hostState: country.label }) // Saving label/name not code, as per existing data "Iceland"
+                                      setOpenCountry(false)
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        profileData.hostState === country.label
+                                          ? 'opacity-100'
+                                          : 'opacity-0'
+                                      )}
+                                    />
+                                    {country.label}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {profileData.hostState || (
+                          <span className="italic text-muted-foreground/70">Not added</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">City *</label>
+                    {isEditingProfile ? (
+                      <div className="relative">
+                        <Input
+                          ref={cityInputRef}
+                          value={profileData.hostCity}
+                          onChange={(e) =>
+                            setProfileData({ ...profileData, hostCity: e.target.value })
+                          }
+                          onFocus={() => {
+                            if (citySuggestions.length > 0) {
+                              setShowCitySuggestions(true)
+                            }
+                          }}
+                          placeholder="Reykjavik"
+                        />
+                        {!googlePlacesLoaded && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Google Places loading...
+                          </p>
+                        )}
+                        {showCitySuggestions && citySuggestions.length > 0 && (
+                          <div
+                            ref={citySuggestionsRef}
+                            className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                          >
+                            {citySuggestions.map((suggestion, index) => (
+                              <button
+                                key={suggestion.place_id}
+                                type="button"
+                                onClick={() =>
+                                  handleSelectCity(suggestion.place_id, suggestion.description)
+                                }
+                                className={cn(
+                                  'w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors',
+                                  index === selectedCityIndex && 'bg-gray-50',
+                                  index === 0 && 'rounded-t-xl',
+                                  index === citySuggestions.length - 1 && 'rounded-b-xl'
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm text-gray-900 truncate">
+                                      {suggestion.structured_formatting.main_text}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                      {suggestion.structured_formatting.secondary_text}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {profileData.hostCity || (
+                          <span className="italic text-muted-foreground/70">Not added</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Street Address *</label>
+                    {isEditingProfile ? (
+                      <div className="relative">
+                        <Input
+                          ref={addressInputRef}
+                          value={profileData.hostAddress}
+                          onChange={(e) => {
+                            setProfileData({ ...profileData, hostAddress: e.target.value })
+                            if (!e.target.value.trim()) {
+                              setShowAddressSuggestions(false)
+                            }
+                          }}
+                          onFocus={() => {
+                            if (addressSuggestions.length > 0) {
+                              setShowAddressSuggestions(true)
+                            }
+                          }}
+                          placeholder="123 Main Street"
+                        />
+                        {showAddressSuggestions && addressSuggestions.length > 0 && (
+                          <div
+                            ref={addressSuggestionsRef}
+                            className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                          >
+                            {addressSuggestions.map((suggestion, index) => (
+                              <button
+                                key={suggestion.place_id}
+                                type="button"
+                                onClick={() =>
+                                  handleSelectAddress(suggestion.place_id, suggestion.description)
+                                }
+                                className={cn(
+                                  'w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors',
+                                  index === selectedAddressIndex && 'bg-gray-50',
+                                  index === 0 && 'rounded-t-xl',
+                                  index === addressSuggestions.length - 1 && 'rounded-b-xl'
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm text-gray-900 truncate">
+                                      {suggestion.structured_formatting.main_text}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                      {suggestion.structured_formatting.secondary_text}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {profileData.hostAddress || (
+                          <span className="italic text-muted-foreground/70">Not added</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">ZIP Code</label>
+                    {isEditingProfile ? (
+                      <Input
+                        value={profileData.hostZipCode}
+                        onChange={(e) =>
+                          setProfileData({ ...profileData, hostZipCode: e.target.value })
+                        }
+                        placeholder="101"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {profileData.hostZipCode || (
+                          <span className="italic text-muted-foreground/70">Not added</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

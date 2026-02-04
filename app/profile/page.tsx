@@ -135,6 +135,13 @@ function ProfilePageContent() {
   const [reviews, setReviews] = useState<any[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(true)
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false)
+  // Redirect to host dashboard profile tab if user is a host
+  useEffect(() => {
+    if (user?.role === 'host') {
+      router.replace('/host/dashboard?tab=profile')
+    }
+  }, [user, router])
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -266,7 +273,7 @@ function ProfilePageContent() {
                   cancellationPolicy: backendDinner.cancellationPolicy,
                   hasCancellationPolicy: 'cancellationPolicy' in backendDinner,
                   allKeys: Object.keys(backendDinner),
-                  fullDinnerObject: JSON.parse(JSON.stringify(backendDinner))
+                  fullDinnerObject: JSON.parse(JSON.stringify(backendDinner)),
                 })
 
                 // Use transformDinner if needed, or use the backend format directly
@@ -320,11 +327,11 @@ function ProfilePageContent() {
                     typeof booking.dinner.location === 'object'
                       ? booking.dinner.location
                       : {
-                        address: '',
-                        city: '',
-                        state: '',
-                        neighborhood: '',
-                      },
+                          address: '',
+                          city: '',
+                          state: '',
+                          neighborhood: '',
+                        },
                 }
               }
             }
@@ -337,34 +344,35 @@ function ProfilePageContent() {
               dinnerId: dinner?.id || booking.dinnerId,
               dinner: dinner
                 ? {
-                  id: dinner.id,
-                  title: dinner.title,
-                  host: {
-                    name: dinner.host.name,
-                    avatar: dinner.host.avatar || '',
-                  },
-                  image: dinner.thumbnail || dinner.images?.[0] || null,
-                  location:
-                    `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
-                    'Location not available',
-                  date: dinner.date,
-                  time: dinner.time,
-                  price: dinner.price,
-                  capacity: dinner.capacity,
-                  cancellationPolicy: dinner.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible',
-                }
+                    id: dinner.id,
+                    title: dinner.title,
+                    host: {
+                      name: dinner.host.name,
+                      avatar: dinner.host.avatar || '',
+                    },
+                    image: dinner.thumbnail || dinner.images?.[0] || null,
+                    location:
+                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                      'Location not available',
+                    date: dinner.date,
+                    time: dinner.time,
+                    price: dinner.price,
+                    capacity: dinner.capacity,
+                    cancellationPolicy:
+                      dinner.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible',
+                  }
                 : null,
               review: booking.review
                 ? {
-                  rating: booking.review.rating,
-                  comment: booking.review.comment || '',
-                }
+                    rating: booking.review.rating,
+                    comment: booking.review.comment || '',
+                  }
                 : null,
               hostReview: booking.hostReview
                 ? {
-                  rating: booking.hostReview.rating,
-                  comment: booking.hostReview.comment || '',
-                }
+                    rating: booking.hostReview.rating,
+                    comment: booking.hostReview.comment || '',
+                  }
                 : null,
             }
           })
@@ -377,7 +385,7 @@ function ProfilePageContent() {
                 bookingId: b.id,
                 cancellationPolicy: b.dinner.cancellationPolicy,
                 hasCancellationPolicy: 'cancellationPolicy' in b.dinner,
-                dinnerKeys: Object.keys(b.dinner)
+                dinnerKeys: Object.keys(b.dinner),
               })
             }
           })
@@ -500,68 +508,84 @@ function ProfilePageContent() {
                         typeof booking.dinner.location === 'object'
                           ? booking.dinner.location
                           : {
-                            address: '',
-                            city: '',
-                            state: '',
-                            neighborhood: '',
-                          },
+                              address: '',
+                              city: '',
+                              state: '',
+                              neighborhood: '',
+                            },
                     }
                   }
                 }
 
                 // Use the cancellationPolicy directly from the transformed dinner
                 // We explicitly pass it to transformDinner, so it should be preserved
-                const cancellationPolicy = dinner?.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible'
+                const cancellationPolicy =
+                  dinner?.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible'
 
                 // Create the dinner object with cancellationPolicy
                 // Use Object.assign to ensure the property is set
                 const dinnerObject = dinner
-                  ? Object.assign({
-                    id: dinner.id,
-                    title: dinner.title,
-                    host: {
-                      name: dinner.host.name,
-                      avatar: dinner.host.avatar || undefined,
-                    },
-                    image: dinner.thumbnail || dinner.images?.[0] || null,
-                    location:
-                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
-                      'Location not available',
-                    date: dinner.date,
-                    time: dinner.time,
-                    price: dinner.price,
-                    capacity: dinner.capacity,
-                  }, { cancellationPolicy: cancellationPolicy }) // Explicitly set as separate property
+                  ? Object.assign(
+                      {
+                        id: dinner.id,
+                        title: dinner.title,
+                        host: {
+                          name: dinner.host.name,
+                          avatar: dinner.host.avatar || undefined,
+                        },
+                        image: dinner.thumbnail || dinner.images?.[0] || null,
+                        location:
+                          `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                          'Location not available',
+                        date: dinner.date,
+                        time: dinner.time,
+                        price: dinner.price,
+                        capacity: dinner.capacity,
+                      },
+                      { cancellationPolicy: cancellationPolicy }
+                    ) // Explicitly set as separate property
                   : null
 
                 // Double-check it's set - force it if needed
                 if (dinnerObject) {
                   if (dinnerObject.cancellationPolicy !== cancellationPolicy) {
-                    console.warn('⚠️ WARNING: cancellationPolicy mismatch, forcing correct value:', {
-                      expected: cancellationPolicy,
-                      actual: dinnerObject.cancellationPolicy,
-                      willSet: cancellationPolicy
-                    })
+                    console.warn(
+                      '⚠️ WARNING: cancellationPolicy mismatch, forcing correct value:',
+                      {
+                        expected: cancellationPolicy,
+                        actual: dinnerObject.cancellationPolicy,
+                        willSet: cancellationPolicy,
+                      }
+                    )
                   }
                   // Force set it to ensure it's there
                   dinnerObject.cancellationPolicy = cancellationPolicy
                   // Verify it's set
-                  if (!dinnerObject.cancellationPolicy || dinnerObject.cancellationPolicy !== cancellationPolicy) {
-                    console.error('❌ CRITICAL ERROR: cancellationPolicy still not set after force!', {
-                      cancellationPolicy,
-                      dinnerObjectKeys: Object.keys(dinnerObject),
-                      dinnerObject
-                    })
+                  if (
+                    !dinnerObject.cancellationPolicy ||
+                    dinnerObject.cancellationPolicy !== cancellationPolicy
+                  ) {
+                    console.error(
+                      '❌ CRITICAL ERROR: cancellationPolicy still not set after force!',
+                      {
+                        cancellationPolicy,
+                        dinnerObjectKeys: Object.keys(dinnerObject),
+                        dinnerObject,
+                      }
+                    )
                   }
                 }
 
                 // CRITICAL: Ensure cancellationPolicy is set - add it explicitly if missing
                 if (dinnerObject && !dinnerObject.cancellationPolicy) {
-                  console.warn('⚠️ WARNING: cancellationPolicy missing in dinnerObject, adding it:', {
-                    bookingId: booking.id,
-                    cancellationPolicy,
-                    dinnerObjectKeys: Object.keys(dinnerObject)
-                  })
+                  console.warn(
+                    '⚠️ WARNING: cancellationPolicy missing in dinnerObject, adding it:',
+                    {
+                      bookingId: booking.id,
+                      cancellationPolicy,
+                      dinnerObjectKeys: Object.keys(dinnerObject),
+                    }
+                  )
                   dinnerObject.cancellationPolicy = cancellationPolicy
                 }
 
@@ -572,7 +596,7 @@ function ProfilePageContent() {
                   finalPolicy: cancellationPolicy,
                   dinnerObjectCancellationPolicy: dinnerObject?.cancellationPolicy,
                   dinnerObjectKeys: dinnerObject ? Object.keys(dinnerObject) : null,
-                  dinnerObjectFull: dinnerObject
+                  dinnerObjectFull: dinnerObject,
                 })
 
                 const finalBooking = {
@@ -584,15 +608,15 @@ function ProfilePageContent() {
                   dinnerId: dinner?.id || booking.dinnerId,
                   review: booking.review
                     ? {
-                      rating: booking.review.rating,
-                      comment: booking.review.comment || '',
-                    }
+                        rating: booking.review.rating,
+                        comment: booking.review.comment || '',
+                      }
                     : null,
                   hostReview: booking.hostReview
                     ? {
-                      rating: booking.hostReview.rating,
-                      comment: booking.hostReview.comment || '',
-                    }
+                        rating: booking.hostReview.rating,
+                        comment: booking.hostReview.comment || '',
+                      }
                     : null,
                 }
 
@@ -601,7 +625,7 @@ function ProfilePageContent() {
                   console.error('❌ ERROR: cancellationPolicy still missing after setting!', {
                     bookingId: finalBooking.id,
                     dinnerObject: finalBooking.dinner,
-                    cancellationPolicy
+                    cancellationPolicy,
                   })
                   // Force set it one more time
                   finalBooking.dinner.cancellationPolicy = cancellationPolicy
@@ -677,17 +701,18 @@ function ProfilePageContent() {
                     typeof booking.dinner.location === 'object'
                       ? booking.dinner.location
                       : {
-                        address: '',
-                        city: '',
-                        state: '',
-                        neighborhood: '',
-                      },
+                          address: '',
+                          city: '',
+                          state: '',
+                          neighborhood: '',
+                        },
                 }
               }
             }
 
             // Use the cancellationPolicy directly from the transformed dinner
-            const cancellationPolicy = dinner?.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible'
+            const cancellationPolicy =
+              dinner?.cancellationPolicy ?? booking.dinner?.cancellationPolicy ?? 'flexible'
 
             return {
               id: booking.id,
@@ -696,34 +721,34 @@ function ProfilePageContent() {
               totalAmount: booking.totalPrice || 0,
               dinner: dinner
                 ? {
-                  title: dinner.title,
-                  host: {
-                    name: dinner.host.name,
-                    avatar: dinner.host.avatar || undefined,
-                  },
-                  image: dinner.thumbnail || dinner.images?.[0] || null,
-                  location:
-                    `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
-                    'Location not available',
-                  date: dinner.date,
-                  time: dinner.time,
-                  price: dinner.price,
-                  capacity: dinner.capacity,
-                  cancellationPolicy: cancellationPolicy,
-                }
+                    title: dinner.title,
+                    host: {
+                      name: dinner.host.name,
+                      avatar: dinner.host.avatar || undefined,
+                    },
+                    image: dinner.thumbnail || dinner.images?.[0] || null,
+                    location:
+                      `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                      'Location not available',
+                    date: dinner.date,
+                    time: dinner.time,
+                    price: dinner.price,
+                    capacity: dinner.capacity,
+                    cancellationPolicy: cancellationPolicy,
+                  }
                 : null,
               dinnerId: dinner?.id || booking.dinnerId,
               review: booking.review
                 ? {
-                  rating: booking.review.rating,
-                  comment: booking.review.comment || '',
-                }
+                    rating: booking.review.rating,
+                    comment: booking.review.comment || '',
+                  }
                 : null,
               hostReview: booking.hostReview
                 ? {
-                  rating: booking.hostReview.rating,
-                  comment: booking.hostReview.comment || '',
-                }
+                    rating: booking.hostReview.rating,
+                    comment: booking.hostReview.comment || '',
+                  }
                 : null,
             }
           })
@@ -1020,13 +1045,13 @@ function ProfilePageContent() {
         ? user.languages
         : typeof user.languages === 'string'
           ? (() => {
-            try {
-              const parsed = JSON.parse(user.languages)
-              return Array.isArray(parsed) ? parsed : []
-            } catch {
-              return []
-            }
-          })()
+              try {
+                const parsed = JSON.parse(user.languages)
+                return Array.isArray(parsed) ? parsed : []
+              } catch {
+                return []
+              }
+            })()
           : []
 
       let memberSince = ''
@@ -1407,6 +1432,7 @@ function ProfilePageContent() {
                         )}
                       </div>
                     </div>
+
                     {isEditing && (
                       <div className="flex gap-2 pt-4">
                         <Button onClick={handleSave}>
@@ -1447,9 +1473,9 @@ function ProfilePageContent() {
                       <div className="text-2xl font-bold text-primary-600">
                         {reviews.length > 0
                           ? (
-                            reviews.reduce((acc: number, review: any) => acc + review.rating, 0) /
-                            reviews.length
-                          ).toFixed(1)
+                              reviews.reduce((acc: number, review: any) => acc + review.rating, 0) /
+                              reviews.length
+                            ).toFixed(1)
                           : '0.0'}
                       </div>
                       <div className="text-sm text-muted-foreground">Average Rating Given</div>
@@ -1523,8 +1549,10 @@ function ProfilePageContent() {
                                     </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                       <MapPin className="w-4 h-4" />
-                                      {typeof booking.dinner.location === 'object' && booking.dinner.location
-                                        ? `${booking.dinner.location.neighborhood || ''}, ${booking.dinner.location.city || ''}`.trim() || 'Location not available'
+                                      {typeof booking.dinner.location === 'object' &&
+                                      booking.dinner.location
+                                        ? `${booking.dinner.location.neighborhood || ''}, ${booking.dinner.location.city || ''}`.trim() ||
+                                          'Location not available'
                                         : booking.dinner.location || 'Location not available'}
                                     </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
@@ -1547,113 +1575,129 @@ function ProfilePageContent() {
                                       booking.status === 'CONFIRMED' ||
                                       booking.status === 'pending' ||
                                       booking.status === 'PENDING') && (
-                                        <div className="mt-3">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="text-destructive border-destructive hover:bg-destructive hover:text-white"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              // Calculate cancellation details
-                                              // Get cancellation policy from the booking's dinner object
-                                              // It should be set during booking transformation
-                                              // Try multiple sources to find the value
-                                              const cancellationPolicy =
-                                                booking.dinner?.cancellationPolicy ??
-                                                (booking as any)._originalCancellationPolicy ??
-                                                'flexible'
+                                      <div className="mt-3">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-destructive border-destructive hover:bg-destructive hover:text-white"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            // Calculate cancellation details
+                                            // Get cancellation policy from the booking's dinner object
+                                            // It should be set during booking transformation
+                                            // Try multiple sources to find the value
+                                            const cancellationPolicy =
+                                              booking.dinner?.cancellationPolicy ??
+                                              (booking as any)._originalCancellationPolicy ??
+                                              'flexible'
 
-                                              // Debug logging - expand bookingDinner to see all properties
-                                              console.log('🔵 Cancel booking - cancellation policy check:', {
+                                            // Debug logging - expand bookingDinner to see all properties
+                                            console.log(
+                                              '🔵 Cancel booking - cancellation policy check:',
+                                              {
                                                 bookingId: booking.id,
-                                                bookingDinnerKeys: booking.dinner ? Object.keys(booking.dinner) : null,
-                                                cancellationPolicyFromBooking: booking.dinner?.cancellationPolicy,
-                                                originalCancellationPolicy: (booking as any)._originalCancellationPolicy,
+                                                bookingDinnerKeys: booking.dinner
+                                                  ? Object.keys(booking.dinner)
+                                                  : null,
+                                                cancellationPolicyFromBooking:
+                                                  booking.dinner?.cancellationPolicy,
+                                                originalCancellationPolicy: (booking as any)
+                                                  ._originalCancellationPolicy,
                                                 finalCancellationPolicy: cancellationPolicy,
-                                                fullBookingDinner: JSON.parse(JSON.stringify(booking.dinner))
-                                              })
-                                              const dinnerDateTime = new Date(booking.dinner.date)
-                                              const now = new Date()
-                                              const hoursUntilDinner = (dinnerDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-                                              const daysUntilDinner = hoursUntilDinner / 24
-
-                                              // Calculate refund based on policy
-                                              let refundAmount = 0
-                                              let refundPercentage = 0
-                                              let message = ''
-
-                                              switch (cancellationPolicy) {
-                                                case 'flexible':
-                                                  if (hoursUntilDinner >= 24) {
-                                                    refundAmount = booking.totalAmount
-                                                    refundPercentage = 100
-                                                    message = 'Full refund - cancelled 24+ hours before dinner'
-                                                  } else {
-                                                    refundAmount = 0
-                                                    refundPercentage = 0
-                                                    message = 'No refund - cancelled less than 24 hours before dinner'
-                                                  }
-                                                  break
-                                                case 'moderate':
-                                                  if (daysUntilDinner >= 5) {
-                                                    refundAmount = booking.totalAmount
-                                                    refundPercentage = 100
-                                                    message = 'Full refund - cancelled 5+ days before dinner'
-                                                  } else {
-                                                    refundAmount = 0
-                                                    refundPercentage = 0
-                                                    message = 'No refund - cancelled less than 5 days before dinner'
-                                                  }
-                                                  break
-                                                case 'strict':
-                                                  if (daysUntilDinner >= 7) {
-                                                    refundAmount = booking.totalAmount * 0.5
-                                                    refundPercentage = 50
-                                                    message = '50% refund - cancelled 7+ days before dinner'
-                                                  } else {
-                                                    refundAmount = 0
-                                                    refundPercentage = 0
-                                                    message = 'No refund - cancelled less than 7 days before dinner'
-                                                  }
-                                                  break
-                                                default:
-                                                  if (hoursUntilDinner >= 24) {
-                                                    refundAmount = booking.totalAmount
-                                                    refundPercentage = 100
-                                                    message = 'Full refund - cancelled 24+ hours before dinner'
-                                                  } else {
-                                                    refundAmount = 0
-                                                    refundPercentage = 0
-                                                    message = 'No refund - cancelled less than 24 hours before dinner'
-                                                  }
+                                                fullBookingDinner: JSON.parse(
+                                                  JSON.stringify(booking.dinner)
+                                                ),
                                               }
+                                            )
+                                            const dinnerDateTime = new Date(booking.dinner.date)
+                                            const now = new Date()
+                                            const hoursUntilDinner =
+                                              (dinnerDateTime.getTime() - now.getTime()) /
+                                              (1000 * 60 * 60)
+                                            const daysUntilDinner = hoursUntilDinner / 24
 
-                                              setCancelDetails({
-                                                refundAmount,
-                                                refundPercentage,
-                                                message,
-                                                cancellationPolicy,
-                                                hoursUntilDinner,
-                                                daysUntilDinner,
-                                                dinnerTitle: booking.dinner.title,
-                                                totalAmount: booking.totalAmount,
-                                              })
-                                              setCancelBookingId(booking.id)
-                                              setShowCancelDialog(true)
-                                            }}
-                                          >
-                                            Cancel Booking
-                                          </Button>
-                                        </div>
-                                      )}
+                                            // Calculate refund based on policy
+                                            let refundAmount = 0
+                                            let refundPercentage = 0
+                                            let message = ''
+
+                                            switch (cancellationPolicy) {
+                                              case 'flexible':
+                                                if (hoursUntilDinner >= 24) {
+                                                  refundAmount = booking.totalAmount
+                                                  refundPercentage = 100
+                                                  message =
+                                                    'Full refund - cancelled 24+ hours before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message =
+                                                    'No refund - cancelled less than 24 hours before dinner'
+                                                }
+                                                break
+                                              case 'moderate':
+                                                if (daysUntilDinner >= 5) {
+                                                  refundAmount = booking.totalAmount
+                                                  refundPercentage = 100
+                                                  message =
+                                                    'Full refund - cancelled 5+ days before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message =
+                                                    'No refund - cancelled less than 5 days before dinner'
+                                                }
+                                                break
+                                              case 'strict':
+                                                if (daysUntilDinner >= 7) {
+                                                  refundAmount = booking.totalAmount * 0.5
+                                                  refundPercentage = 50
+                                                  message =
+                                                    '50% refund - cancelled 7+ days before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message =
+                                                    'No refund - cancelled less than 7 days before dinner'
+                                                }
+                                                break
+                                              default:
+                                                if (hoursUntilDinner >= 24) {
+                                                  refundAmount = booking.totalAmount
+                                                  refundPercentage = 100
+                                                  message =
+                                                    'Full refund - cancelled 24+ hours before dinner'
+                                                } else {
+                                                  refundAmount = 0
+                                                  refundPercentage = 0
+                                                  message =
+                                                    'No refund - cancelled less than 24 hours before dinner'
+                                                }
+                                            }
+
+                                            setCancelDetails({
+                                              refundAmount,
+                                              refundPercentage,
+                                              message,
+                                              cancellationPolicy,
+                                              hoursUntilDinner,
+                                              daysUntilDinner,
+                                              dinnerTitle: booking.dinner.title,
+                                              totalAmount: booking.totalAmount,
+                                            })
+                                            setCancelBookingId(booking.id)
+                                            setShowCancelDialog(true)
+                                          }}
+                                        >
+                                          Cancel Booking
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
                                 {/* Review Section - Always present for consistency */}
-                                <div
-                                  className="mt-4"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
+                                <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                                   {booking.review && booking.hostReview ? (
                                     // Both reviews - display side by side
                                     <div className="flex gap-3">
@@ -1724,36 +1768,36 @@ function ProfilePageContent() {
                                         <div className="flex items-center justify-between">
                                           <span className="text-sm text-muted-foreground">
                                             {booking.status === 'completed' ||
-                                              booking.status === 'COMPLETED'
+                                            booking.status === 'COMPLETED'
                                               ? 'No review written yet'
                                               : booking.status === 'confirmed' ||
-                                                booking.status === 'CONFIRMED'
+                                                  booking.status === 'CONFIRMED'
                                                 ? 'Review available after completion'
                                                 : booking.status === 'cancelled' ||
-                                                  booking.status === 'CANCELLED'
+                                                    booking.status === 'CANCELLED'
                                                   ? 'Booking was cancelled'
                                                   : booking.status === 'pending' ||
-                                                    booking.status === 'PENDING'
+                                                      booking.status === 'PENDING'
                                                     ? 'Waiting for host approval'
                                                     : 'Pending review'}
                                           </span>
                                           {(booking.status === 'completed' ||
                                             booking.status === 'COMPLETED') && (
-                                              <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={(e) => {
-                                                  e.stopPropagation()
-                                                  setSelectedBooking(booking)
-                                                  setReviewRating(0)
-                                                  setReviewComment('')
-                                                  setReviewError(null)
-                                                  setShowReviewDialog(true)
-                                                }}
-                                              >
-                                                Write Review
-                                              </Button>
-                                            )}
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedBooking(booking)
+                                                setReviewRating(0)
+                                                setReviewComment('')
+                                                setReviewError(null)
+                                                setShowReviewDialog(true)
+                                              }}
+                                            >
+                                              Write Review
+                                            </Button>
+                                          )}
                                         </div>
                                       )}
 
@@ -2154,10 +2198,11 @@ function ProfilePageContent() {
                       className="focus:outline-none transition-transform hover:scale-110"
                     >
                       <Star
-                        className={`w-8 h-8 ${rating <= reviewRating
+                        className={`w-8 h-8 ${
+                          rating <= reviewRating
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-300'
-                          }`}
+                        }`}
                       />
                     </button>
                   ))}
@@ -2224,9 +2269,7 @@ function ProfilePageContent() {
               <AlertCircle className="w-5 h-5" />
               Cancel Booking
             </DialogTitle>
-            <DialogDescription>
-              Review the cancellation details before confirming
-            </DialogDescription>
+            <DialogDescription>Review the cancellation details before confirming</DialogDescription>
           </DialogHeader>
 
           {cancelDetails && (
@@ -2249,7 +2292,9 @@ function ProfilePageContent() {
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
                   <span className="font-semibold text-sm">
-                    Cancellation Policy: {cancelDetails.cancellationPolicy.charAt(0).toUpperCase() + cancelDetails.cancellationPolicy.slice(1)}
+                    Cancellation Policy:{' '}
+                    {cancelDetails.cancellationPolicy.charAt(0).toUpperCase() +
+                      cancelDetails.cancellationPolicy.slice(1)}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">{cancelDetails.message}</p>
@@ -2263,7 +2308,9 @@ function ProfilePageContent() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Refund Amount:</span>
-                  <span className={`text-sm font-semibold ${cancelDetails.refundAmount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                  <span
+                    className={`text-sm font-semibold ${cancelDetails.refundAmount > 0 ? 'text-green-600' : 'text-destructive'}`}
+                  >
                     €{cancelDetails.refundAmount.toFixed(2)} ({cancelDetails.refundPercentage}%)
                   </span>
                 </div>
@@ -2351,7 +2398,9 @@ function ProfilePageContent() {
                                 time: booking.dinner.time || '19:00',
                                 price: booking.dinner.price || 0,
                                 capacity: booking.dinner.capacity || 0,
-                                images: Array.isArray(booking.dinner.images) ? booking.dinner.images : [],
+                                images: Array.isArray(booking.dinner.images)
+                                  ? booking.dinner.images
+                                  : [],
                                 host: {
                                   id: booking.dinner.host?.id || '',
                                   name: booking.dinner.host?.name || 'Unknown Host',
@@ -2365,11 +2414,11 @@ function ProfilePageContent() {
                                   typeof booking.dinner.location === 'object'
                                     ? booking.dinner.location
                                     : {
-                                      address: '',
-                                      city: '',
-                                      state: '',
-                                      neighborhood: '',
-                                    },
+                                        address: '',
+                                        city: '',
+                                        state: '',
+                                        neighborhood: '',
+                                      },
                               }
                             }
                           }
@@ -2382,33 +2431,33 @@ function ProfilePageContent() {
                             dinnerId: dinner?.id || booking.dinnerId,
                             dinner: dinner
                               ? {
-                                id: dinner.id,
-                                title: dinner.title,
-                                host: {
-                                  name: dinner.host.name,
-                                  avatar: dinner.host.avatar || '',
-                                },
-                                image: dinner.thumbnail || dinner.images?.[0] || null,
-                                location:
-                                  `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
-                                  'Location not available',
-                                date: dinner.date,
-                                time: dinner.time,
-                                price: dinner.price,
-                                capacity: dinner.capacity,
-                              }
+                                  id: dinner.id,
+                                  title: dinner.title,
+                                  host: {
+                                    name: dinner.host.name,
+                                    avatar: dinner.host.avatar || '',
+                                  },
+                                  image: dinner.thumbnail || dinner.images?.[0] || null,
+                                  location:
+                                    `${dinner.location.neighborhood || ''}, ${dinner.location.city || ''}`.trim() ||
+                                    'Location not available',
+                                  date: dinner.date,
+                                  time: dinner.time,
+                                  price: dinner.price,
+                                  capacity: dinner.capacity,
+                                }
                               : null,
                             review: booking.review
                               ? {
-                                rating: booking.review.rating,
-                                comment: booking.review.comment || '',
-                              }
+                                  rating: booking.review.rating,
+                                  comment: booking.review.comment || '',
+                                }
                               : null,
                             hostReview: booking.hostReview
                               ? {
-                                rating: booking.hostReview.rating,
-                                comment: booking.hostReview.comment || '',
-                              }
+                                  rating: booking.hostReview.rating,
+                                  comment: booking.hostReview.comment || '',
+                                }
                               : null,
                           }
                         })
