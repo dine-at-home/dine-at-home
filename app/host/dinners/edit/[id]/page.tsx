@@ -145,6 +145,7 @@ function EditDinnerPageContent() {
   const dinnerId = Array.isArray(params?.id) ? params?.id[0] : (params?.id as string)
 
   const [loading, setLoading] = useState(true)
+  const [hasBookings, setHasBookings] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
@@ -349,6 +350,12 @@ function EditDinnerPageContent() {
             includesDessert: !!dinner.includesDessert,
             cancellationPolicy: dinner.cancellationPolicy || 'flexible',
           })
+
+          // Check for bookings
+          if (rawDinner.bookingCount > 0) {
+            setHasBookings(true)
+          }
+
           if (
             dinner.cuisine &&
             !cuisineTypes.includes(dinner.cuisine) &&
@@ -810,6 +817,19 @@ function EditDinnerPageContent() {
               </Button>
             </div>
           </div>
+
+          {hasBookings && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-amber-800">Editing Restricted</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  This dinner has existing bookings and cannot be edited. Please contact support if
+                  you need to make critical changes.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Basic Information */}
@@ -1588,7 +1608,11 @@ function EditDinnerPageContent() {
               >
                 Cancel
               </Button>
-              <Button type="submit" className="gap-2" disabled={isSubmitting || uploadingImages}>
+              <Button
+                type="submit"
+                className="gap-2"
+                disabled={isSubmitting || uploadingImages || hasBookings}
+              >
                 {uploadingImages ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

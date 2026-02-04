@@ -217,7 +217,7 @@ function CreateDinnerPageContent() {
         time: '',
         duration: 3,
         maxCapacity: 8,
-        pricePerPerson: 100,
+        pricePerPerson: '' as unknown as number,
         minGuests: 2,
         images: [] as string[],
         experienceLevel: 'beginner',
@@ -1655,17 +1655,23 @@ function CreateDinnerPageContent() {
                       €
                     </span>
                     <Input
-                      type="number"
-                      min="1"
-                      max="1000"
-                      value={dinnerData.pricePerPerson}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={dinnerData.pricePerPerson === 0 ? '' : dinnerData.pricePerPerson}
                       onChange={(e) => {
-                        const value = e.target.value ? parseInt(e.target.value) || 0 : 0
-                        // Prevent values over 1000
-                        const clampedValue = value > 1000 ? 1000 : value
-                        handleInputChange('pricePerPerson', clampedValue)
+                        // Only allow numeric input
+                        const rawValue = e.target.value.replace(/[^0-9]/g, '')
+                        if (rawValue === '') {
+                          handleInputChange('pricePerPerson', '' as unknown as number)
+                        } else {
+                          const numValue = parseInt(rawValue, 10)
+                          // Prevent values over 1000
+                          const clampedValue = numValue > 1000 ? 1000 : numValue
+                          handleInputChange('pricePerPerson', clampedValue)
+                        }
                       }}
-                      placeholder="100"
+                      placeholder="Enter price"
                       className="pl-10"
                       required
                     />

@@ -103,14 +103,17 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Cookie Policy
-                </a>
+                <Link
+                  href="/assumption-of-risk"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Assumption of Risk
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Accessibility
-                </a>
+                <Link href="/cookie-policy" className="hover:text-foreground transition-colors">
+                  Cookie Policy
+                </Link>
               </li>
             </ul>
           </div>

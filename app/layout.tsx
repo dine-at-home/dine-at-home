@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { JsonLd, KnowledgeGraphSchema } from '@/components/seo/JsonLd'
 import { AuthProvider } from '@/contexts/auth-context'
 import { Toaster } from '@/components/ui/sonner'
+import { CookieConsent } from '@/components/cookie-consent'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -119,6 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-grow">{children}</main>
           </div>
           <Toaster position="top-center" />
+          <CookieConsent />
         </AuthProvider>
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''} />
       </body>
