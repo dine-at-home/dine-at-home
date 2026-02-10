@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,10 +19,8 @@ import {
   PayoutResponse,
   PaymentStatusResponse,
 } from '@/lib/payout-service'
-import { stripeConnectService } from '@/lib/stripe-connect-service'
 import {
   Wallet,
-  DollarSign,
   CheckCircle,
   XCircle,
   Clock,
@@ -38,14 +37,14 @@ interface PayoutSectionProps {
 
 export function PayoutSection({ hostId }: PayoutSectionProps) {
   const { user } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [balance, setBalance] = useState<HostBalanceResponse | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusResponse | null>(null)
   const [payouts, setPayouts] = useState<PayoutResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [requestingPayout, setRequestingPayout] = useState(false)
-  const [withdrawingPayoutId, setWithdrawingPayoutId] = useState<string | null>(null)
   const [showPayoutDialog, setShowPayoutDialog] = useState(false)
-  const [accountStatus, setAccountStatus] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [timeUntilReady, setTimeUntilReady] = useState<Record<string, number>>({})
 
@@ -58,6 +57,8 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
 
     return () => clearInterval(interval)
   }, [hostId])
+
+
 
   // Update countdown timers every second and auto-refresh when payments become ready
   useEffect(() => {
@@ -112,19 +113,14 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
       setLoading(true)
       setError(null)
 
-      const [balanceData, payoutsData, accountData, statusData] = await Promise.all([
+      const [balanceData, payoutsData, statusData] = await Promise.all([
         payoutService.getHostBalance(hostId).catch((err) => {
           console.warn('[Payout] Failed to load balance:', err)
           return null
         }),
         payoutService.getHostPayouts(hostId).catch((err) => {
           console.warn('[Payout] Failed to load payouts:', err)
-          return { data: [], pagination: undefined }
-        }),
-        stripeConnectService.getAccountStatus().catch((err) => {
-          console.warn('[Payout] Failed to load Stripe account status:', err)
-          // Don't set error for this - it's optional and might fail if account doesn't exist
-          return null
+          return { data: [], pagination: undefined } as any
         }),
         payoutService.getHostPaymentStatus(hostId).catch((err) => {
           console.warn('[Payout] Failed to load payment status:', err)
@@ -134,7 +130,6 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
 
       if (balanceData) setBalance(balanceData)
       if (payoutsData) setPayouts(payoutsData.data || [])
-      if (accountData) setAccountStatus(accountData)
       if (statusData) setPaymentStatus(statusData)
     } catch (err: any) {
       console.error('[Payout] Error loading payout data:', err)
@@ -177,20 +172,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
     }
   }
 
-  const handleWithdrawToBank = async (payoutId: string) => {
-    try {
-      setWithdrawingPayoutId(payoutId)
-      setError(null)
-
-      await payoutService.withdrawToBank(hostId, payoutId)
-      // Reload data
-      await loadData()
-    } catch (err: any) {
-      setError(err.message || 'Failed to withdraw to bank')
-    } finally {
-      setWithdrawingPayoutId(null)
-    }
-  }
+  // Removed handleWithdrawToBank - handled by system
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -284,12 +266,9 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
 
   // Allow multiple payouts - removed the check that prevents multiple payouts
   const canRequestPayout =
-    accountStatus?.kycVerified &&
-    accountStatus?.payoutsEnabled &&
+    !!user?.airwallexBeneficiaryId &&
     paymentStatus &&
     paymentStatus.ready.totalAmount > 0
-  // Removed: !payouts.some((p) => p.status === 'PENDING' || p.status === 'IN_TRANSIT')
-  // Now allows multiple payouts to be created simultaneously
 
   return (
     <>
@@ -304,102 +283,22 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Account Status */}
-          {accountStatus && !accountStatus.hasAccount && (
+          {/* Airwallex Account Status */}
+          {user && !user.airwallexBeneficiaryId && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-yellow-900">Stripe Account Setup Required</p>
+                  <p className="font-medium text-yellow-900">Bank Details Verification Required</p>
                   <p className="text-sm text-yellow-700 mt-1">
-                    Complete your Stripe Connect onboarding to receive payouts. This includes KYC verification.
+                    Connect your bank account via Airwallex to receive automated payouts.
                   </p>
                   <Button
-                    onClick={async () => {
-                      try {
-                        const result = await stripeConnectService.createOnboardingLink()
-                        if (result.onboardingUrl) {
-                          window.open(result.onboardingUrl, '_blank', 'noopener,noreferrer')
-                        }
-                      } catch (err: any) {
-                        setError(err.message || 'Failed to start onboarding')
-                      }
-                    }}
+                    onClick={() => router.push('/host/onboarding?step=5')}
                     className="mt-3"
                     size="sm"
                   >
-                    Start Onboarding
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {accountStatus && accountStatus.hasAccount && !accountStatus.kycVerified && (
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-orange-900">KYC Verification Required</p>
-                  <p className="text-sm text-orange-700 mt-1">
-                    Complete KYC verification to enable payouts. This includes identity verification and business details.
-                  </p>
-                  {accountStatus.requirements?.currentlyDue &&
-                    accountStatus.requirements.currentlyDue.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs font-medium text-orange-800">Required:</p>
-                        <ul className="text-xs text-orange-700 mt-1 list-disc list-inside">
-                          {accountStatus.requirements.currentlyDue.slice(0, 3).map((req: string, idx: number) => (
-                            <li key={idx}>{req.replace(/_/g, ' ')}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const result = await stripeConnectService.createOnboardingLink()
-                        if (result.onboardingUrl) {
-                          window.open(result.onboardingUrl, '_blank', 'noopener,noreferrer')
-                        }
-                      } catch (err: any) {
-                        setError(err.message || 'Failed to continue onboarding')
-                      }
-                    }}
-                    className="mt-3"
-                    size="sm"
-                  >
-                    Complete KYC Verification
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {accountStatus && accountStatus.kycVerified && !accountStatus.payoutsEnabled && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-blue-900">Add Withdrawal Method</p>
-                  <p className="text-sm text-blue-700 mt-1">
-                    KYC verification is complete! Add a bank account or debit card to receive payouts.
-                  </p>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const result = await stripeConnectService.createAccountUpdateLink()
-                        if (result.updateUrl) {
-                          window.open(result.updateUrl, '_blank', 'noopener,noreferrer')
-                        }
-                      } catch (err: any) {
-                        setError(err.message || 'Failed to add withdrawal method')
-                      }
-                    }}
-                    className="mt-3"
-                    size="sm"
-                  >
-                    Add Withdrawal Method
+                    Setup Bank Details
                   </Button>
                 </div>
               </div>
@@ -432,9 +331,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
               ) : (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-xs text-yellow-800">
-                    {!accountStatus?.kycVerified && 'Complete KYC verification to enable withdrawals. '}
-                    {!accountStatus?.payoutsEnabled && 'Enable payouts in your Stripe account. '}
-                    {(!accountStatus?.kycVerified || !accountStatus?.payoutsEnabled) && 'Click "Complete KYC Verification" above to get started.'}
+                    {!user?.airwallexBeneficiaryId && 'Connect your bank account via Airwallex to enable withdrawals.'}
                   </p>
                 </div>
               )}
@@ -489,7 +386,7 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
               <p className="text-xs text-green-700 mb-4">
-                Money is in your Stripe connected account. Click "Withdraw to Bank" in payout history below to transfer to your bank account.
+                Funds have been transferred to your connected Airwallex account and are now on their way to your bank.
               </p>
             </div>
           )}
@@ -607,16 +504,6 @@ export function PayoutSection({ hostId }: PayoutSectionProps) {
                         <p className="text-xs text-destructive mt-1">{payout.failureMessage}</p>
                       )}
                     </div>
-                    {payout.status === 'IN_TRANSIT' && (
-                      <Button
-                        onClick={() => handleWithdrawToBank(payout.id)}
-                        disabled={withdrawingPayoutId === payout.id}
-                        className="ml-4 bg-green-600 hover:bg-green-700"
-                        size="sm"
-                      >
-                        {withdrawingPayoutId === payout.id ? 'Processing...' : 'Withdraw to Bank'}
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>

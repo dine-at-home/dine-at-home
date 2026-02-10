@@ -31,6 +31,11 @@ export interface User {
   hostState?: string | null
   hostZipCode?: string | null
   hostNeighborhood?: string | null
+  // Payout and Bank fields
+  airwallexBeneficiaryId?: string | null
+  payoutCountry?: string | null
+  payoutCurrency?: string | null
+  payoutMethod?: string | null
 }
 
 export interface AuthResponse {

@@ -261,8 +261,7 @@ class PayoutService {
         // Provide helpful message for insufficient funds error
         if (result.code === 'INSUFFICIENT_FUNDS' || result.error?.includes('insufficient')) {
           throw new Error(
-            'Insufficient funds in platform account. In test mode, add test funds using card 4000000000000077. ' +
-            'See: https://stripe.com/docs/testing#available-balance'
+            'Insufficient funds in platform account. Please ensure your Airwallex account has sufficient balance for this payout.'
           )
         }
         throw new Error(result.error || result.message || 'Failed to request payout')
@@ -302,6 +301,80 @@ class PayoutService {
       return result.data
     } catch (error: any) {
       console.error('Error withdrawing to bank:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update host's payout details (Bank and Airwallex sync)
+   */
+  async updatePayoutDetails(data: {
+    bankName?: string
+    accountHolderName?: string
+    iban?: string
+    swiftBic?: string
+    payoutAddress?: string
+    payoutCountry?: string
+    payoutCurrency?: string
+    payoutMethod?: string
+    payoutEntityType?: string
+    airwallexBeneficiaryId?: string
+  }): Promise<any> {
+    try {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch(getApiUrl('/users/me/payout-details'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Failed to update payout details')
+      }
+
+      return result.data
+    } catch (error: any) {
+      console.error('Error updating payout details:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get an authorization code for the Airwallex Embedded Beneficiary SDK
+   */
+  async getAirwallexAuthCode(): Promise<{ authCode: string; codeVerifier: string }> {
+    try {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch(getApiUrl('/airwallex/auth-code'), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Failed to fetch auth code')
+      }
+
+      return result
+    } catch (error: any) {
+      console.error('Error fetching auth code:', error)
       throw error
     }
   }

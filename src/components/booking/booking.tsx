@@ -115,8 +115,8 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
         return
       }
 
-      // Payment-first flow: Create checkout session directly
-      // Booking will be created automatically when payment succeeds
+      // Payment-first flow: Create Airwallex payment intent
+      // Booking will be created automatically when payment succeeds via webhook
       const paymentResult = await paymentService.createCheckoutSessionForBooking({
         dinnerId: dinner.id,
         guests: guests,
@@ -128,10 +128,23 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
         },
       })
 
-      if (paymentResult.success && paymentResult.data?.checkoutUrl) {
-        // Redirect to Stripe checkout
-        // Booking will be created automatically when payment succeeds via webhook
-        window.location.href = paymentResult.data.checkoutUrl
+      if (paymentResult.success && paymentResult.data) {
+        // Redirect to Airwallex Hosted Payment Page
+        const { init } = await import('@airwallex/components-sdk')
+        const result = await init({
+          env: 'demo',
+          enabledElements: ['payments'],
+        })
+        if (!result.payments) {
+          throw new Error('Failed to initialize Airwallex payments')
+        }
+        result.payments.redirectToCheckout({
+          intent_id: paymentResult.data.intentId,
+          client_secret: paymentResult.data.clientSecret,
+          currency: paymentResult.data.currency || 'EUR',
+          country_code: 'IS',
+          successUrl: `${window.location.origin}/booking/payment-success?dinnerId=${dinner.id}`,
+        })
       } else {
         setError(paymentResult.error || 'Failed to initiate payment. Please try again.')
         setIsSubmitting(false)
@@ -313,11 +326,11 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                     <span className="font-medium">
                       {date
                         ? date.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
                         : 'Date not selected'}
                     </span>
                   </div>

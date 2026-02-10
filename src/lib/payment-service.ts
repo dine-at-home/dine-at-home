@@ -1,6 +1,6 @@
 /**
  * Payment Service
- * Handles all payment-related API calls
+ * Handles all payment-related API calls (Airwallex)
  */
 
 import { getApiUrl } from './api-config'
@@ -10,8 +10,10 @@ const getToken = (): string | null => {
   return localStorage.getItem('auth_token')
 }
 
-export interface CheckoutSessionResponse {
-  checkoutUrl: string
+export interface PaymentIntentResponse {
+  intentId: string
+  clientSecret: string
+  currency: string
 }
 
 export interface PaymentStatusResponse {
@@ -23,9 +25,8 @@ export interface PaymentStatusResponse {
 
 class PaymentService {
   /**
-   * Create a checkout session for a booking (payment-first flow)
-   * This creates the checkout session BEFORE creating the booking
-   * The booking will be created automatically when payment succeeds
+   * Create a payment intent for a booking (payment-first flow)
+   * Returns intentId + clientSecret for Airwallex Hosted Payment Page redirect
    */
   async createCheckoutSessionForBooking(data: {
     dinnerId: string
@@ -38,7 +39,7 @@ class PaymentService {
     }
   }): Promise<{
     success: boolean
-    data?: CheckoutSessionResponse
+    data?: PaymentIntentResponse
     error?: string
   }> {
     try {
@@ -61,7 +62,7 @@ class PaymentService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.error || result.message || 'Failed to create checkout session',
+          error: result.error || result.message || 'Failed to create payment intent',
         }
       }
 
@@ -70,20 +71,20 @@ class PaymentService {
         data: result.data,
       }
     } catch (error: any) {
-      console.error('Error creating checkout session:', error)
+      console.error('Error creating payment intent:', error)
       return {
         success: false,
-        error: error.message || 'Failed to create checkout session',
+        error: error.message || 'Failed to create payment intent',
       }
     }
   }
 
   /**
-   * Create a checkout session for an existing booking (legacy method)
+   * Create a payment intent for an existing booking (legacy method)
    */
   async createCheckoutSession(bookingId: string): Promise<{
     success: boolean
-    data?: CheckoutSessionResponse
+    data?: PaymentIntentResponse
     error?: string
   }> {
     try {
@@ -106,7 +107,7 @@ class PaymentService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.error || result.message || 'Failed to create checkout session',
+          error: result.error || result.message || 'Failed to create payment intent',
         }
       }
 
@@ -115,10 +116,10 @@ class PaymentService {
         data: result.data,
       }
     } catch (error: any) {
-      console.error('Error creating checkout session:', error)
+      console.error('Error creating payment intent:', error)
       return {
         success: false,
-        error: error.message || 'Failed to create checkout session',
+        error: error.message || 'Failed to create payment intent',
       }
     }
   }
@@ -127,8 +128,7 @@ class PaymentService {
    * Create booking from payment intent (fallback if webhook fails)
    */
   async createBookingFromPayment(data: {
-    paymentIntentId?: string
-    sessionId?: string
+    intentId: string
   }): Promise<{
     success: boolean
     data?: { bookingId: string }
