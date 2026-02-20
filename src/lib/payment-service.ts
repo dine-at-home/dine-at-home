@@ -1,6 +1,6 @@
 /**
  * Payment Service
- * Handles all payment-related API calls (Airwallex)
+ * Handles all payment-related API calls (Stripe)
  */
 
 import { getApiUrl } from './api-config'
@@ -10,81 +10,18 @@ const getToken = (): string | null => {
   return localStorage.getItem('auth_token')
 }
 
-export interface PaymentIntentResponse {
-  intentId: string
-  clientSecret: string
-  currency: string
-}
-
-export interface PaymentStatusResponse {
-  status: string
-  paymentIntentStatus?: string
-  amount: number
-  currency: string
+export interface StripeSessionResponse {
+  sessionId: string
+  url: string
 }
 
 class PaymentService {
   /**
-   * Create a payment intent for a booking (payment-first flow)
-   * Returns intentId + clientSecret for Airwallex Hosted Payment Page redirect
-   */
-  async createCheckoutSessionForBooking(data: {
-    dinnerId: string
-    guests: number
-    message?: string
-    contactInfo: {
-      name: string
-      email: string
-      phone: string
-    }
-  }): Promise<{
-    success: boolean
-    data?: PaymentIntentResponse
-    error?: string
-  }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        return { success: false, error: 'Authentication required' }
-      }
-
-      const response = await fetch(getApiUrl('/payments/checkout-for-booking'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to create payment intent',
-        }
-      }
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error: any) {
-      console.error('Error creating payment intent:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to create payment intent',
-      }
-    }
-  }
-
-  /**
-   * Create a payment intent for an existing booking (legacy method)
+   * Create a checkout session for a booking
    */
   async createCheckoutSession(bookingId: string): Promise<{
     success: boolean
-    data?: PaymentIntentResponse
+    data?: StripeSessionResponse
     error?: string
   }> {
     try {
@@ -93,7 +30,7 @@ class PaymentService {
         return { success: false, error: 'Authentication required' }
       }
 
-      const response = await fetch(getApiUrl('/payments/checkout'), {
+      const response = await fetch(getApiUrl('/stripe/checkout/create-session'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,31 +44,40 @@ class PaymentService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.error || result.message || 'Failed to create payment intent',
+          error: result.error || result.message || 'Failed to create checkout session',
         }
       }
 
       return {
         success: true,
-        data: result.data,
+        data: result,
       }
     } catch (error: any) {
-      console.error('Error creating payment intent:', error)
+      console.error('Error creating checkout session:', error)
       return {
         success: false,
-        error: error.message || 'Failed to create payment intent',
+        error: error.message || 'Failed to create checkout session',
       }
     }
   }
 
   /**
-   * Create booking from payment intent (fallback if webhook fails)
+   * Create a checkout session for a booking (payment-first flow)
+   * Note: This now creates a temporary booking first if needed, or we adapt the backend.
+   * For now, we point to the same checkout session logic.
    */
-  async createBookingFromPayment(data: {
-    intentId: string
+  async createCheckoutSessionForBooking(data: {
+    dinnerId: string
+    guests: number
+    message?: string
+    contactInfo: {
+      name: string
+      email: string
+      phone: string
+    }
   }): Promise<{
     success: boolean
-    data?: { bookingId: string }
+    data?: StripeSessionResponse
     error?: string
   }> {
     try {
@@ -140,77 +86,35 @@ class PaymentService {
         return { success: false, error: 'Authentication required' }
       }
 
-      const response = await fetch(getApiUrl('/payments/create-booking-from-payment'), {
+      // 1. Create a pending booking first
+      const bookingResponse = await fetch(getApiUrl('/bookings'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          dinnerId: data.dinnerId,
+          guests: data.guests,
+          message: data.message,
+          ...data.contactInfo
+        }),
       })
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to create booking from payment',
-        }
+      const bookingResult = await bookingResponse.json()
+      if (!bookingResponse.ok) {
+        return { success: false, error: bookingResult.message || 'Failed to create booking' }
       }
 
-      return {
-        success: true,
-        data: result.data,
-      }
+      const bookingId = bookingResult.booking.id
+
+      // 2. Create Stripe checkout session for this booking
+      return this.createCheckoutSession(bookingId)
     } catch (error: any) {
-      console.error('Error creating booking from payment:', error)
+      console.error('Error in payment-first flow:', error)
       return {
         success: false,
-        error: error.message || 'Failed to create booking from payment',
-      }
-    }
-  }
-
-  /**
-   * Verify payment status for a booking
-   */
-  async verifyPayment(bookingId: string): Promise<{
-    success: boolean
-    data?: PaymentStatusResponse
-    error?: string
-  }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        return { success: false, error: 'Authentication required' }
-      }
-
-      const response = await fetch(getApiUrl(`/payments/verify/${bookingId}`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to verify payment',
-        }
-      }
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error: any) {
-      console.error('Error verifying payment:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to verify payment',
+        error: error.message || 'Failed to initiate payment',
       }
     }
   }

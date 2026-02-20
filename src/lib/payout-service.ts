@@ -1,6 +1,6 @@
 /**
  * Payout Service
- * Handles all payout-related API calls
+ * Handles all payout-related API calls (Stripe Connect)
  */
 
 import { getApiUrl } from './api-config'
@@ -16,19 +16,26 @@ export interface HostBalanceResponse {
   unpaidBookingCount: number
 }
 
+export interface StripeAccountStatus {
+  connected: boolean
+  details_submitted: boolean
+  charges_enabled: boolean
+  payouts_enabled: boolean
+}
+
+export interface PayoutResponse {
+  id: string
+  amount: number
+  currency: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface PaymentStatusResponse {
   pending: {
     count: number
     totalAmount: number
-    payments: Array<{
-      bookingId: string
-      dinnerTitle: string
-      amount: number
-      currency: string
-      completedAt: string
-      readyToWithdrawAt: string
-      hoursUntilReady: number
-    }>
   }
   ready: {
     count: number
@@ -37,81 +44,18 @@ export interface PaymentStatusResponse {
   currency: string
 }
 
-export interface PaymentDetail {
-  id: string
-  bookingId: string
-  bookingStatus: string
-  dinnerTitle: string
-  dinnerDate: string
-  dinnerTime: string
-  guest: {
-    id: string
-    name: string
-    email: string
-    image?: string
-  }
-  amount: number // Full payment amount
-  currency: string
-  platformFee: number
-  hostAmount: number
-  paymentStatus: string
-  readyToWithdrawAt?: string
-  refundedAmount: number
-  refundedAt?: string
-  paymentMethod?: string
-  isPaidOut: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface PaymentDetailsResponse {
-  success: boolean
-  data: PaymentDetail[]
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
-
-export interface PayoutResponse {
-  id: string
-  amount: number
-  currency: string
-  status: string
-  description?: string
-  bookingIds: string[]
-  failureCode?: string
-  failureMessage?: string
-  arrivalDate?: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface PayoutListResponse {
-  success: boolean
-  data: PayoutResponse[]
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
-
 class PayoutService {
   /**
-   * Get host's payout history
+   * Get host's Stripe Connect account status
    */
-  async getHostPayouts(hostId: string): Promise<PayoutListResponse> {
+  async getStripeStatus(): Promise<StripeAccountStatus> {
     try {
       const token = getToken()
       if (!token) {
         throw new Error('Authentication required')
       }
 
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}`), {
+      const response = await fetch(getApiUrl('/stripe/connect/status'), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -122,10 +66,64 @@ class PayoutService {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch payouts')
+        throw new Error(result.error || result.message || 'Failed to fetch Stripe status')
       }
 
       return result
+    } catch (error: any) {
+      console.error('Error fetching Stripe status:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create or get Stripe Connect onboarding link
+   */
+  async createConnectAccount(): Promise<{ url: string }> {
+    try {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch(getApiUrl('/stripe/connect/create-account'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Failed to create Connect account')
+      }
+
+      return result
+    } catch (error: any) {
+      console.error('Error creating Connect account:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get host's payout history (Placeholder - will need backend update)
+   */
+  async getHostPayouts(hostId: string): Promise<any> {
+    try {
+      const token = getToken()
+      if (!token) throw new Error('Authentication required')
+
+      const response = await fetch(getApiUrl(`/payouts/host/${hostId}`), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      return await response.json()
     } catch (error: any) {
       console.error('Error fetching payouts:', error)
       throw error
@@ -133,14 +131,12 @@ class PayoutService {
   }
 
   /**
-   * Get host's available balance
+   * Get host's available balance (Placeholder - will need backend update)
    */
   async getHostBalance(hostId: string): Promise<HostBalanceResponse> {
     try {
       const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
+      if (!token) throw new Error('Authentication required')
 
       const response = await fetch(getApiUrl(`/payouts/host/${hostId}/balance`), {
         method: 'GET',
@@ -151,230 +147,9 @@ class PayoutService {
       })
 
       const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch balance')
-      }
-
       return result.data
     } catch (error: any) {
       console.error('Error fetching balance:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get host's payment details (all payments from bookings)
-   */
-  async getHostPaymentDetails(
-    hostId: string,
-    options?: { status?: string; bookingStatus?: string; page?: number; limit?: number }
-  ): Promise<PaymentDetailsResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const params = new URLSearchParams()
-      if (options?.status) params.append('status', options.status)
-      if (options?.bookingStatus) params.append('bookingStatus', options.bookingStatus)
-      if (options?.page) params.append('page', options.page.toString())
-      if (options?.limit) params.append('limit', options.limit.toString())
-
-      const queryString = params.toString()
-      const url = `/payouts/host/${hostId}/payments${queryString ? `?${queryString}` : ''}`
-
-      const response = await fetch(getApiUrl(url), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch payment details')
-      }
-
-      return result
-    } catch (error: any) {
-      console.error('Error fetching payment details:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get host's payment status (pending vs ready to withdraw)
-   */
-  async getHostPaymentStatus(hostId: string): Promise<PaymentStatusResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/status`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch payment status')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error fetching payment status:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Request a payout
-   */
-  async requestPayout(hostId: string): Promise<PayoutResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/request`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        // Provide helpful message for insufficient funds error
-        if (result.code === 'INSUFFICIENT_FUNDS' || result.error?.includes('insufficient')) {
-          throw new Error(
-            'Insufficient funds in platform account. Please ensure your Airwallex account has sufficient balance for this payout.'
-          )
-        }
-        throw new Error(result.error || result.message || 'Failed to request payout')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error requesting payout:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Withdraw funds from connected account to bank account
-   */
-  async withdrawToBank(hostId: string, payoutId: string): Promise<PayoutResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/withdraw/${payoutId}`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to withdraw to bank')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error withdrawing to bank:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Update host's payout details (Bank and Airwallex sync)
-   */
-  async updatePayoutDetails(data: {
-    bankName?: string
-    accountHolderName?: string
-    iban?: string
-    swiftBic?: string
-    payoutAddress?: string
-    payoutCountry?: string
-    payoutCurrency?: string
-    payoutMethod?: string
-    payoutEntityType?: string
-    airwallexBeneficiaryId?: string
-  }): Promise<any> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl('/users/me/payout-details'), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to update payout details')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error updating payout details:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get an authorization code for the Airwallex Embedded Beneficiary SDK
-   */
-  async getAirwallexAuthCode(): Promise<{ authCode: string; codeVerifier: string }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl('/airwallex/auth-code'), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch auth code')
-      }
-
-      return result
-    } catch (error: any) {
-      console.error('Error fetching auth code:', error)
       throw error
     }
   }

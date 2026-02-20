@@ -83,21 +83,11 @@ export default function HostOnboardingClient() {
 
     setIsLoading(true)
     try {
-      // 1. Sync payout details with backend and Airwallex
-      await payoutService.updatePayoutDetails({
-        bankName: hostData.bankName,
-        accountHolderName: hostData.accountHolderName,
-        iban: hostData.iban,
-        swiftBic: hostData.swiftBic,
-        payoutAddress: hostData.payoutAddress,
-        payoutCountry: hostData.payoutCountry,
-        payoutCurrency: hostData.payoutCurrency,
-        payoutMethod: hostData.payoutMethod,
-        payoutEntityType: hostData.payoutEntityType,
-        airwallexBeneficiaryId: hostData.airwallexBeneficiaryId,
-      })
+      // For Stripe Connect, we don't need to sync bank details manually anymore.
+      // We just mark onboarding as completed in the backend.
+      // (Backend logic should be updated if needed, but for now we'll just redirect)
 
-      toast.success('Onboarding complete! Your bank details are synced.')
+      toast.success('Onboarding complete! Welcome to Dine at Home.')
 
       // 2. Redirect to dashboard
       router.push('/host/dashboard')
@@ -241,217 +231,24 @@ export default function HostOnboardingClient() {
                 <CardHeader>
                   <CardTitle>Payout Settings</CardTitle>
                   <CardDescription>
-                    Configure where you want to receive your earnings. We use Airwallex for secure payouts to Iceland.
+                    We use Stripe Connect to handle secure payouts to our hosts.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Payout Preferences */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-muted/50 rounded-lg">
-                    <div className="space-y-2">
-                      <Label htmlFor="payoutCurrency">Payout Currency</Label>
-                      <select
-                        id="payoutCurrency"
-                        className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={hostData.payoutCurrency || 'EUR'}
-                        onChange={(e) => handleInputChange('payoutCurrency', e.target.value)}
-                      >
-                        <option value="EUR">Euro (EUR)</option>
-                        <option value="ISK">Icelandic Króna (ISK)</option>
-                      </select>
-                      <p className="text-xs text-muted-foreground">Prices on the site are in EUR.</p>
+                  <div className="p-6 border-2 border-dashed border-muted rounded-xl text-center space-y-4">
+                    <CreditCard className="w-12 h-12 mx-auto text-primary" />
+                    <div>
+                      <p className="font-semibold text-lg">Set up your Payouts</p>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                        To receive payments from your guests, you need to set up a Stripe Connect account.
+                        This is quick, secure, and ensures you get paid directly to your bank account.
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="payoutMethod">Transfer Method</Label>
-                      <select
-                        id="payoutMethod"
-                        className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={hostData.payoutMethod || 'LOCAL'}
-                        onChange={(e) => handleInputChange('payoutMethod', e.target.value)}
-                      >
-                        <option value="LOCAL">Local Transfer (Fast & Free)</option>
-                        <option value="SWIFT">SWIFT (International)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Payout Region/Entity Type */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-primary/5 border border-primary/10 rounded-lg">
-                    <div className="space-y-2">
-                      <Label htmlFor="payoutCountry">Bank Country / Region</Label>
-                      <select
-                        id="payoutCountry"
-                        className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={hostData.payoutCountry || 'IS'}
-                        onChange={(e) => handleInputChange('payoutCountry', e.target.value)}
-                      >
-                        <option value="IS">Iceland (IS)</option>
-                        <option value="ES">Spain (ES)</option>
-                        <option value="GB">United Kingdom (GB)</option>
-                        <option value="US">United States (US)</option>
-                        {/* More countries can be added here */}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="payoutEntityType">Recipient Type</Label>
-                      <select
-                        id="payoutEntityType"
-                        className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={hostData.payoutEntityType || 'INDIVIDUAL'}
-                        onChange={(e) => handleInputChange('payoutEntityType', e.target.value)}
-                      >
-                        <option value="INDIVIDUAL">Individual</option>
-                        <option value="BUSINESS">Business</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>Bank Details</Label>
-
-                    {hostData.airwallexBeneficiaryId ? (
-                      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                          <CheckCircle className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-primary">Verification Successful</p>
-                          <p className="text-sm text-muted-foreground">
-                            Your bank account is linked (ID: {hostData.airwallexBeneficiaryId.substring(0, 8)}...)
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => handleInputChange('airwallexBeneficiaryId', '')}>
-                          Change
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Manual Bank Details Entry */}
-                        <div className="border border-input rounded-xl p-6 space-y-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Building className="w-5 h-5 text-muted-foreground" />
-                            <p className="font-medium">Enter Bank Details</p>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            Provide your bank account details below for receiving payouts.
-                          </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="bankName">Bank Name *</Label>
-                              <Input
-                                id="bankName"
-                                placeholder="e.g. Landsbankinn"
-                                value={hostData.bankName}
-                                onChange={(e) => handleInputChange('bankName', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="accountHolderName">Account Holder Name *</Label>
-                              <Input
-                                id="accountHolderName"
-                                placeholder="Full name on the account"
-                                value={hostData.accountHolderName}
-                                onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="iban">IBAN *</Label>
-                              <Input
-                                id="iban"
-                                placeholder="IS00 0000 0000 0000 0000 0000 00"
-                                value={hostData.iban}
-                                onChange={(e) => handleInputChange('iban', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="swiftBic">SWIFT / BIC *</Label>
-                              <Input
-                                id="swiftBic"
-                                placeholder="e.g. LANDISRE"
-                                value={hostData.swiftBic}
-                                onChange={(e) => handleInputChange('swiftBic', e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Divider with OR */}
-                        <div className="relative my-2">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">or verify automatically</span>
-                          </div>
-                        </div>
-
-                        {/* Airwallex SDK Option */}
-                        <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center space-y-3">
-                          <CreditCard className="w-10 h-10 mx-auto text-muted-foreground" />
-                          <div>
-                            <p className="font-medium text-sm">Secure Bank Verification via Airwallex</p>
-                            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                              Use our partner Airwallex to verify your bank details securely and instantly.
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                setIsLoading(true)
-                                const { authCode, codeVerifier, clientId } = await payoutService.getAirwallexAuthCode() as any
-
-                                const Airwallex = await import('@airwallex/components-sdk')
-                                await Airwallex.init({
-                                  env: 'demo',
-                                  origin: window.location.origin,
-                                  authCode,
-                                  codeVerifier,
-                                  clientId,
-                                })
-
-                                const element = (await Airwallex.createElement('beneficiaryForm')) as any
-                                element.mount('airwallex-beneficiary-container')
-
-                                element.on('ready', () => {
-                                  setIsLoading(false)
-                                  document.getElementById('airwallex-beneficiary-container')?.scrollIntoView({ behavior: 'smooth' })
-                                })
-
-                                element.on('success', (event: any) => {
-                                  handleInputChange('airwallexBeneficiaryId', event.detail.beneficiary_id)
-                                  if (event.detail.entity_type) {
-                                    handleInputChange('payoutEntityType', event.detail.entity_type)
-                                  }
-                                  toast.success('Bank details verified successfully!')
-                                })
-
-                                element.on('error', (event: any) => {
-                                  toast.error(event.detail.message || 'Verification failed')
-                                })
-                              } catch (error: any) {
-                                setIsLoading(false)
-                                toast.error('Failed to initialize verification: ' + error.message)
-                              }
-                            }}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Loading...' : 'Launch Secure Verification'}
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                    <div id="airwallex-beneficiary-container" className="min-h-[400px] empty:hidden border rounded-xl p-4 bg-white" />
-                  </div>
-
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-medium text-blue-900 dark:text-blue-100">Secure Icelandic Payouts</p>
-                      <p className="text-blue-700 dark:text-blue-300">
-                        We support local ISK transfers and EUR transfers. Processing time is usually 24-48 hours after dinner completion.
+                    <div className="p-4 bg-blue-50 rounded-lg flex items-start gap-3 text-left">
+                      <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <p className="text-xs text-blue-800">
+                        You can complete this step now or skip and finish it later in your host dashboard.
+                        Note that payouts will only be enabled after completion.
                       </p>
                     </div>
                   </div>
