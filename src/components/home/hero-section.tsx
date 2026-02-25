@@ -31,14 +31,9 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative min-h-screen lg:h-[90vh] flex items-center justify-center overflow-hidden bg-zinc-950">
-      {/* Background with subtle zoom effect */}
-      <motion.div
-        initial={{ scale: 1.1 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 10, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
-        className="absolute inset-0 z-0"
-      >
+    <section className="relative min-h-[60vh] lg:min-h-[60vh] flex items-center justify-center overflow-hidden bg-zinc-950">
+      {/* Background */}
+      <div className="absolute inset-0 z-0">
         <Image
           src="https://plus.unsplash.com/premium_photo-1677666509899-7c8cbc69ddc5?q=80&w=2342&auto=format&fit=crop&ixlib=rb-4.1.0"
           alt="Elegant dinner table"
@@ -50,14 +45,14 @@ export function HeroSection() {
         {/* Advanced Gradient Overlays */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-zinc-950" />
         <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/40 via-transparent to-zinc-950/40" />
-      </motion.div>
+      </div>
 
       {/* Hero Content */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-20 text-center text-white max-w-6xl mx-auto px-6 sm:px-6 lg:px-8 py-20"
+        className="relative z-20 text-center text-white max-w-6xl mx-auto px-6 sm:px-6 lg:px-8 py-12"
       >
         {isHost ? (
           <div className="space-y-6 sm:space-y-8">
@@ -97,9 +92,9 @@ export function HeroSection() {
             </motion.div>
           </div>
         ) : (
-          <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-4 sm:space-y-6">
             <motion.div variants={itemVariants}>
-              <h1 className="text-[2.5rem] sm:text-5xl lg:text-8xl font-bold leading-[1.05] tracking-tighter">
+              <h1 className="text-[2.5rem] sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tighter">
                 Dine in the <br />
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-primary-600">
                   Heart of Homes
@@ -109,14 +104,14 @@ export function HeroSection() {
 
             <motion.p
               variants={itemVariants}
-              className="text-base sm:text-xl lg:text-2xl font-light leading-relaxed max-w-2xl mx-auto text-white/80"
+              className="text-base sm:text-lg lg:text-xl font-light leading-relaxed max-w-2xl mx-auto text-white/80"
             >
               Unforgettable communal dining experiences hosted by passionate locals in your
               neighborhood.
             </motion.p>
 
             {/* Search Widget Container */}
-            <motion.div variants={itemVariants} className="max-w-4xl mx-auto pt-2 sm:pt-6">
+            <motion.div variants={itemVariants} className="max-w-4xl mx-auto pt-2 sm:pt-4">
               <div className="p-2 sm:p-4 rounded-3xl sm:rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
                 <SearchWidget variant="hero" />
               </div>
@@ -125,7 +120,7 @@ export function HeroSection() {
             {/* Micro Benefits Social Proof */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-wrap items-center justify-center gap-4 sm:gap-12 pt-8 sm:pt-12 text-white/60 text-[11px] sm:text-sm font-medium"
+              className="flex flex-wrap items-center justify-center gap-4 sm:gap-12 pt-2 sm:pt-4 text-white/60 text-[11px] sm:text-sm font-medium"
             >
               <span className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-primary-500" />

@@ -1,29 +1,11 @@
 'use client'
 
 import { MainLayout } from '@/components/layout/main-layout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  HelpCircle,
-  Search,
-  MessageCircle,
-  Phone,
-  Mail,
-  Clock,
-  BookOpen,
-  Shield,
-  CreditCard,
-  ChefHat,
-  Star,
-  Calendar,
-  MapPin,
-} from 'lucide-react'
-import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+import { HelpCircle, BookOpen, Shield, CreditCard, ChefHat } from 'lucide-react'
 
 export default function HelpCenterClient() {
-  const [searchQuery, setSearchQuery] = useState('')
-
   const faqCategories = [
     {
       title: 'Getting Started',
@@ -111,30 +93,6 @@ export default function HelpCenterClient() {
     },
   ]
 
-  const contactMethods = [
-    {
-      title: 'Live Chat',
-      description: 'Get instant help from our support team',
-      icon: <MessageCircle className="w-6 h-6" />,
-      action: 'Start Chat',
-      available: 'Available 24/7',
-    },
-    {
-      title: 'Email Support',
-      description: 'Send us a detailed message',
-      icon: <Mail className="w-6 h-6" />,
-      action: 'Send Email',
-      available: 'Response within 24 hours',
-    },
-    {
-      title: 'Phone Support',
-      description: 'Speak directly with our team',
-      icon: <Phone className="w-6 h-6" />,
-      action: 'Call Now',
-      available: 'Mon-Fri 9AM-6PM EST',
-    },
-  ]
-
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -145,49 +103,9 @@ export default function HelpCenterClient() {
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Help Center</h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Find answers to your questions or get in touch with our support team
+            Find answers to your questions
           </p>
         </header>
-
-        {/* Search Bar */}
-        <section className="mb-12">
-          <Card>
-            <CardContent className="p-6">
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input
-                  placeholder="Search for help articles, FAQs, or topics..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 pr-4 py-3 text-lg"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Quick Links */}
-        <nav className="mb-12" aria-label="Help Quick Links">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Quick Links</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <Calendar className="w-6 h-6" />
-              <span className="font-medium">Booking Help</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <CreditCard className="w-6 h-6" />
-              <span className="font-medium">Payment Issues</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <ChefHat className="w-6 h-6" />
-              <span className="font-medium">Hosting Guide</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <Shield className="w-6 h-6" />
-              <span className="font-medium">Safety Info</span>
-            </Button>
-          </div>
-        </nav>
 
         {/* FAQ Categories */}
         <section className="mb-12">
@@ -215,112 +133,6 @@ export default function HelpCenterClient() {
                 </Card>
               </article>
             ))}
-          </div>
-        </section>
-
-        {/* Contact Methods */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Contact Support</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {contactMethods.map((method, index) => (
-              <article key={index}>
-                <Card className="text-center h-full">
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      {method.icon}
-                    </div>
-                    <CardTitle className="text-xl">{method.title}</CardTitle>
-                    <CardDescription>{method.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button className="w-full mb-2">{method.action}</Button>
-                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {method.available}
-                    </p>
-                  </CardContent>
-                </Card>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Popular Topics */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Popular Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              {
-                title: 'How to Book',
-                icon: <Calendar className="w-4 h-4 text-blue-600" />,
-                bg: 'bg-blue-100',
-                desc: 'Step-by-step booking guide',
-              },
-              {
-                title: 'Hosting Tips',
-                icon: <ChefHat className="w-4 h-4 text-green-600" />,
-                bg: 'bg-green-100',
-                desc: 'Everything for hosts',
-              },
-              {
-                title: 'Refund Policy',
-                icon: <CreditCard className="w-4 h-4 text-purple-600" />,
-                bg: 'bg-purple-100',
-                desc: 'Understanding refunds',
-              },
-              {
-                title: 'Reviews',
-                icon: <Star className="w-4 h-4 text-orange-600" />,
-                bg: 'bg-orange-100',
-                desc: 'Ratings guide',
-              },
-              {
-                title: 'Safety',
-                icon: <Shield className="w-4 h-4 text-red-600" />,
-                bg: 'bg-red-100',
-                desc: 'Stay safe',
-              },
-              {
-                title: 'Find Food',
-                icon: <MapPin className="w-4 h-4 text-teal-600" />,
-                bg: 'bg-teal-100',
-                desc: 'Discover experiences',
-              },
-            ].map((topic, i) => (
-              <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-8 h-8 ${topic.bg} rounded-full flex items-center justify-center flex-shrink-0`}
-                    >
-                      {topic.icon}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{topic.title}</h3>
-                      <p className="text-sm text-muted-foreground">{topic.desc}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Still Need Help */}
-        <section className="bg-primary-50 rounded-xl">
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Still Need Help?</h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              Can't find what you're looking for? Our support team is here to help you 24/7.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-primary-600 hover:bg-primary-700">
-                Contact Support
-              </Button>
-              <Button variant="outline" size="lg">
-                Browse All Articles
-              </Button>
-            </div>
           </div>
         </section>
       </div>

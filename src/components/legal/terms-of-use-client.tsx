@@ -62,9 +62,9 @@ export default function TermsOfUseClient() {
               <CardContent className="space-y-4">
                 <p>The Website:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                  <li>provides a technical platform for listing and booking dining events</li>
-                  <li>does not organize, supervise, prepare, or control any dining events</li>
-                  <li>is not a party to any agreement between Hosts and Guests</li>
+                  <li>Provides a technical platform for listing and booking dining events</li>
+                  <li>Does not organize, supervise, prepare, or control any dining events</li>
+                  <li>Is not a party to any agreement between Hosts and Guests</li>
                 </ul>
                 <p className="mt-4">
                   All arrangements, agreements, and interactions occur exclusively between Hosts and

@@ -16,48 +16,6 @@ export function Footer() {
                   How it works
                 </Link>
               </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Newsroom
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Investors
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Careers
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Hosts */}
-          <div>
-            <h3 className="font-semibold mb-4">Hosts</h3>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Become a host
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Host resources
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Community forum
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Host insurance
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -69,21 +27,6 @@ export function Footer() {
                 <Link href="/help-center" className="hover:text-foreground transition-colors">
                   Help Center
                 </Link>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Safety information
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Cancellation options
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Report issue
-                </a>
               </li>
             </ul>
           </div>
