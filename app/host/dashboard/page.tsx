@@ -65,8 +65,6 @@ import {
   ChevronRight,
   Search,
 } from 'lucide-react'
-import { PayoutSection } from '@/components/payout/payout-section'
-import { PaymentDetailsSection } from '@/components/payout/payment-details-section'
 import Image from 'next/image'
 import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
@@ -3007,11 +3005,11 @@ function HostDashboardContent() {
             </TabsContent>
 
             <TabsContent value="payouts" className="mt-6">
-              {user?.id && <PayoutSection hostId={user.id} />}
+              <p className="text-muted-foreground text-sm">Payout dashboard coming soon.</p>
             </TabsContent>
 
             <TabsContent value="payments" className="mt-6">
-              {user?.id && <PaymentDetailsSection hostId={user.id} />}
+              <p className="text-muted-foreground text-sm">Payment details coming soon.</p>
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-6">

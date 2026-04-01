@@ -26,7 +26,6 @@ import {
 import { Dinner, NavigationParams } from '@/types'
 import { useAuth } from '@/contexts/auth-context'
 import { bookingService } from '@/lib/booking-service'
-import { paymentService } from '@/lib/payment-service'
 import { dispatchBookingCreated } from '@/lib/booking-events'
 
 interface BookingProps {
@@ -115,40 +114,10 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
         return
       }
 
-      // Payment-first flow: Create Airwallex payment intent
-      // Booking will be created automatically when payment succeeds via webhook
-      const paymentResult = await paymentService.createCheckoutSessionForBooking({
-        dinnerId: dinner.id,
-        guests: guests,
-        message: guestDetails.specialRequests || undefined,
-        contactInfo: {
-          name: `${guestDetails.firstName} ${guestDetails.lastName}`,
-          email: guestDetails.email,
-          phone: guestDetails.phone.trim(),
-        },
-      })
-
-      if (paymentResult.success && paymentResult.data) {
-        // Redirect to Airwallex Hosted Payment Page
-        const { init } = await import('@airwallex/components-sdk')
-        const result = await init({
-          env: 'demo',
-          enabledElements: ['payments'],
-        })
-        if (!result.payments) {
-          throw new Error('Failed to initialize Airwallex payments')
-        }
-        result.payments.redirectToCheckout({
-          intent_id: paymentResult.data.intentId,
-          client_secret: paymentResult.data.clientSecret,
-          currency: paymentResult.data.currency || 'EUR',
-          country_code: 'IS',
-          successUrl: `${window.location.origin}/booking/payment-success?dinnerId=${dinner.id}`,
-        })
-      } else {
-        setError(paymentResult.error || 'Failed to initiate payment. Please try again.')
-        setIsSubmitting(false)
-      }
+      // TODO: Initiate payment with new payment provider
+      // Payment integration pending — will be added in feature/new-payments
+      setError('Payment processing is not yet configured.')
+      setIsSubmitting(false)
     } catch (err: any) {
       console.error('Booking error:', err)
       setError('An unexpected error occurred. Please try again.')

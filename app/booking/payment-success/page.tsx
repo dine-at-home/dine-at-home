@@ -3,8 +3,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CheckCircle, Loader2, AlertCircle, ArrowRight, Home } from 'lucide-react'
-import { paymentService } from '@/lib/payment-service'
-
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -13,46 +11,9 @@ function PaymentSuccessContent() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const processPayment = async () => {
-      try {
-        // Airwallex appends ?id=int_xxxxx to the success URL
-        const intentId = searchParams.get('id')
-        const dinnerId = searchParams.get('dinnerId')
-
-        console.log('[PaymentSuccess] Processing payment:', { intentId, dinnerId })
-
-        if (!intentId) {
-          setError('No payment intent ID found. Please contact support.')
-          setStatus('error')
-          return
-        }
-
-        // Try to create booking from payment intent (fallback if webhook hasn't fired yet)
-        const result = await paymentService.createBookingFromPayment({ intentId })
-
-        if (result.success && result.data?.bookingId) {
-          setBookingId(result.data.bookingId)
-          setStatus('success')
-        } else {
-          // Booking might already have been created by webhook - that's fine
-          if (result.error?.includes('already exists')) {
-            setStatus('success')
-          } else {
-            console.error('[PaymentSuccess] Create booking failed:', result.error)
-            // Still show success since payment went through
-            // The webhook will create the booking
-            setStatus('success')
-          }
-        }
-      } catch (err: any) {
-        console.error('[PaymentSuccess] Error:', err)
-        // Payment succeeded even if booking creation fails here
-        // Webhook will handle it
-        setStatus('success')
-      }
-    }
-
-    processPayment()
+    // TODO: Verify payment with new payment provider
+    // For now, show success — webhook will confirm the booking
+    setStatus('success')
   }, [searchParams])
 
   return (

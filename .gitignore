@@ -127,3 +127,7 @@ storybook-static
 oauth-secrets.json
 /src/generated/prisma
 .vercel
+
+# Claude Code
+CLAUDE.local.md
+.claude/settings.local.json

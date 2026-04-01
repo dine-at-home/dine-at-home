@@ -23,7 +23,6 @@ import {
   Building,
 } from 'lucide-react'
 import { authService } from '@/lib/auth-service'
-import { payoutService } from '@/lib/payout-service'
 import { toast } from 'sonner'
 
 export default function HostOnboardingClient() {
@@ -51,7 +50,6 @@ export default function HostOnboardingClient() {
     payoutMethod: 'LOCAL',
     payoutCountry: 'ES', // Default for now
     payoutEntityType: 'INDIVIDUAL',
-    airwallexBeneficiaryId: '',
   })
 
   const handleInputChange = (field: string, value: any) => {
@@ -70,8 +68,6 @@ export default function HostOnboardingClient() {
       case 4:
         return hostData.termsAccepted
       case 5:
-        // Either Airwallex SDK verified OR manual bank details filled
-        if (hostData.airwallexBeneficiaryId) return true
         return !!(hostData.bankName && hostData.accountHolderName && hostData.iban && hostData.swiftBic)
       default:
         return true
@@ -81,32 +77,8 @@ export default function HostOnboardingClient() {
   const handleFinish = async () => {
     if (!isStepComplete()) return
 
-    setIsLoading(true)
-    try {
-      // 1. Sync payout details with backend and Airwallex
-      await payoutService.updatePayoutDetails({
-        bankName: hostData.bankName,
-        accountHolderName: hostData.accountHolderName,
-        iban: hostData.iban,
-        swiftBic: hostData.swiftBic,
-        payoutAddress: hostData.payoutAddress,
-        payoutCountry: hostData.payoutCountry,
-        payoutCurrency: hostData.payoutCurrency,
-        payoutMethod: hostData.payoutMethod,
-        payoutEntityType: hostData.payoutEntityType,
-        airwallexBeneficiaryId: hostData.airwallexBeneficiaryId,
-      })
-
-      toast.success('Onboarding complete! Your bank details are synced.')
-
-      // 2. Redirect to dashboard
-      router.push('/host/dashboard')
-    } catch (error: any) {
-      console.error('Onboarding finish error:', error)
-      toast.error(error.message || 'Failed to complete onboarding. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+    // TODO: Save bank details when payment integration is built
+    router.push('/host/dashboard')
   }
 
   return (
@@ -308,25 +280,7 @@ export default function HostOnboardingClient() {
                   <div className="space-y-4">
                     <Label>Bank Details</Label>
 
-                    {hostData.airwallexBeneficiaryId ? (
-                      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                          <CheckCircle className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-primary">Verification Successful</p>
-                          <p className="text-sm text-muted-foreground">
-                            Your bank account is linked (ID: {hostData.airwallexBeneficiaryId.substring(0, 8)}...)
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => handleInputChange('airwallexBeneficiaryId', '')}>
-                          Change
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Manual Bank Details Entry */}
-                        <div className="border border-input rounded-xl p-6 space-y-4">
+                    <div className="border border-input rounded-xl p-6 space-y-4">
                           <div className="flex items-center gap-2 mb-2">
                             <Building className="w-5 h-5 text-muted-foreground" />
                             <p className="font-medium">Enter Bank Details</p>
@@ -374,76 +328,7 @@ export default function HostOnboardingClient() {
                               />
                             </div>
                           </div>
-                        </div>
-
-                        {/* Divider with OR */}
-                        <div className="relative my-2">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">or verify automatically</span>
-                          </div>
-                        </div>
-
-                        {/* Airwallex SDK Option */}
-                        <div className="border-2 border-dashed border-muted rounded-xl p-6 text-center space-y-3">
-                          <CreditCard className="w-10 h-10 mx-auto text-muted-foreground" />
-                          <div>
-                            <p className="font-medium text-sm">Secure Bank Verification via Airwallex</p>
-                            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                              Use our partner Airwallex to verify your bank details securely and instantly.
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                setIsLoading(true)
-                                const { authCode, codeVerifier, clientId } = await payoutService.getAirwallexAuthCode() as any
-
-                                const Airwallex = await import('@airwallex/components-sdk')
-                                await Airwallex.init({
-                                  env: 'demo',
-                                  origin: window.location.origin,
-                                  authCode,
-                                  codeVerifier,
-                                  clientId,
-                                })
-
-                                const element = (await Airwallex.createElement('beneficiaryForm')) as any
-                                element.mount('airwallex-beneficiary-container')
-
-                                element.on('ready', () => {
-                                  setIsLoading(false)
-                                  document.getElementById('airwallex-beneficiary-container')?.scrollIntoView({ behavior: 'smooth' })
-                                })
-
-                                element.on('success', (event: any) => {
-                                  handleInputChange('airwallexBeneficiaryId', event.detail.beneficiary_id)
-                                  if (event.detail.entity_type) {
-                                    handleInputChange('payoutEntityType', event.detail.entity_type)
-                                  }
-                                  toast.success('Bank details verified successfully!')
-                                })
-
-                                element.on('error', (event: any) => {
-                                  toast.error(event.detail.message || 'Verification failed')
-                                })
-                              } catch (error: any) {
-                                setIsLoading(false)
-                                toast.error('Failed to initialize verification: ' + error.message)
-                              }
-                            }}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Loading...' : 'Launch Secure Verification'}
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                    <div id="airwallex-beneficiary-container" className="min-h-[400px] empty:hidden border rounded-xl p-4 bg-white" />
+                    </div>
                   </div>
 
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg flex items-start gap-3">
