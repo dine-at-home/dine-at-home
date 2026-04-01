@@ -23,7 +23,7 @@ export default function TermsOfUseClient() {
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Terms of Use</h1>
-          <p className="text-xl text-muted-foreground">Last updated: February 2, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: April 1, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -43,8 +43,11 @@ export default function TermsOfUseClient() {
                   bound by these Terms.
                 </p>
                 <p>
-                  The Website acts solely as an online platform connecting individuals who host
+                  The Website operates as a marketplace platform connecting individuals who host
                   dining events ("Hosts") and individuals who attend dining events ("Guests").
+                  Datthome acts as the Merchant of Record for all transactions processed through the
+                  platform, taking responsibility for the booking and payment process on behalf of
+                  both parties.
                 </p>
               </CardContent>
             </Card>
@@ -62,13 +65,17 @@ export default function TermsOfUseClient() {
               <CardContent className="space-y-4">
                 <p>The Website:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                  <li>provides a technical platform for listing and booking dining events</li>
+                  <li>provides a marketplace platform for listing and booking dining events</li>
+                  <li>
+                    acts as Merchant of Record and is responsible for processing all transactions and
+                    bookings made through the platform
+                  </li>
                   <li>does not organize, supervise, prepare, or control any dining events</li>
-                  <li>is not a party to any agreement between Hosts and Guests</li>
                 </ul>
                 <p className="mt-4">
-                  All arrangements, agreements, and interactions occur exclusively between Hosts and
-                  Guests.
+                  While Datthome takes responsibility for the transaction and booking process as
+                  Merchant of Record, all matters relating to food quality, safety, and event
+                  execution remain exclusively the responsibility of the Host.
                 </p>
               </CardContent>
             </Card>
@@ -84,16 +91,23 @@ export default function TermsOfUseClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>Hosts are solely and fully responsible for:</p>
+                <p>
+                  Datthome, as Merchant of Record, takes responsibility for the transaction and
+                  booking process. Hosts retain full responsibility for food quality, safety, and
+                  event execution. This responsibility is confirmed through legally binding
+                  electronic identification (Rafræn skilríki) at onboarding.
+                </p>
+                <p className="mt-4">Hosts are solely and fully responsible for:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                   <li>food preparation, ingredients, hygiene, and food safety</li>
                   <li>providing accurate allergen and dietary information</li>
                   <li>compliance with all applicable laws, regulations, and health standards</li>
                   <li>the accuracy and completeness of information published on the Website</li>
+                  <li>the safe and proper execution of all dining events</li>
                 </ul>
                 <p className="mt-4 font-medium">
-                  The Website assumes no responsibility for food quality, safety, or outcomes of
-                  dining events.
+                  Datthome assumes no responsibility for food quality, safety, or the physical
+                  conduct of dining events. These remain exclusively the Host's responsibility.
                 </p>
               </CardContent>
             </Card>
