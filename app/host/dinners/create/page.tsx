@@ -50,6 +50,10 @@ import { cn } from '@/components/ui/utils'
 import { COUNTRIES } from '@/lib/countries'
 
 const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'))
+
+const CONTACT_INFO_RE =
+  /(@[a-zA-Z0-9_.]{2,})|([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})|(https?:\/\/|www\.)|(\+[\d\s\-().]{5,}\d)/i
+const containsContactInfo = (text: string) => CONTACT_INFO_RE.test(text)
 const MINUTE_OPTIONS = ['00', '15', '30', '45']
 
 const MENU_SUGGESTIONS = [
@@ -144,7 +148,6 @@ function CreateDinnerPageContent() {
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([])
-  const [openCountry, setOpenCountry] = useState(false)
   const [additionalDates, setAdditionalDates] = useState<{ date: string; time: string }[]>([])
 
   const errorRef = useRef<HTMLDivElement>(null)
@@ -259,7 +262,7 @@ function CreateDinnerPageContent() {
         address: '',
         city: '',
         neighborhood: '',
-        state: '',
+        state: 'Iceland',
         zipCode: '',
         directions: '',
         accessibility: '',
@@ -374,14 +377,10 @@ function CreateDinnerPageContent() {
     const timeoutId = setTimeout(() => {
       if (autocompleteServiceRef.current && dinnerData.city.trim()) {
         try {
-          // Find the country code
-          const selectedCountry = COUNTRIES.find((c) => c.value === dinnerData.state)
-          const countryCode = selectedCountry ? selectedCountry.code : undefined
-
           autocompleteServiceRef.current.getPlacePredictions(
             {
               input: dinnerData.city,
-              componentRestrictions: countryCode ? { country: countryCode } : undefined,
+              componentRestrictions: { country: 'IS' },
               types: ['(cities)'],
             },
             (predictions, status) => {
@@ -486,13 +485,10 @@ function CreateDinnerPageContent() {
     const timeoutId = setTimeout(() => {
       if (autocompleteServiceRef.current) {
         try {
-          // Find country code
-          const countryCode = COUNTRIES.find((c) => c.value === dinnerData.state)?.code
-
           const request: google.maps.places.AutocompletionRequest = {
             input: dinnerData.address,
             types: ['address'],
-            componentRestrictions: { country: countryCode || null },
+            componentRestrictions: { country: 'IS' },
             bounds: cityBounds,
           }
 
@@ -777,8 +773,25 @@ function CreateDinnerPageContent() {
         validationErrors.push('Price per person must be greater than 0')
       }
 
-      if (dinnerData.pricePerPerson > 1000) {
-        validationErrors.push('Price per person cannot exceed 1000 euros')
+      if (dinnerData.pricePerPerson > 100000) {
+        validationErrors.push('Price per person cannot exceed 100,000 ISK')
+      }
+
+      // Check for contact info in text fields
+      const textFieldsToCheck = [
+        { label: 'Description', value: dinnerData.description },
+        { label: 'Menu', value: dinnerData.menu },
+        { label: 'Ingredients', value: dinnerData.ingredients || '' },
+        { label: 'Directions', value: dinnerData.directions || '' },
+        { label: 'Accessibility info', value: dinnerData.accessibility || '' },
+        { label: 'House rules', value: (dinnerData as any).houseRules || '' },
+      ]
+      for (const field of textFieldsToCheck) {
+        if (field.value && containsContactInfo(field.value)) {
+          validationErrors.push(
+            `${field.label} must not contain contact information (phone numbers, emails, URLs, or social handles)`
+          )
+        }
       }
 
       if (!dinnerData.maxCapacity || dinnerData.maxCapacity <= 0) {
@@ -901,7 +914,7 @@ function CreateDinnerPageContent() {
           capacity: dinnerData.maxCapacity || 1,
           minGuests: dinnerData.minGuests || 1,
           price: dinnerData.pricePerPerson || 0,
-          currency: 'EUR',
+          currency: 'ISK',
 
           images: imageUrls,
 
@@ -1266,55 +1279,10 @@ function CreateDinnerPageContent() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Country *</label>
-                    <Popover open={openCountry} onOpenChange={setOpenCountry}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openCountry}
-                          className="w-full justify-between"
-                        >
-                          {dinnerData.state
-                            ? COUNTRIES.find((country) => country.value === dinnerData.state)?.label
-                            : 'Select country...'}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search country..."
-                            className="border-none focus:ring-0 outline-none shadow-none ring-0"
-                          />
-                          <CommandList>
-                            <CommandEmpty>No country found.</CommandEmpty>
-                            <CommandGroup>
-                              {COUNTRIES.map((country) => (
-                                <CommandItem
-                                  key={country.value}
-                                  value={country.label}
-                                  onSelect={(currentValue) => {
-                                    handleInputChange('state', country.value)
-                                    setOpenCountry(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      dinnerData.state === country.value
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
-                                    )}
-                                  />
-                                  {country.label}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <label className="block text-sm font-medium mb-2">Country</label>
+                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
+                      Iceland
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">ZIP Code</label>
@@ -1727,7 +1695,7 @@ function CreateDinnerPageContent() {
                   <label className="block text-sm font-medium mb-2">Price Per Person *</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
-                      €
+                      kr
                     </span>
                     <Input
                       type="text"

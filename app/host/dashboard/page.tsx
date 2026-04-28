@@ -1493,7 +1493,7 @@ function HostDashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">€{stats.totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">kr {stats.totalRevenue.toLocaleString()}</p>
               </div>
               <Wallet className="w-8 h-8 text-primary-600" />
             </div>
@@ -1637,7 +1637,7 @@ function HostDashboardContent() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
                 <p className="text-2xl font-bold">
-                  €{dinners.reduce((sum, d) => sum + d.revenue, 0)}
+                  kr {dinners.reduce((sum, d) => sum + d.revenue, 0)}
                 </p>
               </div>
               <Wallet className="w-8 h-8 text-primary-600" />
@@ -1900,10 +1900,10 @@ function HostDashboardContent() {
                           </div>
                         </TableCell>
                         <TableCell className="p-4">
-                          <div className="font-medium">€{dinner.price}</div>
+                          <div className="font-medium">kr {dinner.price}</div>
                         </TableCell>
                         <TableCell className="p-4">
-                          <span className="font-medium text-green-600">€{dinner.revenue}</span>
+                          <span className="font-medium text-green-600">kr {dinner.revenue}</span>
                         </TableCell>
                         <TableCell className="text-right p-4">
                           <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
@@ -1971,7 +1971,7 @@ function HostDashboardContent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-primary-600">
-                            €{dinner.price}
+                            kr {dinner.price}
                           </span>
                           <span className="text-sm text-muted-foreground">per person</span>
                         </div>
@@ -1985,7 +1985,7 @@ function HostDashboardContent() {
                           </span>
                           <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
                         </div>
-                        <span className="font-semibold text-primary-600">€{dinner.revenue}</span>
+                        <span className="font-semibold text-primary-600">kr {dinner.revenue}</span>
                       </div>
 
                       <div className="flex gap-2">
@@ -2119,7 +2119,7 @@ function HostDashboardContent() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-primary-600">
-                          €{booking.totalAmount}
+                          kr {booking.totalAmount}
                         </span>
                       </div>
                       {booking.specialRequests && (
@@ -3005,7 +3005,22 @@ function HostDashboardContent() {
             </TabsContent>
 
             <TabsContent value="payouts" className="mt-6">
-              <p className="text-muted-foreground text-sm">Payout dashboard coming soon.</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="w-5 h-5" /> Payouts
+                  </CardTitle>
+                  <CardDescription>
+                    Track your pending balance and payout history — sent 48 hours after each dinner
+                    ends.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => router.push('/host/payouts')} className="gap-2">
+                    <Wallet className="w-4 h-4" /> Open payouts dashboard
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="payments" className="mt-6">

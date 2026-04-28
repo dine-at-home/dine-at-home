@@ -1567,7 +1567,7 @@ function ProfilePageContent() {
                                         {booking.guests} guest{booking.guests > 1 ? 's' : ''}
                                       </span>
                                       <span className="text-lg font-semibold text-primary-600">
-                                        €{booking.totalAmount}
+                                        kr {booking.totalAmount}
                                       </span>
                                     </div>
                                     {/* Cancel Button for Confirmed/Pending Bookings */}
@@ -2304,21 +2304,21 @@ function ProfilePageContent() {
               <div className="p-4 bg-muted/50 rounded-lg space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Original Amount:</span>
-                  <span className="text-sm">€{cancelDetails.totalAmount}</span>
+                  <span className="text-sm">kr {cancelDetails.totalAmount}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Refund Amount:</span>
                   <span
                     className={`text-sm font-semibold ${cancelDetails.refundAmount > 0 ? 'text-green-600' : 'text-destructive'}`}
                   >
-                    €{cancelDetails.refundAmount.toFixed(2)} ({cancelDetails.refundPercentage}%)
+                    kr {cancelDetails.refundAmount.toFixed(0)} ({cancelDetails.refundPercentage}%)
                   </span>
                 </div>
                 {cancelDetails.refundAmount < cancelDetails.totalAmount && (
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="text-sm font-medium">Non-refundable:</span>
                     <span className="text-sm text-destructive">
-                      €{(cancelDetails.totalAmount - cancelDetails.refundAmount).toFixed(2)}
+                      kr {(cancelDetails.totalAmount - cancelDetails.refundAmount).toFixed(0)}
                     </span>
                   </div>
                 )}

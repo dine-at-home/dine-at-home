@@ -27,6 +27,8 @@ import { Dinner, NavigationParams } from '@/types'
 import { useAuth } from '@/contexts/auth-context'
 import { bookingService } from '@/lib/booking-service'
 import { dispatchBookingCreated } from '@/lib/booking-events'
+import { paymentService } from '@/lib/payment-service'
+import { PaystraxWidget } from './paystrax-widget'
 
 interface BookingProps {
   dinner: Dinner
@@ -47,6 +49,12 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [paystraxSession, setPaystraxSession] = useState<{
+    checkoutId: string
+    scriptUrl: string
+    shopperResultUrl: string
+    brands: string
+  } | null>(null)
 
   // Pre-fill guest details from user profile (only if fields are empty)
   useEffect(() => {
@@ -81,9 +89,11 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     }
   }, [user]) // Run when user object changes
 
+  // Guest pays dinner.price * guests. Platform's 20% commission is deducted from the host's
+  // payout server-side — it is NOT an extra charge on top of the listed price. Authoritative
+  // totals come from the backend; this display value is presentational only.
   const subtotal = dinner.price * guests
-  const serviceFee = Math.round(subtotal * 0.20)
-  const total = subtotal + serviceFee
+  const total = subtotal
 
   const handleGuestDetailsSubmit = () => {
     if (
@@ -107,16 +117,40 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     setError(null)
 
     try {
-      // Validate phone number is provided
       if (!guestDetails.phone || guestDetails.phone.trim() === '') {
         setError('Phone number is required to complete the booking')
         setIsSubmitting(false)
         return
       }
 
-      // TODO: Initiate payment with new payment provider
-      // Payment integration pending — will be added in feature/new-payments
-      setError('Payment processing is not yet configured.')
+      const bookingResult = await bookingService.createBooking({
+        dinnerId: dinner.id,
+        guests,
+        message: guestDetails.specialRequests || undefined,
+        contactInfo: {
+          name: `${guestDetails.firstName} ${guestDetails.lastName}`.trim(),
+          email: guestDetails.email,
+          phone: guestDetails.phone,
+        },
+      })
+
+      if (!bookingResult.success || !bookingResult.data?.id) {
+        setError(bookingResult.error || 'Failed to create booking')
+        setIsSubmitting(false)
+        return
+      }
+
+      const bookingId = bookingResult.data.id
+      dispatchBookingCreated(dinner.id, bookingId)
+
+      const paymentResult = await paymentService.initiatePayment(bookingId)
+      if (!paymentResult.success || !paymentResult.data) {
+        setError(paymentResult.error || 'Failed to start payment')
+        setIsSubmitting(false)
+        return
+      }
+
+      setPaystraxSession(paymentResult.data)
       setIsSubmitting(false)
     } catch (err: any) {
       console.error('Booking error:', err)
@@ -143,6 +177,28 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
           {/* Main Content */}
           <div className="space-y-4 sm:space-y-6">
+            {paystraxSession ? (
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Payment</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Enter your card details below. Your card will be authorized for kr {total} now;
+                    it is only captured once the host confirms your reservation.
+                  </p>
+                  <PaystraxWidget
+                    checkoutId={paystraxSession.checkoutId}
+                    scriptUrl={paystraxSession.scriptUrl}
+                    shopperResultUrl={paystraxSession.shopperResultUrl}
+                    brands={paystraxSession.brands}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
             <Card>
               <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
@@ -246,6 +302,7 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                 )}
               </CardContent>
             </Card>
+            )}
           </div>
 
           {/* Booking Summary */}
@@ -327,18 +384,14 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span>
-                      €{dinner.price} x {guests} guests
+                      kr {dinner.price} x {guests} guests
                     </span>
-                    <span>€{subtotal}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Service fee</span>
-                    <span>€{serviceFee}</span>
+                    <span>kr {subtotal}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>€{total}</span>
+                    <span>kr {total}</span>
                   </div>
                 </div>
 

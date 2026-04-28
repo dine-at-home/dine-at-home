@@ -110,6 +110,12 @@ export default function SignUpPage() {
       return
     }
 
+    if (formData.userType === 'host' && formData.country !== 'Iceland') {
+      setError('Host registration is only available for Icelandic residents')
+      setFormLoading(false)
+      return
+    }
+
     if (!formData.language) {
       setError('Please select a language')
       setFormLoading(false)
@@ -356,7 +362,10 @@ export default function SignUpPage() {
                       className="mr-3 text-primary-600"
                     />
                     <User className="w-5 h-5 mr-2 text-primary-600" />
-                    <span className="font-medium">Host (Owner)</span>
+                    <div>
+                      <span className="font-medium">Host (Owner)</span>
+                      <p className="text-xs text-muted-foreground">Iceland residents only</p>
+                    </div>
                   </label>
                 </div>
               </div>

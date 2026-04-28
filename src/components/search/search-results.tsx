@@ -78,8 +78,8 @@ const FiltersContent = ({
           className="w-full"
         />
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>€{priceRange[0]}</span>
-          <span>€{priceRange[1]}</span>
+          <span>kr {priceRange[0]}</span>
+          <span>kr {priceRange[1]}</span>
         </div>
       </div>
     </div>
@@ -548,7 +548,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                         setCurrentPage(1)
                       }}
                     >
-                      €{priceRange[0]} - €{priceRange[1]} ×
+                      kr {priceRange[0]} - kr {priceRange[1]} ×
                     </Badge>
                   )}
                 </div>
