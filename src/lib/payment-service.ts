@@ -49,14 +49,39 @@ async function callApi<T>(
 }
 
 export const paymentService = {
-  initiatePayment(bookingId: string, options?: { saveCard?: boolean }) {
+  initiatePayment(bookingId: string, options?: { paymentMethodId?: string }) {
     return callApi<InitiatePaymentResponse>('/payments/initiate', {
       bookingId,
+      paymentMethodId: options?.paymentMethodId,
+    })
+  },
+  finalizePayment(bookingId: string, resourcePath: string, options?: { saveCard?: boolean }) {
+    return callApi<FinalizePaymentResponse>('/payments/finalize', {
+      bookingId,
+      resourcePath,
       saveCard: !!options?.saveCard,
     })
   },
-  finalizePayment(bookingId: string, resourcePath: string) {
-    return callApi<FinalizePaymentResponse>('/payments/finalize', { bookingId, resourcePath })
+}
+
+const SAVE_CARD_KEY = (bookingId: string) => `dath:saveCard:${bookingId}`
+
+export const saveCardIntent = {
+  set(bookingId: string, save: boolean) {
+    if (typeof window === 'undefined') return
+    if (save) {
+      sessionStorage.setItem(SAVE_CARD_KEY(bookingId), '1')
+    } else {
+      sessionStorage.removeItem(SAVE_CARD_KEY(bookingId))
+    }
+  },
+  read(bookingId: string): boolean {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem(SAVE_CARD_KEY(bookingId)) === '1'
+  },
+  clear(bookingId: string) {
+    if (typeof window === 'undefined') return
+    sessionStorage.removeItem(SAVE_CARD_KEY(bookingId))
   },
 }
 

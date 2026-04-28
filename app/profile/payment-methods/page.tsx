@@ -35,9 +35,39 @@ const formatExpiry = (m?: string | null, y?: string | null) => {
   return `${m.padStart(2, '0')}/${yy}`
 }
 
-const brandLabel = (brand: string) => {
+function CardBrandBadge({ brand }: { brand: string }) {
   const upper = brand.toUpperCase()
-  if (upper === 'MASTER') return 'Mastercard'
+  if (upper === 'VISA') {
+    return (
+      <div
+        className="flex-shrink-0 h-9 w-14 rounded-md bg-[#1A1F71] flex items-center justify-center"
+        aria-label="Visa"
+      >
+        <span className="text-white font-bold text-sm italic tracking-tight">VISA</span>
+      </div>
+    )
+  }
+  if (upper === 'MASTER' || upper === 'MASTERCARD') {
+    return (
+      <div
+        className="flex-shrink-0 h-9 w-14 rounded-md bg-[#252525] flex items-center justify-center relative overflow-hidden"
+        aria-label="Mastercard"
+      >
+        <div className="absolute left-2 w-5 h-5 rounded-full bg-[#EB001B]" />
+        <div className="absolute right-2 w-5 h-5 rounded-full bg-[#F79E1B] mix-blend-screen" />
+      </div>
+    )
+  }
+  return (
+    <div className="flex-shrink-0 h-9 w-14 rounded-md bg-muted flex items-center justify-center text-[10px] font-bold tracking-wider px-1">
+      {upper}
+    </div>
+  )
+}
+
+const brandDisplayName = (brand: string) => {
+  const upper = brand.toUpperCase()
+  if (upper === 'MASTER' || upper === 'MASTERCARD') return 'Mastercard'
   if (upper === 'VISA') return 'Visa'
   return upper
 }
@@ -172,9 +202,7 @@ export default function PaymentMethodsPage() {
                     className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border rounded-xl"
                   >
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="flex-shrink-0 w-12 h-8 rounded-md bg-muted flex items-center justify-center text-xs font-bold tracking-wider">
-                        {brandLabel(m.brand)}
-                      </div>
+                      <CardBrandBadge brand={m.brand} />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold">•••• {m.last4}</p>
@@ -237,7 +265,7 @@ export default function PaymentMethodsPage() {
             <DialogTitle>Remove this card?</DialogTitle>
             <DialogDescription>
               {cardToConfirm
-                ? `${brandLabel(cardToConfirm.brand)} ending in ${cardToConfirm.last4} will be removed and can no longer be used for one-tap booking.`
+                ? `${brandDisplayName(cardToConfirm.brand)} ending in ${cardToConfirm.last4} will be removed and can no longer be used for one-tap booking.`
                 : ''}
             </DialogDescription>
           </DialogHeader>

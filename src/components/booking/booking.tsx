@@ -28,7 +28,12 @@ import { Dinner, NavigationParams } from '@/types'
 import { useAuth } from '@/contexts/auth-context'
 import { bookingService } from '@/lib/booking-service'
 import { dispatchBookingCreated } from '@/lib/booking-events'
-import { paymentService } from '@/lib/payment-service'
+import {
+  paymentService,
+  paymentMethodService,
+  saveCardIntent,
+  type SavedPaymentMethod,
+} from '@/lib/payment-service'
 import { PaystraxWidget } from './paystrax-widget'
 
 interface BookingProps {
@@ -51,11 +56,17 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [saveCard, setSaveCard] = useState(false)
+  const [savedMethods, setSavedMethods] = useState<SavedPaymentMethod[]>([])
+  // 'new' = enter a new card; otherwise the PaymentMethod id of a saved card.
+  const [paymentChoice, setPaymentChoice] = useState<'new' | string>('new')
   const [paystraxSession, setPaystraxSession] = useState<{
+    bookingId: string
     checkoutId: string
     scriptUrl: string
     shopperResultUrl: string
     brands: string
+    isSavedCard: boolean
   } | null>(null)
 
   // Pre-fill guest details from user profile (only if fields are empty)
@@ -90,6 +101,24 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
       })
     }
   }, [user]) // Run when user object changes
+
+  // Load the guest's saved cards so we can offer one-click checkout.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    ;(async () => {
+      const result = await paymentMethodService.list()
+      if (cancelled) return
+      if (result.success && result.data) {
+        setSavedMethods(result.data)
+        const defaultMethod = result.data.find((m) => m.isDefault) || result.data[0]
+        if (defaultMethod) setPaymentChoice(defaultMethod.id)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   // Guest pays dinner.price * guests. Platform's 20% commission is deducted from the host's
   // payout server-side — it is NOT an extra charge on top of the listed price. Authoritative
@@ -145,14 +174,20 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
       const bookingId = bookingResult.data.id
       dispatchBookingCreated(dinner.id, bookingId)
 
-      const paymentResult = await paymentService.initiatePayment(bookingId)
+      const isSavedCard = paymentChoice !== 'new'
+      const paymentResult = await paymentService.initiatePayment(bookingId, {
+        paymentMethodId: isSavedCard ? paymentChoice : undefined,
+      })
       if (!paymentResult.success || !paymentResult.data) {
         setError(paymentResult.error || 'Failed to start payment')
         setIsSubmitting(false)
         return
       }
 
-      setPaystraxSession(paymentResult.data)
+      // Reset save-card intent for this booking; user will re-tick on the widget step.
+      saveCardIntent.set(bookingId, false)
+      setSaveCard(false)
+      setPaystraxSession({ ...paymentResult.data, bookingId, isSavedCard })
       setIsSubmitting(false)
     } catch (err: any) {
       console.error('Booking error:', err)
@@ -192,14 +227,22 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                     Enter your card details below. Your card will be authorized for kr {total} now;
                     it is only captured once the host confirms your reservation.
                   </p>
-                  <div className="flex items-center gap-2 mb-4" aria-label="Accepted payment methods">
-                    <div className="h-7 w-11 rounded bg-[#1A1F71] flex items-center justify-center" aria-label="Visa">
-                      <span className="text-white font-bold text-xs italic tracking-tight">VISA</span>
+                  <div
+                    className="flex items-center gap-3 mb-4 rounded-lg border bg-muted/30 px-3 py-2"
+                    aria-label="Accepted payment methods"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-11 rounded bg-[#1A1F71] flex items-center justify-center" aria-label="Visa">
+                        <span className="text-white font-bold text-xs italic tracking-tight">VISA</span>
+                      </div>
+                      <div className="h-7 w-11 rounded bg-[#252525] flex items-center justify-center relative overflow-hidden" aria-label="Mastercard">
+                        <div className="absolute left-1.5 w-4 h-4 rounded-full bg-[#EB001B]" />
+                        <div className="absolute right-1.5 w-4 h-4 rounded-full bg-[#F79E1B] mix-blend-screen" />
+                      </div>
                     </div>
-                    <div className="h-7 w-11 rounded bg-[#252525] flex items-center justify-center relative overflow-hidden" aria-label="Mastercard">
-                      <div className="absolute left-1 w-4 h-4 rounded-full bg-[#EB001B]" />
-                      <div className="absolute right-1 w-4 h-4 rounded-full bg-[#F79E1B]" />
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      We accept Visa and Mastercard. Card brand is detected automatically.
+                    </p>
                   </div>
                   <PaystraxWidget
                     checkoutId={paystraxSession.checkoutId}
@@ -207,6 +250,30 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                     shopperResultUrl={paystraxSession.shopperResultUrl}
                     brands={paystraxSession.brands}
                   />
+                  {!paystraxSession.isSavedCard && (
+                    <div className="mt-4 flex items-start space-x-3 rounded-lg border bg-muted/30 p-3">
+                      <input
+                        type="checkbox"
+                        id="save-card"
+                        checked={saveCard}
+                        onChange={(e) => {
+                          setSaveCard(e.target.checked)
+                          saveCardIntent.set(paystraxSession.bookingId, e.target.checked)
+                        }}
+                        className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+                      />
+                      <label
+                        htmlFor="save-card"
+                        className="text-sm leading-relaxed cursor-pointer"
+                      >
+                        <span className="font-medium">Save this card for faster checkout next time.</span>
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          DatHome never stores your card number — only a secure token from Paystrax
+                          plus the last 4 digits.
+                        </span>
+                      </label>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -285,6 +352,83 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                     className="mt-2 resize-none"
                   />
                 </div>
+
+                {savedMethods.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Payment method</Label>
+                    <div className="space-y-2">
+                      {savedMethods.map((m) => {
+                        const checked = paymentChoice === m.id
+                        const yy = m.expiryYear?.length === 4 ? m.expiryYear.slice(2) : m.expiryYear
+                        return (
+                          <label
+                            key={m.id}
+                            htmlFor={`pm-${m.id}`}
+                            className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                              checked ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              id={`pm-${m.id}`}
+                              name="payment-choice"
+                              checked={checked}
+                              onChange={() => setPaymentChoice(m.id)}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            {m.brand === 'VISA' ? (
+                              <div className="flex-shrink-0 h-8 w-12 rounded-md bg-[#1A1F71] flex items-center justify-center" aria-label="Visa">
+                                <span className="text-white font-bold text-xs italic tracking-tight">VISA</span>
+                              </div>
+                            ) : m.brand === 'MASTER' || m.brand === 'MASTERCARD' ? (
+                              <div className="flex-shrink-0 h-8 w-12 rounded-md bg-[#252525] flex items-center justify-center relative overflow-hidden" aria-label="Mastercard">
+                                <div className="absolute left-1.5 w-4 h-4 rounded-full bg-[#EB001B]" />
+                                <div className="absolute right-1.5 w-4 h-4 rounded-full bg-[#F79E1B] mix-blend-screen" />
+                              </div>
+                            ) : (
+                              <div className="flex-shrink-0 h-8 w-12 rounded-md bg-muted flex items-center justify-center text-[10px] font-bold tracking-wider px-1">
+                                {m.brand}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">•••• {m.last4}</p>
+                              {m.expiryMonth && yy && (
+                                <p className="text-xs text-muted-foreground">
+                                  Expires {m.expiryMonth.padStart(2, '0')}/{yy}
+                                </p>
+                              )}
+                            </div>
+                            {m.isDefault && (
+                              <Badge variant="secondary" className="text-xs">
+                                Default
+                              </Badge>
+                            )}
+                          </label>
+                        )
+                      })}
+                      <label
+                        htmlFor="pm-new"
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                          paymentChoice === 'new' ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          id="pm-new"
+                          name="payment-choice"
+                          checked={paymentChoice === 'new'}
+                          onChange={() => setPaymentChoice('new')}
+                          className="h-4 w-4 accent-primary"
+                        />
+                        <div className="flex-shrink-0 w-12 h-8 rounded-md border border-dashed flex items-center justify-center text-xs font-bold">
+                          NEW
+                        </div>
+                        <p className="text-sm font-medium">Use a different card</p>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
 
                 <div className="flex items-start space-x-3">
                   <input

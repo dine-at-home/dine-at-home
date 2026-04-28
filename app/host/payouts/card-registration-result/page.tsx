@@ -86,7 +86,8 @@ function CardRegistrationResultBody() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {card.brand || 'Card'} •••• {card.last4 || '••••'} — future payouts will be sent to
-                  this card. The 1-ISK verification authorization has been reversed.
+                  this card. The temporary verification charge has been refunded; you will not see
+                  it on your statement.
                 </p>
                 <Button onClick={handleContinue} className="w-full">
                   Continue

@@ -54,8 +54,9 @@ const WIDGET_CSS = `
     color: hsl(var(--destructive));
     margin-top: 0.25rem;
   }
+  /* Brand selector hidden — wpwlOptions.brandDetection auto-picks VISA / MASTER from the BIN. */
   .wpwl-group-brand {
-    margin-bottom: 1rem;
+    display: none !important;
   }
   .wpwl-button-pay {
     display: inline-flex;
@@ -115,7 +116,15 @@ export function PaystraxWidget({
 
     // Must be set before script load so widget picks up the config.
     const w = window as unknown as { wpwlOptions?: unknown; wpwl?: unknown }
-    w.wpwlOptions = { style: 'plain', locale: 'en' }
+    w.wpwlOptions = {
+      style: 'plain',
+      locale: 'en',
+      // Auto-detect VISA / MASTER from the typed PAN (first 6 digits / BIN). The brand
+      // dropdown is also hidden via CSS so the user only enters card number → expiry → CVV.
+      brandDetection: true,
+      brandDetectionType: 'binlist',
+      brandDetectionPriority: ['VISA', 'MASTER'],
+    }
 
     const styleEl = document.createElement('style')
     styleEl.dataset.paystraxStyles = checkoutId

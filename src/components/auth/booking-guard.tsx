@@ -67,6 +67,15 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
     const needsPhone = user.role === 'guest' && (!user.phone || user.phone.trim().length === 0)
     const redirectUrl = getRoleBasedRedirect(user)
 
+    // Preserve where the user was heading so we can bring them back after they save the phone.
+    const currentUrl =
+      typeof window !== 'undefined'
+        ? window.location.pathname + (window.location.search || '')
+        : ''
+    const profileWithCallback = `/profile?tab=overview&editPhone=1&callbackUrl=${encodeURIComponent(
+      currentUrl
+    )}`
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full">
@@ -78,11 +87,16 @@ export function BookingGuard({ children, fallback }: BookingGuardProps) {
             />
             <AlertDescription className={needsPhone ? 'text-blue-800' : 'text-orange-800'}>
               {getAccessDeniedMessage(user)}
+              {needsPhone && (
+                <span className="block mt-1 text-xs opacity-80">
+                  Don't worry — we'll bring you right back to this dinner once your number is saved.
+                </span>
+              )}
             </AlertDescription>
           </Alert>
           <div className="mt-6 text-center">
             {needsPhone ? (
-              <Button onClick={() => router.push('/profile?tab=overview')} className="mr-4">
+              <Button onClick={() => router.push(profileWithCallback)} className="mr-4">
                 Add Phone Number
               </Button>
             ) : null}

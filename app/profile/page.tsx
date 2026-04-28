@@ -126,6 +126,24 @@ function ProfilePageContent() {
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
+  const callbackUrl = searchParams.get('callbackUrl')
+  const editPhoneRequested = searchParams.get('editPhone') === '1'
+
+  // Auto-enter edit mode and scroll to the phone field when arriving from a flow that needs it
+  // (e.g. BookingGuard sending the user here because their account has no phone yet).
+  useEffect(() => {
+    if (editPhoneRequested && user) {
+      setIsEditing(true)
+      // Defer to next tick so the inputs render before we focus/scroll.
+      setTimeout(() => {
+        const el = document.getElementById('phone')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          ;(el as HTMLInputElement).focus()
+        }
+      }, 100)
+    }
+  }, [editPhoneRequested, user])
   const [verifyingEmail, setVerifyingEmail] = useState(false)
   const [verifyEmailError, setVerifyEmailError] = useState<string | null>(null)
 
@@ -1023,6 +1041,13 @@ function ProfilePageContent() {
       // Refresh user from auth context
       await refreshUser()
 
+      // If we were sent here from a booking flow that needed a phone number, return now
+      // that they have one. We only follow the callbackUrl if it's a same-origin path.
+      if (callbackUrl && callbackUrl.startsWith('/') && profileData.phone.trim()) {
+        router.push(callbackUrl)
+        return
+      }
+
       // Clear success message after 2 seconds
       setTimeout(() => {
         setSaveSuccess(false)
@@ -1362,9 +1387,10 @@ function ProfilePageContent() {
                         </p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Phone</label>
+                        <label htmlFor="phone" className="block text-sm font-medium mb-2">Phone</label>
                         {isEditing ? (
                           <Input
+                            id="phone"
                             value={profileData.phone}
                             onChange={(e) =>
                               setProfileData({ ...profileData, phone: e.target.value })

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { paymentService } from '@/lib/payment-service'
+import { paymentService, saveCardIntent } from '@/lib/payment-service'
 
 type UIStatus = 'loading' | 'error'
 
@@ -28,7 +28,9 @@ function PaymentResultContent() {
     }
 
     void (async () => {
-      const response = await paymentService.finalizePayment(bookingId, resourcePath)
+      const saveCard = saveCardIntent.read(bookingId)
+      const response = await paymentService.finalizePayment(bookingId, resourcePath, { saveCard })
+      saveCardIntent.clear(bookingId)
       if (!response.success || !response.data) {
         setStatus('error')
         setError(response.error || 'Unable to confirm payment.')
