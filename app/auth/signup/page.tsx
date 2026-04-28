@@ -308,7 +308,7 @@ function SignUpInner() {
                       className="w-4 h-4 mt-1 text-primary border-gray-300 rounded focus:ring-primary/50"
                     />
                     <label htmlFor="signup-terms" className="text-sm">
-                      I agree to{' '}
+                      I agree to the{' '}
                       <Link
                         href="/terms-of-use"
                         target="_blank"

@@ -24,7 +24,7 @@ export default function TermsOfUseClient() {
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Terms of Use</h1>
-          <p className="text-xl text-muted-foreground">Last updated: April 22, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -41,7 +41,7 @@ export default function TermsOfUseClient() {
                 <p>
                   These Terms of Use govern the use of datthome.com ("the Website", "we", "us"). By
                   accessing, registering on, or using the Website in any manner, you agree to be
-                  bound by these Terms.
+                  bound by these Terms and represent that you are at least 18 years old.
                 </p>
                 <p>
                   The Website operates as a marketplace platform connecting individuals who host
@@ -99,6 +99,11 @@ export default function TermsOfUseClient() {
                   booking process. Hosts retain full responsibility for food quality, safety, and
                   event execution. This responsibility is confirmed through legally binding
                   electronic identification (Rafræn skilríki) at onboarding.
+                </p>
+                <p className="mt-4">
+                  Hosting is currently available only to Icelandic residents. Each Host must
+                  complete identity verification with Rafræn skilríki and register a Visa or
+                  Mastercard payout card before publishing a dinner or receiving a payout.
                 </p>
                 <p className="mt-4">Hosts are solely and fully responsible for:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">

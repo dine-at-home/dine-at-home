@@ -49,7 +49,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:support@datthome.com" className="hover:text-foreground transition-colors">
+                <a href="mailto:info@datthome.com" className="hover:text-foreground transition-colors">
                   Contact Us
                 </a>
               </li>

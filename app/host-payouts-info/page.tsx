@@ -100,13 +100,18 @@ export default function HostPayoutsInfoPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p>
-                  Payouts are sent directly to your Icelandic bank account via bank transfer (IBAN).
-                  You will need to provide your IBAN during host onboarding. Transfers are processed
-                  in ISK.
+                  Payouts are credited directly to a Visa or Mastercard debit card that you register
+                  during host onboarding. Datthome uses Paystrax to push funds onto your card via an
+                  Original Credit Transaction (OCT). Most card issuers post the funds to your bank
+                  account within 1–3 business days, depending on the issuer.
                 </p>
                 <p>
-                  Payouts are handled via our payment provider, Paystrax (Esja Fjarskipti ehf),
-                  which is regulated in Iceland.
+                  You can update or replace your registered payout card at any time from your host
+                  payout settings. Payouts are processed in ISK.
+                </p>
+                <p>
+                  Payments and payouts are handled via our payment provider, Paystrax (Esja
+                  Fjarskipti ehf), which is regulated in Iceland.
                 </p>
               </CardContent>
             </Card>
@@ -124,7 +129,7 @@ export default function HostPayoutsInfoPage() {
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm list-disc list-inside">
                   <li>Completed identity verification (Rafræn skilríki / Icelandic eID)</li>
-                  <li>Valid Icelandic bank IBAN provided in your host profile</li>
+                  <li>A registered Visa or Mastercard payout card on your host profile</li>
                   <li>Account in good standing (no active disputes or policy violations)</li>
                   <li>Minimum payout balance of 10,000 kr</li>
                 </ul>
@@ -144,8 +149,8 @@ export default function HostPayoutsInfoPage() {
               <CardContent>
                 <p>
                   If you have questions about your payouts, contact us at{' '}
-                  <a href="mailto:support@datthome.com" className="text-primary underline">
-                    support@datthome.com
+                  <a href="mailto:info@datthome.com" className="text-primary underline">
+                    info@datthome.com
                   </a>
                   .
                 </p>

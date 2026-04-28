@@ -20,7 +20,7 @@ export default function RefundPolicyPage() {
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
             Refund & Cancellation Policy
           </h1>
-          <p className="text-xl text-muted-foreground">Last updated: April 24, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -150,8 +150,8 @@ export default function RefundPolicyPage() {
                 <p>
                   Datthome acts as Merchant of Record for all transactions. If you have a payment
                   dispute, contact us first at{' '}
-                  <a href="mailto:support@datthome.com" className="text-primary underline">
-                    support@datthome.com
+                  <a href="mailto:info@datthome.com" className="text-primary underline">
+                    info@datthome.com
                   </a>{' '}
                   — we aim to resolve all disputes promptly without requiring a chargeback.
                 </p>

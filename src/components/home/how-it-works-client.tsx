@@ -88,8 +88,8 @@ export default function HowItWorksClient() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Secure your spot with our easy booking system. Pay safely and receive instant
-                    confirmation.
+                    Send a booking request. Your card is pre-authorized but only charged once the
+                    host confirms your reservation.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -220,8 +220,8 @@ export default function HowItWorksClient() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    All hosts go through a verification process including identity checks and
-                    background verification.
+                    All hosts complete identity verification with Rafræn skilríki (Icelandic eID)
+                    before they can list a dinner or receive payouts.
                   </CardDescription>
                 </CardContent>
               </Card>

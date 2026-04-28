@@ -24,7 +24,7 @@ export default function HelpCenterClient() {
         {
           question: 'How do I verify my account?',
           answer:
-            "We'll send you a verification email after signup. Click the link in the email to verify your account and unlock all features.",
+            "After signup we send a 6-digit verification code to your email. Enter the code on the verification screen to confirm your address and unlock all features.",
         },
       ],
     },
@@ -35,7 +35,7 @@ export default function HelpCenterClient() {
         {
           question: 'How do I book a dining experience?',
           answer:
-            "Search for experiences, select your preferred date and time, and complete the booking process. You'll receive instant confirmation and all details.",
+            "Search for experiences and submit a booking request for the dinner you want. Your card is pre-authorized for the full amount but only charged once the host confirms your reservation. If the host doesn't confirm, the authorization is released automatically and no charge appears on your statement. A phone number on your profile is required to submit a booking.",
         },
         {
           question: 'What payment methods do you accept?',
@@ -45,7 +45,7 @@ export default function HelpCenterClient() {
         {
           question: 'Can I cancel my booking?',
           answer:
-            'Yes! You can cancel bookings up to 24 hours in advance for a full refund. Cancellations within 24 hours may be subject to different policies.',
+            'Yes. Refunds depend on the cancellation policy set by the host (Flexible, Moderate, or Strict), which is shown on the dinner listing and on your booking confirmation. See our Refund & Cancellation Policy for the rules and refund timing.',
         },
       ],
     },
@@ -56,17 +56,17 @@ export default function HelpCenterClient() {
         {
           question: 'How do I become a host?',
           answer:
-            'Sign up as a host, complete your profile with your culinary background, and create your first dining experience listing.',
+            'Sign up as a host (currently available to Icelandic residents only), complete identity verification with Rafræn skilríki (Icelandic eID), register a Visa or Mastercard payout card, and create your first dining experience listing.',
         },
         {
           question: 'What are the requirements to host?',
           answer:
-            "You need a safe kitchen space, food safety knowledge, and a passion for sharing your culinary skills. We'll guide you through the verification process.",
+            'You must be an Icelandic resident, complete identity verification via Rafræn skilríki, and register a payout card. Hosts are responsible for the food they prepare, including hygiene, allergen disclosure, and compliance with local food and health regulations.',
         },
         {
           question: 'How do I get paid?',
           answer:
-            'Hosts receive 80% of the booking price via bank transfer (IBAN) in ISK, 72 hours after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
+            'Hosts receive 80% of the booking price in ISK, credited to a registered Visa or Mastercard payout card via Paystrax, 72 hours after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
         },
       ],
     },
@@ -77,17 +77,17 @@ export default function HelpCenterClient() {
         {
           question: 'How do you verify hosts?',
           answer:
-            'All hosts undergo identity verification, background checks, and food safety assessments before they can start hosting.',
+            'All hosts complete identity verification using Rafræn skilríki (Icelandic eID) before they can publish a dinner or receive payouts. Datthome does not perform background checks or food safety inspections — hosts are solely responsible for food preparation, hygiene, and compliance with local regulations.',
         },
         {
           question: 'What if I have a problem with my experience?',
           answer:
-            'Contact our support team immediately. We have a dedicated team to resolve issues and ensure your safety and satisfaction.',
+            'Contact us at info@datthome.com. As Merchant of Record, Datthome handles payment-related issues, refunds, and disputes. Issues regarding the food or the conduct of the event are the responsibility of the host.',
         },
         {
           question: 'Are the dining experiences safe?',
           answer:
-            'Yes! All hosts are verified, and we have safety guidelines in place. You can also read reviews from other guests before booking.',
+            'Hosts complete identity verification, but Datthome does not inspect kitchens, food, or events. You participate at your own risk — please read the listing, check reviews, and disclose any allergies to the host before the dinner. See our Assumption of Risk & Liability Waiver for full details.',
         },
       ],
     },
@@ -123,10 +123,10 @@ export default function HelpCenterClient() {
               <p>
                 Email:{' '}
                 <a
-                  href="mailto:support@datthome.com"
+                  href="mailto:info@datthome.com"
                   className="text-primary underline hover:no-underline font-medium"
                 >
-                  support@datthome.com
+                  info@datthome.com
                 </a>
               </p>
               <p className="text-sm text-muted-foreground">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -141,7 +142,14 @@ export default function RoleSelectionPage() {
             </Card>
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-8 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              By continuing you agree to our{' '}
+              <Link href="/terms-of-use" target="_blank" className="underline hover:text-foreground">
+                Terms of Use
+              </Link>
+              .
+            </p>
             <p className="text-sm text-muted-foreground">
               Don't worry, you can always change your role later in your account settings.
             </p>
