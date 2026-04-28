@@ -12,6 +12,7 @@ import {
   UserX,
   RefreshCw,
   Scale,
+  CreditCard,
 } from 'lucide-react'
 
 export default function TermsOfUseClient() {
@@ -232,13 +233,57 @@ export default function TermsOfUseClient() {
             </Card>
           </section>
 
-          {/* 9. Governing Law */}
+          {/* 9. Payment Terms */}
+          <section aria-labelledby="payment-terms">
+            <Card>
+              <CardHeader>
+                <CardTitle id="payment-terms" className="text-2xl flex items-center gap-2">
+                  <CreditCard className="w-6 h-6" />
+                  9. Payment Terms
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>
+                  All payments on the platform are processed by <strong>Esja Fjarskipti ehf</strong>{' '}
+                  (operating as Datthome) via Paystrax COPYandPAY, a PCI-DSS compliant card payment
+                  solution. Card data is entered directly into the Paystrax hosted widget and never
+                  touches Datthome servers.
+                </p>
+                <p>
+                  <strong>Authorization and capture:</strong> When you complete the booking form,
+                  your card is pre-authorized (PA) for the full amount. The charge is captured only
+                  when the host confirms your reservation. If the host does not confirm, the
+                  authorization is released automatically.
+                </p>
+                <p>
+                  <strong>Currency:</strong> All amounts are charged in Icelandic Króna (ISK).
+                  Foreign cardholders will be charged in ISK; currency conversion is handled by
+                  their card issuer.
+                </p>
+                <p>
+                  <strong>Accepted cards:</strong> Visa and Mastercard. American Express and other
+                  card networks are not accepted.
+                </p>
+                <p>
+                  <strong>Refunds:</strong> Refunds are governed by the cancellation policy of the
+                  individual dining experience. See our{' '}
+                  <a href="/refund-policy" className="text-primary underline">
+                    Refund & Cancellation Policy
+                  </a>{' '}
+                  for full details. Datthome, as Merchant of Record, is responsible for processing
+                  all refunds and handling payment disputes.
+                </p>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* 10. Governing Law */}
           <section aria-labelledby="governing-law">
             <Card>
               <CardHeader>
                 <CardTitle id="governing-law" className="text-2xl flex items-center gap-2">
                   <Scale className="w-6 h-6" />
-                  9. Governing Law
+                  10. Governing Law
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

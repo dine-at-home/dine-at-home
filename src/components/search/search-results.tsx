@@ -460,23 +460,31 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 </Select>
 
                 {/* View Toggle */}
-                <div className="hidden sm:flex border border-border rounded-lg">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
+                <div className="hidden sm:inline-flex items-center gap-0.5 rounded-full border border-border/60 bg-muted/50 p-1">
+                  <button
+                    type="button"
                     onClick={() => setViewMode('grid')}
-                    className="rounded-r-none border-r"
+                    aria-label="Grid view"
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                      viewMode === 'grid'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
                   >
                     <Grid3X3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setViewMode('list')}
-                    className="rounded-l-none"
+                    aria-label="List view"
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                      viewMode === 'list'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
                   >
                     <List className="w-4 h-4" />
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>

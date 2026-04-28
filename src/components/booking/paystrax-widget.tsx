@@ -55,7 +55,7 @@ const WIDGET_CSS = `
     margin-top: 0.25rem;
   }
   .wpwl-group-brand {
-    display: none;
+    margin-bottom: 1rem;
   }
   .wpwl-button-pay {
     display: inline-flex;

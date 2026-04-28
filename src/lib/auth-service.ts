@@ -20,21 +20,24 @@ export interface User {
   needsRoleSelection?: boolean
   needsProfileCompletion?: boolean
   createdAt?: string
-  bankName?: string | null
   accountHolderName?: string | null
-  iban?: string | null
-  swiftBic?: string | null
   payoutAddress?: string | null
+  taxId?: string | null
   // Host address fields
   hostAddress?: string | null
   hostCity?: string | null
   hostState?: string | null
   hostZipCode?: string | null
   hostNeighborhood?: string | null
-  // Payout and Bank fields
+  // Payout (card-based OCT)
   payoutCountry?: string | null
   payoutCurrency?: string | null
-  payoutMethod?: string | null
+  payoutCardBrand?: 'VISA' | 'MASTER' | null
+  payoutCardLast4?: string | null
+  hasCardRegistered?: boolean
+  kycStatus?: 'UNVERIFIED' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED'
+  rafraenSkilrikiVerifiedAt?: string | null
+  hostOnboardingStep?: number
 }
 
 export interface AuthResponse {
@@ -677,7 +680,7 @@ class AuthService {
 
     try {
       const response = await fetch(getApiUrl(`/users/${userId}`), {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

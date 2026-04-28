@@ -63,6 +63,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'ui-serif', 'Georgia', 'serif'],
+        'dm-sans': ['var(--font-dm-sans)', 'DM Sans', 'ui-sans-serif', 'sans-serif'],
       },
     },
   },

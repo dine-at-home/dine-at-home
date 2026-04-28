@@ -19,7 +19,7 @@ export default function RafraenCallbackPage() {
     const state = searchParams?.get('state')
 
     if (!code || !state) {
-      router.replace('/host/onboarding?rafraen=error&reason=' + encodeURIComponent('Missing code or state'))
+      router.replace('/host/payouts/settings?rafraen=error&reason=' + encodeURIComponent('Missing code or state'))
       return
     }
 
@@ -32,16 +32,16 @@ export default function RafraenCallbackPage() {
           const reason = json?.error || json?.message || 'Verification failed'
           setError(reason)
           setTimeout(() => {
-            router.replace('/host/onboarding?rafraen=error&reason=' + encodeURIComponent(reason))
+            router.replace('/host/payouts/settings?rafraen=error&reason=' + encodeURIComponent(reason))
           }, 1500)
           return
         }
-        router.replace('/host/onboarding?rafraen=success')
+        router.replace('/host/payouts/settings?rafraen=success')
       } catch (err: any) {
         const reason = err?.message || 'Network error'
         setError(reason)
         setTimeout(() => {
-          router.replace('/host/onboarding?rafraen=error&reason=' + encodeURIComponent(reason))
+          router.replace('/host/payouts/settings?rafraen=error&reason=' + encodeURIComponent(reason))
         }, 1500)
       }
     }

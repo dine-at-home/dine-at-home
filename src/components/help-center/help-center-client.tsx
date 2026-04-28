@@ -3,7 +3,7 @@
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-import { HelpCircle, BookOpen, Shield, CreditCard, ChefHat } from 'lucide-react'
+import { HelpCircle, BookOpen, Shield, CreditCard, ChefHat, Mail } from 'lucide-react'
 
 export default function HelpCenterClient() {
   const faqCategories = [
@@ -40,7 +40,7 @@ export default function HelpCenterClient() {
         {
           question: 'What payment methods do you accept?',
           answer:
-            'We accept all major credit cards (Visa, MasterCard, American Express) and digital wallets like PayPal and Apple Pay.',
+            'We accept Visa and Mastercard. All amounts are charged in Icelandic Króna (ISK). Foreign cardholders will see the ISK amount converted to their home currency at their bank\'s exchange rate.',
         },
         {
           question: 'Can I cancel my booking?',
@@ -66,7 +66,7 @@ export default function HelpCenterClient() {
         {
           question: 'How do I get paid?',
           answer:
-            'Hosts receive payments within 24-48 hours after each completed dining experience, minus our service fee.',
+            'Hosts receive 80% of the booking price via bank transfer (IBAN) in ISK, 72 hours after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
         },
       ],
     },
@@ -106,6 +106,35 @@ export default function HelpCenterClient() {
             Find answers to your questions
           </p>
         </header>
+
+        {/* Contact */}
+        <section className="mb-12">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Contact Support
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-muted-foreground">
+                Can&apos;t find what you&apos;re looking for? Our support team is here to help.
+              </p>
+              <p>
+                Email:{' '}
+                <a
+                  href="mailto:support@datthome.com"
+                  className="text-primary underline hover:no-underline font-medium"
+                >
+                  support@datthome.com
+                </a>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                We aim to respond within 1 business day.
+              </p>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* FAQ Categories */}
         <section className="mb-12">

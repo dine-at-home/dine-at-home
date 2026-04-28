@@ -1,9 +1,25 @@
 import { Metadata } from 'next'
+import { Instrument_Serif, DM_Sans } from 'next/font/google'
 import { JsonLd, KnowledgeGraphSchema } from '@/components/seo/JsonLd'
 import { AuthProvider } from '@/contexts/auth-context'
 import { Toaster } from '@/components/ui/sonner'
 import { CookieConsent } from '@/components/cookie-consent'
 import './globals.css'
+
+const displayFont = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-display',
+})
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-dm-sans',
+})
 
 export const metadata: Metadata = {
   title: {
@@ -105,7 +121,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const baseUrl = process.env.BASE_URL || 'http://localhost:3001/api'
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${displayFont.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

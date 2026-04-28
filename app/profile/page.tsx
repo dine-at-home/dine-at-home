@@ -121,7 +121,7 @@ const mockBookings = [
 ]
 
 function ProfilePageContent() {
-  const { user, loading, refreshUser, resendOTP } = useAuth()
+  const { user, loading, refreshUser, resendOTP, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'overview'
@@ -1289,12 +1289,14 @@ function ProfilePageContent() {
           {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
+              <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="bookings">Bookings</TabsTrigger>
+                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
@@ -2004,13 +2006,24 @@ function ProfilePageContent() {
                         <CreditCard className="w-4 h-4" />
                         Payment Methods
                       </h3>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => router.push('/profile/payment-methods')}
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
                         Manage Payment Methods
                       </Button>
                     </div>
 
                     <div className="border-t pt-6">
-                      <Button variant="destructive" className="w-full justify-start">
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          logout()
+                        }}
+                      >
                         <LogOut className="w-4 h-4 mr-2" />
                         Sign Out
                       </Button>

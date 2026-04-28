@@ -24,8 +24,11 @@ import {
   HelpCircle,
   LogOut,
   ChefHat,
+  AlertTriangle,
+  Wallet,
 } from 'lucide-react'
 import { SearchParams } from '@/types'
+import { payoutService } from '@/lib/payout-service'
 
 interface HeaderProps {
   onSearch?: (params: SearchParams) => void
@@ -35,6 +38,9 @@ export function Header({ onSearch }: HeaderProps = {}) {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [isScrolled, setIsScrolled] = useState(false)
+  const [kycStatus, setKycStatus] = useState<
+    'UNVERIFIED' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  >(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,6 +49,21 @@ export function Header({ onSearch }: HeaderProps = {}) {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (user?.role !== 'host') {
+      setKycStatus(null)
+      return
+    }
+    let cancelled = false
+    payoutService.getEarnings().then((res) => {
+      if (cancelled) return
+      if (res.success && res.data) setKycStatus(res.data.kycStatus)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.role, user?.id])
 
   return (
     <header
@@ -92,6 +113,18 @@ export function Header({ onSearch }: HeaderProps = {}) {
                     </DropdownMenuItem>
                     {user?.role === 'host' ? (
                       <>
+                        {kycStatus && kycStatus !== 'VERIFIED' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => router.push('/host/payouts/settings')}
+                              className="text-amber-700 focus:bg-amber-50 focus:text-amber-800"
+                            >
+                              <AlertTriangle className="w-4 h-4 mr-2" />
+                              Complete payout setup
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem onClick={() => router.push('/host/dashboard')}>
                           <ChefHat className="w-4 h-4 mr-2" />
                           Host Dashboard
@@ -109,10 +142,10 @@ export function Header({ onSearch }: HeaderProps = {}) {
                           Bookings
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => router.push('/host/dashboard?tab=reviews')}
+                          onClick={() => router.push('/host/dashboard?tab=earnings')}
                         >
-                          <Heart className="w-4 h-4 mr-2" />
-                          Reviews
+                          <Wallet className="w-4 h-4 mr-2" />
+                          Earnings
                         </DropdownMenuItem>
                       </>
                     ) : (
@@ -144,7 +177,7 @@ export function Header({ onSearch }: HeaderProps = {}) {
                       onClick={() =>
                         router.push(
                           user?.role === 'host'
-                            ? '/host/dashboard?tab=settings'
+                            ? '/host/dashboard?tab=account'
                             : '/profile?tab=settings'
                         )
                       }

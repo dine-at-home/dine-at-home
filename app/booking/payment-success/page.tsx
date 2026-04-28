@@ -2,34 +2,35 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { CheckCircle, Loader2, AlertCircle, ArrowRight, Home } from 'lucide-react'
+import { CheckCircle, Clock, Loader2, ArrowRight, Home } from 'lucide-react'
+
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [bookingId, setBookingId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [isPending, setIsPending] = useState(false)
 
   useEffect(() => {
-    // TODO: Verify payment with new payment provider
-    // For now, show success — webhook will confirm the booking
-    setStatus('success')
+    setBookingId(searchParams.get('bookingId'))
+    setIsPending(searchParams.get('pending') === '1')
   }, [searchParams])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="max-w-md w-full text-center space-y-6">
-        {status === 'loading' && (
+        {isPending ? (
           <>
-            <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto" />
-            <h1 className="text-2xl font-bold">Processing your payment...</h1>
+            <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto">
+              <Clock className="w-12 h-12 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              Payment Processing
+            </h1>
             <p className="text-muted-foreground">
-              Please wait while we confirm your booking.
+              Your payment is being processed. You will receive a confirmation email once your booking is confirmed.
             </p>
           </>
-        )}
-
-        {status === 'success' && (
+        ) : (
           <>
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
@@ -38,51 +39,28 @@ function PaymentSuccessContent() {
               Payment Successful!
             </h1>
             <p className="text-muted-foreground">
-              Your booking has been confirmed. You will receive a confirmation email shortly.
+              Your payment has been authorized. You will receive a confirmation email once the host accepts your booking.
             </p>
-            <div className="flex flex-col space-y-3 pt-4">
-              {bookingId && (
-                <button
-                  onClick={() => router.push(`/bookings/${bookingId}`)}
-                  className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  View Booking
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </button>
-              )}
-              <button
-                onClick={() => router.push('/')}
-                className="inline-flex items-center justify-center px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Home
-              </button>
-            </div>
           </>
         )}
-
-        {status === 'error' && (
-          <>
-            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
-            </div>
-            <h1 className="text-2xl font-bold text-red-600 dark:text-red-400">
-              Something went wrong
-            </h1>
-            <p className="text-muted-foreground">
-              {error || 'We encountered an issue processing your payment. Please contact support.'}
-            </p>
-            <div className="flex flex-col space-y-3 pt-4">
-              <button
-                onClick={() => router.push('/')}
-                className="inline-flex items-center justify-center px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Home
-              </button>
-            </div>
-          </>
-        )}
+        <div className="flex flex-col space-y-3 pt-4">
+          {bookingId && (
+            <button
+              onClick={() => router.push(`/bookings/${bookingId}`)}
+              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              View Booking
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </button>
+          )}
+          <button
+            onClick={() => router.push('/')}
+            className="inline-flex items-center justify-center px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors"
+          >
+            <Home className="w-4 h-4 mr-2" />
+            Back to Home
+          </button>
+        </div>
       </div>
     </div>
   )

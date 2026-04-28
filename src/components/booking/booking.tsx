@@ -12,6 +12,7 @@ import { Separator } from '../ui/separator'
 import { Badge } from '../ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   ArrowLeft,
   Calendar,
@@ -49,6 +50,7 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [paystraxSession, setPaystraxSession] = useState<{
     checkoutId: string
     scriptUrl: string
@@ -190,6 +192,15 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                     Enter your card details below. Your card will be authorized for kr {total} now;
                     it is only captured once the host confirms your reservation.
                   </p>
+                  <div className="flex items-center gap-2 mb-4" aria-label="Accepted payment methods">
+                    <div className="h-7 w-11 rounded bg-[#1A1F71] flex items-center justify-center" aria-label="Visa">
+                      <span className="text-white font-bold text-xs italic tracking-tight">VISA</span>
+                    </div>
+                    <div className="h-7 w-11 rounded bg-[#252525] flex items-center justify-center relative overflow-hidden" aria-label="Mastercard">
+                      <div className="absolute left-1 w-4 h-4 rounded-full bg-[#EB001B]" />
+                      <div className="absolute right-1 w-4 h-4 rounded-full bg-[#F79E1B]" />
+                    </div>
+                  </div>
                   <PaystraxWidget
                     checkoutId={paystraxSession.checkoutId}
                     scriptUrl={paystraxSession.scriptUrl}
@@ -275,10 +286,36 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                   />
                 </div>
 
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="terms-agree"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+                  />
+                  <label htmlFor="terms-agree" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                    I agree to the{' '}
+                    <Link href="/terms-of-use" target="_blank" className="text-primary underline hover:no-underline">
+                      Terms of Use
+                    </Link>
+                    ,{' '}
+                    <Link href="/refund-policy" target="_blank" className="text-primary underline hover:no-underline">
+                      Refund & Cancellation Policy
+                    </Link>
+                    , and{' '}
+                    <Link href="/privacy-policy" target="_blank" className="text-primary underline hover:no-underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </label>
+                </div>
+
                 <Button
                   onClick={handleGuestDetailsSubmit}
                   className="w-full bg-primary-600 hover:bg-primary-700"
                   disabled={
+                    !agreedToTerms ||
                     !guestDetails.firstName ||
                     !guestDetails.lastName ||
                     !guestDetails.email ||
