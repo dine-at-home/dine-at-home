@@ -65,10 +65,11 @@ function CardRegistrationResultBody() {
   }
 
   return (
-    <MainLayout>
-      <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card>
-          <CardContent className="pt-8 pb-8 space-y-5">
+    <HostGuard>
+      <MainLayout>
+        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <Card>
+            <CardContent className="pt-8 pb-8 space-y-5">
             {phase === 'finalizing' && (
               <div className="flex items-center gap-3 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -110,25 +111,22 @@ function CardRegistrationResultBody() {
                 </Button>
               </>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </MainLayout>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    </HostGuard>
   )
 }
 
 export default function CardRegistrationResultPage() {
   return (
-    <HostGuard>
-      <Suspense
-        fallback={
-          <MainLayout>
-            <div className="max-w-xl mx-auto px-4 py-12 text-muted-foreground">Loading…</div>
-          </MainLayout>
-        }
-      >
-        <CardRegistrationResultBody />
-      </Suspense>
-    </HostGuard>
+    <Suspense
+      fallback={
+        <div className="max-w-xl mx-auto px-4 py-12 text-muted-foreground">Loading…</div>
+      }
+    >
+      <CardRegistrationResultBody />
+    </Suspense>
   )
 }

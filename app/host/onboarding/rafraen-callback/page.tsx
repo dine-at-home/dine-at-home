@@ -1,11 +1,28 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, BadgeCheck, AlertCircle } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
 
 export default function RafraenCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+          <div className="text-center space-y-4 max-w-md">
+            <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
+            <h1 className="text-xl font-semibold">Finalizing identity verification…</h1>
+          </div>
+        </div>
+      }
+    >
+      <RafraenCallbackPageInner />
+    </Suspense>
+  )
+}
+
+function RafraenCallbackPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const ranRef = useRef(false)

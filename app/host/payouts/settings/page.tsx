@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
@@ -122,6 +122,21 @@ function StepShell({
 }
 
 export default function PayoutSettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Loading…
+        </div>
+      }
+    >
+      <PayoutSettingsPageInner />
+    </Suspense>
+  )
+}
+
+function PayoutSettingsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
