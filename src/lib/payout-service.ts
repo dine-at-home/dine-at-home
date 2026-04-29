@@ -1,8 +1,3 @@
-/**
- * Payout Service
- * Handles all payout-related API calls
- */
-
 import { getApiUrl } from './api-config'
 
 const getToken = (): string | null => {
@@ -10,301 +5,148 @@ const getToken = (): string | null => {
   return localStorage.getItem('auth_token')
 }
 
-export interface HostBalanceResponse {
-  availableBalance: number
+export interface PayoutSettings {
+  accountHolderName?: string | null
+  payoutAddress?: string | null
+  payoutCurrency?: string
+  payoutCountry?: string
+  payoutEntityType?: string
+  taxId?: string | null
+  kycStatus: 'UNVERIFIED' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED'
+  rafraenSkilrikiVerifiedAt?: string | null
+  hasCardRegistered: boolean
+  payoutCardBrand?: 'VISA' | 'MASTER' | null
+  payoutCardLast4?: string | null
+}
+
+export interface UpdatePayoutSettingsBody {
+  accountHolderName?: string
+  payoutAddress?: string
+  payoutCountry?: string
+  payoutCurrency?: string
+  payoutEntityType?: string
+  taxId?: string
+}
+
+export interface HostEarnings {
+  pendingBalance: number
+  payoutDebt: number
+  minimumPayout: number
   currency: string
-  unpaidBookingCount: number
+  pendingBookingCount: number
+  nextEligibleAt: string | null
+  kycStatus: PayoutSettings['kycStatus']
 }
 
-export interface PaymentStatusResponse {
-  pending: {
-    count: number
-    totalAmount: number
-    payments: Array<{
-      bookingId: string
-      dinnerTitle: string
-      amount: number
-      currency: string
-      completedAt: string
-      readyToWithdrawAt: string
-      hoursUntilReady: number
-    }>
-  }
-  ready: {
-    count: number
-    totalAmount: number
-  }
-  currency: string
-}
-
-export interface PaymentDetail {
-  id: string
-  bookingId: string
-  bookingStatus: string
-  dinnerTitle: string
-  dinnerDate: string
-  dinnerTime: string
-  guest: {
-    id: string
-    name: string
-    email: string
-    image?: string
-  }
-  amount: number // Full payment amount
-  currency: string
-  platformFee: number
-  hostAmount: number
-  paymentStatus: string
-  readyToWithdrawAt?: string
-  refundedAmount: number
-  refundedAt?: string
-  paymentMethod?: string
-  isPaidOut: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface PaymentDetailsResponse {
-  success: boolean
-  data: PaymentDetail[]
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
-
-export interface PayoutResponse {
+export interface HostPayout {
   id: string
   amount: number
   currency: string
   status: string
-  description?: string
-  bookingIds: string[]
-  failureCode?: string
-  failureMessage?: string
-  arrivalDate?: string
+  scheduledFor: string | null
+  arrivalDate: string | null
   createdAt: string
-  updatedAt: string
+  failureMessage: string | null
+  bookings?: Array<{ id: string; createdAt: string; dinner: { title: string } }>
 }
 
-export interface PayoutListResponse {
-  success: boolean
-  data: PayoutResponse[]
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
+export interface RafraenStartResponse {
+  authorizeUrl: string
+  mockMode: boolean
+}
+
+export interface CardRegistrationInitResponse {
+  checkoutId: string
+  registrationRef: string
+  scriptUrl: string
+  shopperResultUrl: string
+  brands: string
+}
+
+export interface CardRegistrationFinalizeResponse {
+  hasCardRegistered: boolean
+  payoutCardBrand: 'VISA' | 'MASTER' | null
+  payoutCardLast4: string | null
+}
+
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const token = getToken()
+    if (!token) return { success: false, error: 'Authentication required' }
+
+    const response = await fetch(getApiUrl(endpoint), {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    })
+    const json = await response.json()
+    if (!response.ok) {
+      return { success: false, error: json.error || json.message || 'Request failed' }
+    }
+    return { success: true, data: json.data as T }
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Network error' }
   }
 }
 
-class PayoutService {
-  /**
-   * Get host's payout history
-   */
-  async getHostPayouts(hostId: string): Promise<PayoutListResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch payouts')
-      }
-
-      return result
-    } catch (error: any) {
-      console.error('Error fetching payouts:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get host's available balance
-   */
-  async getHostBalance(hostId: string): Promise<HostBalanceResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/balance`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch balance')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error fetching balance:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get host's payment details (all payments from bookings)
-   */
-  async getHostPaymentDetails(
-    hostId: string,
-    options?: { status?: string; bookingStatus?: string; page?: number; limit?: number }
-  ): Promise<PaymentDetailsResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const params = new URLSearchParams()
-      if (options?.status) params.append('status', options.status)
-      if (options?.bookingStatus) params.append('bookingStatus', options.bookingStatus)
-      if (options?.page) params.append('page', options.page.toString())
-      if (options?.limit) params.append('limit', options.limit.toString())
-
-      const queryString = params.toString()
-      const url = `/payouts/host/${hostId}/payments${queryString ? `?${queryString}` : ''}`
-
-      const response = await fetch(getApiUrl(url), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch payment details')
-      }
-
-      return result
-    } catch (error: any) {
-      console.error('Error fetching payment details:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get host's payment status (pending vs ready to withdraw)
-   */
-  async getHostPaymentStatus(hostId: string): Promise<PaymentStatusResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/status`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to fetch payment status')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error fetching payment status:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Request a payout
-   */
-  async requestPayout(hostId: string): Promise<PayoutResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/request`), {
+export const payoutService = {
+  getSettings(): Promise<{ success: boolean; data?: PayoutSettings; error?: string }> {
+    return request<PayoutSettings>('/host/payout-settings', { method: 'GET' })
+  },
+  updateSettings(
+    body: UpdatePayoutSettingsBody
+  ): Promise<{ success: boolean; data?: PayoutSettings; error?: string }> {
+    return request<PayoutSettings>('/host/payout-settings', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+  },
+  initiateCardRegistration(): Promise<{
+    success: boolean
+    data?: CardRegistrationInitResponse
+    error?: string
+  }> {
+    return request<CardRegistrationInitResponse>('/host/payout-card-registration/initiate', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+  },
+  finalizeCardRegistration(input: {
+    resourcePath: string
+    registrationRef: string
+  }): Promise<{
+    success: boolean
+    data?: CardRegistrationFinalizeResponse
+    error?: string
+  }> {
+    return request<CardRegistrationFinalizeResponse>(
+      '/host/payout-card-registration/finalize',
+      {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        // Provide helpful message for insufficient funds error
-        if (result.code === 'INSUFFICIENT_FUNDS' || result.error?.includes('insufficient')) {
-          throw new Error(
-            'Insufficient funds in platform account. In test mode, add test funds using card 4000000000000077. ' +
-            'See: https://stripe.com/docs/testing#available-balance'
-          )
-        }
-        throw new Error(result.error || result.message || 'Failed to request payout')
+        body: JSON.stringify(input),
       }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error requesting payout:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Withdraw funds from connected account to bank account
-   */
-  async withdrawToBank(hostId: string, payoutId: string): Promise<PayoutResponse> {
-    try {
-      const token = getToken()
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch(getApiUrl(`/payouts/host/${hostId}/withdraw/${payoutId}`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to withdraw to bank')
-      }
-
-      return result.data
-    } catch (error: any) {
-      console.error('Error withdrawing to bank:', error)
-      throw error
-    }
-  }
+    )
+  },
+  listPayouts(): Promise<{ success: boolean; data?: HostPayout[]; error?: string }> {
+    return request<HostPayout[]>('/host/payouts', { method: 'GET' })
+  },
+  getEarnings(): Promise<{ success: boolean; data?: HostEarnings; error?: string }> {
+    return request<HostEarnings>('/host/earnings', { method: 'GET' })
+  },
+  startRafraen(): Promise<{ success: boolean; data?: RafraenStartResponse; error?: string }> {
+    return request<RafraenStartResponse>('/auth/rafraen/start', { method: 'GET' })
+  },
+  getRafraenStatus(): Promise<{
+    success: boolean
+    data?: { verified: boolean; verifiedAt: string | null; kycStatus: string }
+    error?: string
+  }> {
+    return request('/auth/rafraen/status', { method: 'GET' })
+  },
 }
-
-export const payoutService = new PayoutService()

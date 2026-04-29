@@ -12,6 +12,7 @@ import {
   UserX,
   RefreshCw,
   Scale,
+  CreditCard,
 } from 'lucide-react'
 
 export default function TermsOfUseClient() {
@@ -23,7 +24,7 @@ export default function TermsOfUseClient() {
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Terms of Use</h1>
-          <p className="text-xl text-muted-foreground">Last updated: April 1, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -40,7 +41,7 @@ export default function TermsOfUseClient() {
                 <p>
                   These Terms of Use govern the use of datthome.com ("the Website", "we", "us"). By
                   accessing, registering on, or using the Website in any manner, you agree to be
-                  bound by these Terms.
+                  bound by these Terms and represent that you are at least 18 years old.
                 </p>
                 <p>
                   The Website operates as a marketplace platform connecting individuals who host
@@ -67,15 +68,17 @@ export default function TermsOfUseClient() {
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                   <li>provides a marketplace platform for listing and booking dining events</li>
                   <li>
-                    acts as Merchant of Record and is responsible for processing all transactions and
-                    bookings made through the platform
+                    acts as Merchant of Record and is responsible for processing all transactions
+                    and bookings made through the platform
                   </li>
                   <li>does not organize, supervise, prepare, or control any dining events</li>
                 </ul>
                 <p className="mt-4">
-                  While Datthome takes responsibility for the transaction and booking process as
-                  Merchant of Record, all matters relating to food quality, safety, and event
-                  execution remain exclusively the responsibility of the Host.
+                  As Merchant of Record, Datthome is responsible for the transaction itself —
+                  billing, payment processing, refunds, chargeback and dispute handling, customer
+                  support for payment issues, and applicable tax remittance. Matters relating to
+                  food quality, hygiene, allergen disclosure, and event execution are the
+                  responsibility of the Host.
                 </p>
               </CardContent>
             </Card>
@@ -97,6 +100,11 @@ export default function TermsOfUseClient() {
                   event execution. This responsibility is confirmed through legally binding
                   electronic identification (Rafræn skilríki) at onboarding.
                 </p>
+                <p className="mt-4">
+                  Hosting is currently available only to Icelandic residents. Each Host must
+                  complete identity verification with Rafræn skilríki and register a Visa or
+                  Mastercard payout card before publishing a dinner or receiving a payout.
+                </p>
                 <p className="mt-4">Hosts are solely and fully responsible for:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                   <li>food preparation, ingredients, hygiene, and food safety</li>
@@ -106,8 +114,10 @@ export default function TermsOfUseClient() {
                   <li>the safe and proper execution of all dining events</li>
                 </ul>
                 <p className="mt-4 font-medium">
-                  Datthome assumes no responsibility for food quality, safety, or the physical
-                  conduct of dining events. These remain exclusively the Host's responsibility.
+                  Food quality, food safety, allergen disclosure, and the physical conduct of dining
+                  events are the Host's responsibility. Datthome, as Merchant of Record, handles the
+                  transaction side — billing, refunds, chargebacks, payment disputes, and
+                  payment-related customer support.
                 </p>
               </CardContent>
             </Card>
@@ -228,13 +238,57 @@ export default function TermsOfUseClient() {
             </Card>
           </section>
 
-          {/* 9. Governing Law */}
+          {/* 9. Payment Terms */}
+          <section aria-labelledby="payment-terms">
+            <Card>
+              <CardHeader>
+                <CardTitle id="payment-terms" className="text-2xl flex items-center gap-2">
+                  <CreditCard className="w-6 h-6" />
+                  9. Payment Terms
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>
+                  All payments on the platform are processed by <strong>Esja Fjarskipti ehf</strong>{' '}
+                  (operating as Datthome) via Paystrax COPYandPAY, a PCI-DSS compliant card payment
+                  solution. Card data is entered directly into the Paystrax hosted widget and never
+                  touches Datthome servers.
+                </p>
+                <p>
+                  <strong>Authorization and capture:</strong> When you complete the booking form,
+                  your card is pre-authorized (PA) for the full amount. The charge is captured only
+                  when the host confirms your reservation. If the host does not confirm, the
+                  authorization is released automatically.
+                </p>
+                <p>
+                  <strong>Currency:</strong> All amounts are charged in Icelandic Króna (ISK).
+                  Foreign cardholders will be charged in ISK; currency conversion is handled by
+                  their card issuer.
+                </p>
+                <p>
+                  <strong>Accepted cards:</strong> Visa and Mastercard. American Express and other
+                  card networks are not accepted.
+                </p>
+                <p>
+                  <strong>Refunds:</strong> Refunds are governed by the cancellation policy of the
+                  individual dining experience. See our{' '}
+                  <a href="/refund-policy" className="text-primary underline">
+                    Refund & Cancellation Policy
+                  </a>{' '}
+                  for full details. Datthome, as Merchant of Record, is responsible for processing
+                  all refunds and handling payment disputes.
+                </p>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* 10. Governing Law */}
           <section aria-labelledby="governing-law">
             <Card>
               <CardHeader>
                 <CardTitle id="governing-law" className="text-2xl flex items-center gap-2">
                   <Scale className="w-6 h-6" />
-                  9. Governing Law
+                  10. Governing Law
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

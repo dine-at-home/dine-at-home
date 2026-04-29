@@ -47,7 +47,6 @@ import {
   Heart,
   Shield,
   Bell,
-  CreditCard,
   LogOut,
   AlertCircle,
   Mail,
@@ -65,8 +64,6 @@ import {
   ChevronRight,
   Search,
 } from 'lucide-react'
-import { PayoutSection } from '@/components/payout/payout-section'
-import { PaymentDetailsSection } from '@/components/payout/payment-details-section'
 import Image from 'next/image'
 import moment from 'moment-timezone'
 import { getApiUrl } from '@/lib/api-config'
@@ -93,6 +90,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { COUNTRIES } from '@/lib/countries'
 import { cn } from '@/components/ui/utils'
+import { KycStatusBanner } from '@/components/host/dashboard/kyc-status-banner'
+import { HostSetupChecklist } from '@/components/host/dashboard/host-setup-checklist'
+import { EarningsSection } from '@/components/host/dashboard/earnings-section'
+import { StatCard } from '@/components/ui/stat-card'
 
 // Mock data for demonstration (fallback)
 const mockDinners = [
@@ -185,8 +186,22 @@ function HostDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading } = useAuth()
-  const initialTab = searchParams.get('tab') || 'overview'
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const TAB_VALUES = ['overview', 'dinners', 'bookings', 'earnings', 'account'] as const
+  type TabValue = (typeof TAB_VALUES)[number]
+  const TAB_ALIASES: Record<string, TabValue> = {
+    payouts: 'earnings',
+    payments: 'earnings',
+    reviews: 'bookings',
+    profile: 'account',
+    settings: 'account',
+  }
+  const rawInitial = searchParams.get('tab') || 'overview'
+  const initialTab: TabValue =
+    (TAB_VALUES as readonly string[]).includes(rawInitial)
+      ? (rawInitial as TabValue)
+      : (TAB_ALIASES[rawInitial] ?? 'overview')
+  const setupSkipped = searchParams.get('setup') === 'skipped'
+  const [activeTab, setActiveTab] = useState<TabValue>(initialTab)
   const [dinnerFilter, setDinnerFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [searchQuery, setSearchQuery] = useState('')
@@ -1332,8 +1347,11 @@ function HostDashboardContent() {
 
   // Update URL when tab changes
   const handleTabChange = (newTab: string) => {
-    setActiveTab(newTab)
-    const url = newTab === 'overview' ? '/host/dashboard' : `/host/dashboard?tab=${newTab}`
+    const resolved: TabValue = (TAB_VALUES as readonly string[]).includes(newTab)
+      ? (newTab as TabValue)
+      : (TAB_ALIASES[newTab] ?? 'overview')
+    setActiveTab(resolved)
+    const url = resolved === 'overview' ? '/host/dashboard' : `/host/dashboard?tab=${resolved}`
     router.replace(url)
   }
 
@@ -1487,85 +1505,68 @@ function HostDashboardContent() {
   }
 
   const renderOverview = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">€{stats.totalRevenue.toLocaleString()}</p>
-              </div>
-              <Wallet className="w-8 h-8 text-primary-600" />
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-8">
+      <section>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            At a glance
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={Wallet}
+            label="Total revenue"
+            value={`kr ${stats.totalRevenue.toLocaleString()}`}
+            hint="Lifetime earnings before platform fee."
+            accent="orange"
+          />
+          <StatCard
+            icon={Users}
+            label="Total guests"
+            value={stats.totalGuests}
+            hint="People who have shared a meal at your table."
+            accent="amber"
+          />
+          <StatCard
+            icon={Star}
+            label="Average rating"
+            value={stats.averageRating}
+            hint={
+              stats.totalReviews > 0
+                ? `Based on ${stats.totalReviews} review${stats.totalReviews !== 1 ? 's' : ''}.`
+                : 'No reviews yet — your first dinner sets the bar.'
+            }
+            accent="emerald"
+          />
+          <StatCard
+            icon={Calendar}
+            label="Upcoming dinners"
+            value={stats.upcomingCount}
+            hint={
+              stats.nextUpcoming
+                ? `Next on ${new Date(stats.nextUpcoming.date).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  })}.`
+                : 'Add a new dinner to fill your calendar.'
+            }
+            accent="slate"
+          />
+        </div>
+      </section>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Guests</p>
-                <p className="text-2xl font-bold">{stats.totalGuests}</p>
-              </div>
-              <Users className="w-8 h-8 text-primary-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                <p className="text-2xl font-bold">{stats.averageRating}</p>
-              </div>
-              <Star className="w-8 h-8 text-primary-600" />
-            </div>
-            {stats.totalReviews > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Based on {stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming Dinners</p>
-                <p className="text-2xl font-bold">{stats.upcomingCount}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-primary-600" />
-            </div>
-            {stats.nextUpcoming && (
-              <p className="text-xs text-blue-600 mt-2">
-                Next:{' '}
-                {new Date(stats.nextUpcoming.date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
+      <Card className="border-border/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Recent Activity
+          <CardTitle className="flex items-center gap-2 font-dm-sans text-xl font-semibold tracking-tight">
+            <TrendingUp className="h-5 w-5" />
+            Recent activity
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No recent activity</p>
-            </div>
+          <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-6 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              Activity from new bookings, reviews, and payouts will appear here.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -1619,128 +1620,58 @@ function HostDashboardContent() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Dinners</p>
-                <p className="text-2xl font-bold">{totalDinnersCount || dinners.length}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-primary-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">
-                  €{dinners.reduce((sum, d) => sum + d.revenue, 0)}
-                </p>
-              </div>
-              <Wallet className="w-8 h-8 text-primary-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Guests</p>
-                <p className="text-2xl font-bold">
-                  {dinners.reduce((sum, d) => sum + d.guests, 0)}
-                </p>
-              </div>
-              <Users className="w-8 h-8 text-primary-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                <p className="text-2xl font-bold">
-                  {dinners.filter((d) => d.rating > 0).length > 0
-                    ? (
-                        dinners.reduce((sum, d) => sum + d.rating, 0) /
-                        dinners.filter((d) => d.rating > 0).length
-                      ).toFixed(1)
-                    : '0.0'}
-                </p>
-              </div>
-              <Star className="w-8 h-8 text-primary-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Controls & Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg border shadow-sm">
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-          <Button
-            variant={dinnerFilter === 'all' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => {
-              setDinnerFilter('all')
-              setPage(1)
-            }}
-            className="rounded-full"
-          >
-            All ({dinners.length})
-          </Button>
-          <Button
-            variant={dinnerFilter === 'upcoming' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => {
-              setDinnerFilter('upcoming')
-              setPage(1)
-            }}
-            className="rounded-full"
-          >
-            Upcoming (
-            {dinners.filter((d) => new Date(d.date) > new Date() && d.status !== 'draft').length})
-          </Button>
-          <Button
-            variant={dinnerFilter === 'ongoing' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => {
-              setDinnerFilter('ongoing')
-              setPage(1)
-            }}
-            className="rounded-full"
-          >
-            Ongoing ({dinners.filter((d) => d.status === 'ongoing').length})
-          </Button>
-          <Button
-            variant={dinnerFilter === 'completed' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => {
-              setDinnerFilter('completed')
-              setPage(1)
-            }}
-            className="rounded-full"
-          >
-            Completed (
-            {dinners.filter((d) => new Date(d.date) <= new Date() && d.status !== 'draft').length})
-          </Button>
-          <Button
-            variant={dinnerFilter === 'draft' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => {
-              setDinnerFilter('draft')
-              setPage(1)
-            }}
-            className="rounded-full"
-          >
-            Drafts ({dinners.filter((d) => d.status === 'draft').length})
-          </Button>
+        <div className="-mx-4 w-full overflow-x-auto px-4 md:mx-0 md:w-auto md:px-0">
+          <div className="inline-flex h-auto items-center gap-0.5 rounded-full border border-border/60 bg-muted/50 p-1">
+            {[
+              { value: 'all', label: 'All', count: dinners.length },
+              {
+                value: 'upcoming',
+                label: 'Upcoming',
+                count: dinners.filter(
+                  (d) => new Date(d.date) > new Date() && d.status !== 'draft'
+                ).length,
+              },
+              {
+                value: 'ongoing',
+                label: 'Ongoing',
+                count: dinners.filter((d) => d.status === 'ongoing').length,
+              },
+              {
+                value: 'completed',
+                label: 'Completed',
+                count: dinners.filter(
+                  (d) => new Date(d.date) <= new Date() && d.status !== 'draft'
+                ).length,
+              },
+              {
+                value: 'draft',
+                label: 'Drafts',
+                count: dinners.filter((d) => d.status === 'draft').length,
+              },
+            ].map((f) => {
+              const active = dinnerFilter === f.value
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => {
+                    setDinnerFilter(f.value)
+                    setPage(1)
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                    active
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {f.label} ({f.count})
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -1757,23 +1688,31 @@ function HostDashboardContent() {
               }}
             />
           </div>
-          <div className="flex items-center border rounded-md p-1 bg-background">
-            <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
+          <div className="inline-flex items-center gap-0.5 rounded-full border border-border/60 bg-muted/50 p-1">
+            <button
+              type="button"
               onClick={() => setViewMode('table')}
+              aria-label="Table view"
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                viewMode === 'table'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
               <LayoutList className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
+            </button>
+            <button
+              type="button"
               onClick={() => setViewMode('grid')}
+              aria-label="Grid view"
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                viewMode === 'grid'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
               <LayoutGrid className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -1902,10 +1841,10 @@ function HostDashboardContent() {
                           </div>
                         </TableCell>
                         <TableCell className="p-4">
-                          <div className="font-medium">€{dinner.price}</div>
+                          <div className="font-medium">kr {dinner.price}</div>
                         </TableCell>
                         <TableCell className="p-4">
-                          <span className="font-medium text-green-600">€{dinner.revenue}</span>
+                          <span className="font-medium text-green-600">kr {dinner.revenue}</span>
                         </TableCell>
                         <TableCell className="text-right p-4">
                           <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
@@ -1973,7 +1912,7 @@ function HostDashboardContent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-primary-600">
-                            €{dinner.price}
+                            kr {dinner.price}
                           </span>
                           <span className="text-sm text-muted-foreground">per person</span>
                         </div>
@@ -1987,7 +1926,7 @@ function HostDashboardContent() {
                           </span>
                           <span className="text-sm text-muted-foreground">({dinner.reviews})</span>
                         </div>
-                        <span className="font-semibold text-primary-600">€{dinner.revenue}</span>
+                        <span className="font-semibold text-primary-600">kr {dinner.revenue}</span>
                       </div>
 
                       <div className="flex gap-2">
@@ -2121,7 +2060,7 @@ function HostDashboardContent() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-primary-600">
-                          €{booking.totalAmount}
+                          kr {booking.totalAmount}
                         </span>
                       </div>
                       {booking.specialRequests && (
@@ -2319,24 +2258,6 @@ function HostDashboardContent() {
                 </div>
                 <Badge className="bg-gray-100 text-gray-800">Disabled</Badge>
               </div> */}
-            </div>
-          </div>
-
-          {/* Payment Methods Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              <h3 className="text-lg font-semibold">Payment Methods</h3>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Manage Payment Methods</p>
-                </div>
-              </div>
-              <Button variant="outline">Manage Payment Methods</Button>
             </div>
           </div>
 
@@ -2961,41 +2882,78 @@ function HostDashboardContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Host Dashboard</h1>
-                <p className="text-muted-foreground mt-1">
-                  Manage your dining experiences and bookings
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  Host Studio
+                </p>
+                <h1 className="mt-2 font-dm-sans text-[2rem] font-semibold leading-[1.15] tracking-tight text-foreground sm:text-[2.4rem]">
+                  {user?.name ? `Welcome back, ${user.name.split(' ')[0]}.` : 'Welcome back.'}
+                </h1>
+                <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+                  Plan dinners, accept bookings, and watch your earnings — all in one place.
                 </p>
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => router.push('/')}>
-                  <Home className="w-4 h-4 mr-2" />
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Button variant="outline" onClick={() => router.push('/')} className="h-9 gap-2 rounded-xl px-4 text-sm font-medium">
+                  <Home className="h-4 w-4" />
                   Back to Home
                 </Button>
-                <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
-                  <Plus className="w-4 h-4" />
+                <Button onClick={() => router.push('/host/dinners/create')} className="h-9 gap-2 rounded-xl px-4 text-sm font-medium">
+                  <Plus className="h-4 w-4" />
                   Create Dinner
                 </Button>
               </div>
             </div>
           </div>
 
+          {/* Persistent KYC banner — visible across every tab until verified */}
+          <div className="mb-6">
+            <KycStatusBanner />
+          </div>
+
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-8">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="dinners">My Dinners</TabsTrigger>
-              <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              <TabsTrigger value="payouts">Payouts</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+              <TabsList className="inline-flex h-auto gap-0.5 rounded-full border border-border/60 bg-muted/50 p-1">
+                <TabsTrigger
+                  value="overview"
+                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger
+                  value="dinners"
+                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Dinners
+                </TabsTrigger>
+                <TabsTrigger
+                  value="bookings"
+                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Bookings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="earnings"
+                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Earnings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="account"
+                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Account
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="overview" className="mt-6">
-              {renderOverview()}
+              <div className="space-y-6">
+                <HostSetupChecklist highlight={setupSkipped} />
+                {renderOverview()}
+              </div>
             </TabsContent>
 
             <TabsContent value="dinners" className="mt-6">
@@ -3003,27 +2961,49 @@ function HostDashboardContent() {
             </TabsContent>
 
             <TabsContent value="bookings" className="mt-6">
-              {renderBookings()}
+              <Tabs defaultValue="reservations" className="w-full">
+                <TabsList className="mb-6 inline-flex h-auto gap-0.5 rounded-full border border-border/60 bg-muted/50 p-1">
+                  <TabsTrigger
+                    value="reservations"
+                    className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
+                    Reservations
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="reviews"
+                    className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
+                    Reviews
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="reservations">{renderBookings()}</TabsContent>
+                <TabsContent value="reviews">{renderReviews()}</TabsContent>
+              </Tabs>
             </TabsContent>
 
-            <TabsContent value="payouts" className="mt-6">
-              {user?.id && <PayoutSection hostId={user.id} />}
+            <TabsContent value="earnings" className="mt-6">
+              <EarningsSection highlightSetup={setupSkipped} />
             </TabsContent>
 
-            <TabsContent value="payments" className="mt-6">
-              {user?.id && <PaymentDetailsSection hostId={user.id} />}
-            </TabsContent>
-
-            <TabsContent value="reviews" className="mt-6">
-              {renderReviews()}
-            </TabsContent>
-
-            <TabsContent value="profile" className="mt-6">
-              {renderProfile()}
-            </TabsContent>
-
-            <TabsContent value="settings" className="mt-6">
-              {renderSettings()}
+            <TabsContent value="account" className="mt-6">
+              <Tabs defaultValue="profile" className="w-full">
+                <TabsList className="mb-6 inline-flex h-auto gap-0.5 rounded-full border border-border/60 bg-muted/50 p-1">
+                  <TabsTrigger
+                    value="profile"
+                    className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
+                    Public profile
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="security"
+                    className="rounded-full px-4 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
+                    Security &amp; preferences
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="profile">{renderProfile()}</TabsContent>
+                <TabsContent value="security">{renderSettings()}</TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
         </div>

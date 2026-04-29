@@ -25,7 +25,7 @@ export default function PrivacyPolicyClient() {
             <Shield className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Privacy Policy</h1>
-          <p className="text-xl text-muted-foreground">Last updated: February 2, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -65,11 +65,16 @@ export default function PrivacyPolicyClient() {
                 <article>
                   <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
                   <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                    <li>Name, email address, and phone number</li>
+                    <li>Name, email address, and phone number (a phone number on your profile is required to submit a booking)</li>
                     <li>Profile photo and biography</li>
-                    <li>Address information (for Hosts)</li>
-                    <li>Payment and billing information</li>
-                    <li>Government-issued ID (for identity verification, if applicable)</li>
+                    <li>Address information (for Hosts, used as the dinner location)</li>
+                    <li>
+                      Payment and payout card details (entered into Paystrax's PCI-DSS compliant
+                      hosted widget — full card numbers never reach Datthome servers)
+                    </li>
+                    <li>
+                      Identity data verified through Rafræn skilríki / Icelandic eID (for Hosts)
+                    </li>
                   </ul>
                 </article>
 
@@ -135,8 +140,9 @@ export default function PrivacyPolicyClient() {
                 <p>We may share your information with:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                   <li>
-                    <strong>Other Users:</strong> Hosts see Guest names, contact info, and dietary
-                    preferences; Guests see Host profiles and addresses after booking
+                    <strong>Other Users:</strong> Hosts see Guest name, profile photo, email, phone
+                    number, and any message included with the booking request; Guests see the
+                    Host's profile and the dinner address after the booking is confirmed
                   </li>
                   <li>
                     <strong>Payment Processors:</strong> Secure payment processing through
@@ -320,9 +326,10 @@ export default function PrivacyPolicyClient() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p>
-                  Our services are not intended for individuals under the age of 18. We do not
-                  knowingly collect personal information from children. If we become aware that we
-                  have collected data from a child, we will delete it promptly.
+                  Datthome is intended for adults; by accepting our Terms of Use you represent
+                  that you are at least 18 years old. We do not knowingly collect personal
+                  information from anyone under 18. If we become aware that we have collected
+                  data from a minor, we will delete it and close the associated account promptly.
                 </p>
               </CardContent>
             </Card>

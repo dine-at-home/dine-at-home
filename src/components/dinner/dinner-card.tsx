@@ -123,7 +123,7 @@ export function DinnerCard({ dinner, className = '' }: DinnerCardProps) {
 
           <div className="absolute bottom-3 left-3 z-10">
             <div className="bg-black/30 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 shadow-lg">
-              <span className="text-white font-bold text-base">€{dinner.price}</span>
+              <span className="text-white font-bold text-base">kr {dinner.price}</span>
               <span className="text-white/80 text-[11px] ml-1 font-medium">/ person</span>
             </div>
           </div>

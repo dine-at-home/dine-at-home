@@ -121,11 +121,29 @@ const mockBookings = [
 ]
 
 function ProfilePageContent() {
-  const { user, loading, refreshUser, resendOTP } = useAuth()
+  const { user, loading, refreshUser, resendOTP, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
+  const callbackUrl = searchParams.get('callbackUrl')
+  const editPhoneRequested = searchParams.get('editPhone') === '1'
+
+  // Auto-enter edit mode and scroll to the phone field when arriving from a flow that needs it
+  // (e.g. BookingGuard sending the user here because their account has no phone yet).
+  useEffect(() => {
+    if (editPhoneRequested && user) {
+      setIsEditing(true)
+      // Defer to next tick so the inputs render before we focus/scroll.
+      setTimeout(() => {
+        const el = document.getElementById('phone')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          ;(el as HTMLInputElement).focus()
+        }
+      }, 100)
+    }
+  }, [editPhoneRequested, user])
   const [verifyingEmail, setVerifyingEmail] = useState(false)
   const [verifyEmailError, setVerifyEmailError] = useState<string | null>(null)
 
@@ -1023,6 +1041,13 @@ function ProfilePageContent() {
       // Refresh user from auth context
       await refreshUser()
 
+      // If we were sent here from a booking flow that needed a phone number, return now
+      // that they have one. We only follow the callbackUrl if it's a same-origin path.
+      if (callbackUrl && callbackUrl.startsWith('/') && profileData.phone.trim()) {
+        router.push(callbackUrl)
+        return
+      }
+
       // Clear success message after 2 seconds
       setTimeout(() => {
         setSaveSuccess(false)
@@ -1289,12 +1314,14 @@ function ProfilePageContent() {
           {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
+              <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="bookings">Bookings</TabsTrigger>
+                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
@@ -1360,9 +1387,10 @@ function ProfilePageContent() {
                         </p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Phone</label>
+                        <label htmlFor="phone" className="block text-sm font-medium mb-2">Phone</label>
                         {isEditing ? (
                           <Input
+                            id="phone"
                             value={profileData.phone}
                             onChange={(e) =>
                               setProfileData({ ...profileData, phone: e.target.value })
@@ -1567,7 +1595,7 @@ function ProfilePageContent() {
                                         {booking.guests} guest{booking.guests > 1 ? 's' : ''}
                                       </span>
                                       <span className="text-lg font-semibold text-primary-600">
-                                        €{booking.totalAmount}
+                                        kr {booking.totalAmount}
                                       </span>
                                     </div>
                                     {/* Cancel Button for Confirmed/Pending Bookings */}
@@ -2004,13 +2032,24 @@ function ProfilePageContent() {
                         <CreditCard className="w-4 h-4" />
                         Payment Methods
                       </h3>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => router.push('/profile/payment-methods')}
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
                         Manage Payment Methods
                       </Button>
                     </div>
 
                     <div className="border-t pt-6">
-                      <Button variant="destructive" className="w-full justify-start">
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          logout()
+                        }}
+                      >
                         <LogOut className="w-4 h-4 mr-2" />
                         Sign Out
                       </Button>
@@ -2304,21 +2343,21 @@ function ProfilePageContent() {
               <div className="p-4 bg-muted/50 rounded-lg space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Original Amount:</span>
-                  <span className="text-sm">€{cancelDetails.totalAmount}</span>
+                  <span className="text-sm">kr {cancelDetails.totalAmount}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Refund Amount:</span>
                   <span
                     className={`text-sm font-semibold ${cancelDetails.refundAmount > 0 ? 'text-green-600' : 'text-destructive'}`}
                   >
-                    €{cancelDetails.refundAmount.toFixed(2)} ({cancelDetails.refundPercentage}%)
+                    kr {cancelDetails.refundAmount.toFixed(0)} ({cancelDetails.refundPercentage}%)
                   </span>
                 </div>
                 {cancelDetails.refundAmount < cancelDetails.totalAmount && (
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="text-sm font-medium">Non-refundable:</span>
                     <span className="text-sm text-destructive">
-                      €{(cancelDetails.totalAmount - cancelDetails.refundAmount).toFixed(2)}
+                      kr {(cancelDetails.totalAmount - cancelDetails.refundAmount).toFixed(0)}
                     </span>
                   </div>
                 )}

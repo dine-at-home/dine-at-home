@@ -143,7 +143,59 @@ function BookingDetailPageContent() {
   }
 
   const location = typeof dinner.location === 'object' ? dinner.location : {}
-  const hasConfirmedBooking = booking.status === 'CONFIRMED' || booking.status === 'confirmed'
+  const status = String(booking.status || '').toUpperCase()
+  const hasConfirmedBooking = status === 'CONFIRMED'
+
+  type StatusBanner = {
+    icon: typeof AlertCircle
+    title: string
+    message: string
+    container: string
+    iconClass: string
+  }
+
+  const statusBanner: StatusBanner | null = (() => {
+    if (status === 'PENDING') {
+      return {
+        icon: Clock,
+        title: 'Waiting on host confirmation',
+        message:
+          'Your card has been authorized but not charged yet. You will be charged only once the host accepts your reservation. We will email you the moment they respond.',
+        container: 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20',
+        iconClass: 'text-amber-600 dark:text-amber-400',
+      }
+    }
+    if (status === 'CONFIRMED') {
+      return {
+        icon: CheckCircle,
+        title: 'Booking confirmed',
+        message:
+          'Your seat is reserved. The host has been notified and the full address is now visible below.',
+        container: 'border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20',
+        iconClass: 'text-green-600 dark:text-green-400',
+      }
+    }
+    if (status === 'CANCELLED') {
+      return {
+        icon: XCircle,
+        title: 'Booking cancelled',
+        message:
+          'This booking was cancelled. Any refund (per the dinner cancellation policy) will appear on your card within a few business days.',
+        container: 'border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20',
+        iconClass: 'text-red-600 dark:text-red-400',
+      }
+    }
+    if (status === 'COMPLETED') {
+      return {
+        icon: CheckCircle,
+        title: 'Dinner complete',
+        message: 'Hope you had a great time! You can leave a review from your bookings list.',
+        container: 'border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/20',
+        iconClass: 'text-blue-600 dark:text-blue-400',
+      }
+    }
+    return null
+  })()
 
   return (
     <PageLayout>
@@ -154,6 +206,20 @@ function BookingDetailPageContent() {
         </Button>
 
         <div className="space-y-6">
+          {statusBanner && (
+            <div
+              className={`rounded-xl border p-4 flex items-start gap-3 ${statusBanner.container}`}
+            >
+              <statusBanner.icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${statusBanner.iconClass}`} />
+              <div className="min-w-0">
+                <p className="font-semibold leading-tight">{statusBanner.title}</p>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  {statusBanner.message}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Booking Header */}
           <Card>
             <CardHeader>
@@ -211,10 +277,10 @@ function BookingDetailPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 text-muted-foreground text-lg font-medium">€</span>
+                  <span className="w-5 h-5 text-muted-foreground text-sm font-medium">kr</span>
                   <div>
                     <p className="text-sm font-medium">Total Price</p>
-                    <p className="text-sm text-muted-foreground">€{booking.totalPrice}</p>
+                    <p className="text-sm text-muted-foreground">kr {booking.totalPrice}</p>
                   </div>
                 </div>
               </div>

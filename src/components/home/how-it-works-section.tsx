@@ -78,23 +78,24 @@ export function HowItWorksSection() {
             viewport={{ once: true }}
             className="hidden lg:block"
           >
-            <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Live activity: 142 people browsing
-              </div>
-              <div className="space-y-4">
-                {[1, 2].map((i) => (
-                  <div key={i} className="w-64 h-2 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-primary-500"
-                      initial={{ width: 0 }}
-                      whileInView={{ width: i === 1 ? '70%' : '40%' }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                    />
-                  </div>
-                ))}
-              </div>
+            <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-sm w-72">
+              <p className="text-xs uppercase tracking-widest text-primary-400 font-bold mb-4">
+                What you get
+              </p>
+              <ul className="space-y-3 text-sm text-zinc-300">
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+                  Hosts verified with Icelandic eID
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+                  Card pre-authorized, charged on host approval
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+                  Refunds follow each dinner's cancellation policy
+                </li>
+              </ul>
             </div>
           </motion.div>
         </div>

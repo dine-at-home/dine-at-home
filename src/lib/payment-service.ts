@@ -1,8 +1,3 @@
-/**
- * Payment Service
- * Handles all payment-related API calls
- */
-
 import { getApiUrl } from './api-config'
 
 const getToken = (): string | null => {
@@ -10,210 +5,130 @@ const getToken = (): string | null => {
   return localStorage.getItem('auth_token')
 }
 
-export interface CheckoutSessionResponse {
-  checkoutUrl: string
-}
-
-export interface PaymentStatusResponse {
-  status: string
-  paymentIntentStatus?: string
+export interface InitiatePaymentResponse {
+  checkoutId: string
+  scriptUrl: string
+  shopperResultUrl: string
+  brands: string
   amount: number
   currency: string
 }
 
-class PaymentService {
-  /**
-   * Create a checkout session for a booking (payment-first flow)
-   * This creates the checkout session BEFORE creating the booking
-   * The booking will be created automatically when payment succeeds
-   */
-  async createCheckoutSessionForBooking(data: {
-    dinnerId: string
-    guests: number
-    message?: string
-    contactInfo: {
-      name: string
-      email: string
-      phone: string
+export interface FinalizePaymentResponse {
+  status: 'SUCCEEDED' | 'PROCESSING' | 'FAILED'
+  paymentId?: string
+  amount?: number
+  currency?: string
+  reason?: string
+}
+
+async function callApi<T>(
+  endpoint: string,
+  body: unknown
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const token = getToken()
+    if (!token) return { success: false, error: 'Authentication required' }
+
+    const response = await fetch(getApiUrl(endpoint), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    })
+    const json = await response.json()
+    if (!response.ok) {
+      return { success: false, error: json.error || json.message || 'Request failed' }
     }
-  }): Promise<{
-    success: boolean
-    data?: CheckoutSessionResponse
-    error?: string
-  }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        return { success: false, error: 'Authentication required' }
-      }
-
-      const response = await fetch(getApiUrl('/payments/checkout-for-booking'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to create checkout session',
-        }
-      }
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error: any) {
-      console.error('Error creating checkout session:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to create checkout session',
-      }
-    }
-  }
-
-  /**
-   * Create a checkout session for an existing booking (legacy method)
-   */
-  async createCheckoutSession(bookingId: string): Promise<{
-    success: boolean
-    data?: CheckoutSessionResponse
-    error?: string
-  }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        return { success: false, error: 'Authentication required' }
-      }
-
-      const response = await fetch(getApiUrl('/payments/checkout'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ bookingId }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to create checkout session',
-        }
-      }
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error: any) {
-      console.error('Error creating checkout session:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to create checkout session',
-      }
-    }
-  }
-
-  /**
-   * Create booking from payment intent (fallback if webhook fails)
-   */
-  async createBookingFromPayment(data: {
-    paymentIntentId?: string
-    sessionId?: string
-  }): Promise<{
-    success: boolean
-    data?: { bookingId: string }
-    error?: string
-  }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        return { success: false, error: 'Authentication required' }
-      }
-
-      const response = await fetch(getApiUrl('/payments/create-booking-from-payment'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to create booking from payment',
-        }
-      }
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error: any) {
-      console.error('Error creating booking from payment:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to create booking from payment',
-      }
-    }
-  }
-
-  /**
-   * Verify payment status for a booking
-   */
-  async verifyPayment(bookingId: string): Promise<{
-    success: boolean
-    data?: PaymentStatusResponse
-    error?: string
-  }> {
-    try {
-      const token = getToken()
-      if (!token) {
-        return { success: false, error: 'Authentication required' }
-      }
-
-      const response = await fetch(getApiUrl(`/payments/verify/${bookingId}`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to verify payment',
-        }
-      }
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error: any) {
-      console.error('Error verifying payment:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to verify payment',
-      }
-    }
+    return { success: true, data: json.data as T }
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Network error' }
   }
 }
 
-export const paymentService = new PaymentService()
+export const paymentService = {
+  initiatePayment(bookingId: string, options?: { paymentMethodId?: string }) {
+    return callApi<InitiatePaymentResponse>('/payments/initiate', {
+      bookingId,
+      paymentMethodId: options?.paymentMethodId,
+    })
+  },
+  finalizePayment(bookingId: string, resourcePath: string, options?: { saveCard?: boolean }) {
+    return callApi<FinalizePaymentResponse>('/payments/finalize', {
+      bookingId,
+      resourcePath,
+      saveCard: !!options?.saveCard,
+    })
+  },
+}
+
+const SAVE_CARD_KEY = (bookingId: string) => `dath:saveCard:${bookingId}`
+
+export const saveCardIntent = {
+  set(bookingId: string, save: boolean) {
+    if (typeof window === 'undefined') return
+    if (save) {
+      sessionStorage.setItem(SAVE_CARD_KEY(bookingId), '1')
+    } else {
+      sessionStorage.removeItem(SAVE_CARD_KEY(bookingId))
+    }
+  },
+  read(bookingId: string): boolean {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem(SAVE_CARD_KEY(bookingId)) === '1'
+  },
+  clear(bookingId: string) {
+    if (typeof window === 'undefined') return
+    sessionStorage.removeItem(SAVE_CARD_KEY(bookingId))
+  },
+}
+
+export interface SavedPaymentMethod {
+  id: string
+  brand: string
+  last4: string
+  holder?: string | null
+  expiryMonth?: string | null
+  expiryYear?: string | null
+  isDefault: boolean
+  createdAt: string
+}
+
+async function callJson<T>(
+  endpoint: string,
+  init: { method: 'GET' | 'DELETE' | 'PATCH' | 'POST'; body?: unknown }
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const token = getToken()
+    if (!token) return { success: false, error: 'Authentication required' }
+    const response = await fetch(getApiUrl(endpoint), {
+      method: init.method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+    })
+    const json = await response.json()
+    if (!response.ok) {
+      return { success: false, error: json.error || json.message || 'Request failed' }
+    }
+    return { success: true, data: json.data as T }
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Network error' }
+  }
+}
+
+export const paymentMethodService = {
+  list() {
+    return callJson<SavedPaymentMethod[]>('/payment-methods', { method: 'GET' })
+  },
+  remove(id: string) {
+    return callJson<{ id: string }>(`/payment-methods/${id}`, { method: 'DELETE' })
+  },
+  setDefault(id: string) {
+    return callJson<{ id: string }>(`/payment-methods/${id}/default`, { method: 'PATCH' })
+  },
+}

@@ -13,7 +13,7 @@ export default function CookiePolicyClient() {
             <Cookie className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Cookie Policy</h1>
-          <p className="text-xl text-muted-foreground">Last updated: February 2, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
         </header>
 
         <main className="space-y-8">

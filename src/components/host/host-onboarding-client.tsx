@@ -1,143 +1,134 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  User,
-  MapPin,
-  Calendar,
-  ChefHat,
-  Star,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle,
-  Home,
-  Shield,
-  Check,
-  ChevronsUpDown,
-  Camera,
-} from 'lucide-react'
+import { ArrowRight, ArrowLeft, Home, ChefHat, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { useAuth } from '@/contexts/auth-context'
 import { authService } from '@/lib/auth-service'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/components/ui/utils'
+import { toast } from 'sonner'
 
-const countries = [
-  { label: 'United States', value: 'United States' },
-  { label: 'United Kingdom', value: 'United Kingdom' },
-  { label: 'Iceland', value: 'Iceland' },
-  // ... (keeping it short for now)
-]
+const TOTAL_STEPS = 3
 
 export default function HostOnboardingClient() {
   const router = useRouter()
+  const { user, refreshUser } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
-  const [openCountry, setOpenCountry] = useState(false)
-  const [hostData, setHostData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    bio: '',
-    profileImage: '',
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
     address: '',
     city: '',
     state: '',
-    zipCode: '',
-    country: 'United States',
-    timezone: 'America/New_York',
-    directions: '',
-    accessibility: '',
-    maxCapacity: 8,
-    priceRange: 'moderate',
-    cuisineTypes: [] as string[],
-    dietaryAccommodations: [] as string[],
     termsAccepted: false,
-    bankName: '',
-    accountHolderName: '',
-    iban: '',
-    swiftBic: '',
-    payoutAddress: '',
   })
 
-  const handleInputChange = (field: string, value: any) => {
-    setHostData((prev) => ({ ...prev, [field]: value }))
-  }
+  // Resume mid-flow + auto-fill what we already know about the host.
+  useEffect(() => {
+    if (!user) return
+    setCurrentStep(Math.min(Math.max(user.hostOnboardingStep || 1, 1), TOTAL_STEPS))
+    setForm((prev) => ({
+      ...prev,
+      address: prev.address || user.hostAddress || '',
+      city: prev.city || user.hostCity || '',
+      state: prev.state || user.hostState || '',
+    }))
+  }, [user])
 
-  const nextStep = () => currentStep < 5 && setCurrentStep(currentStep + 1)
-  const prevStep = () => currentStep > 1 && setCurrentStep(currentStep - 1)
+  const set = (field: keyof typeof form, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [field]: value }))
 
   const isStepComplete = () => {
     switch (currentStep) {
       case 1:
-        return hostData.fullName && hostData.email && hostData.phone && hostData.bio
+        return Boolean(form.address.trim() && form.city.trim() && form.state.trim())
       case 2:
-        return hostData.address && hostData.city && hostData.state && hostData.zipCode
-      case 4:
-        return hostData.termsAccepted
-      case 5:
-        return !!(
-          hostData.bankName &&
-          hostData.accountHolderName &&
-          hostData.iban &&
-          hostData.swiftBic &&
-          hostData.payoutAddress
-        )
+        return form.termsAccepted
+      case 3:
+        return true
       default:
         return true
     }
   }
 
+  const persistStep = async (step: number, extra: Record<string, unknown> = {}) => {
+    if (!user) return
+    setSaving(true)
+    try {
+      const res = await authService.updateProfile(user.id, {
+        hostOnboardingStep: step,
+        ...extra,
+      } as any)
+      if (!res.success) {
+        toast.error(res.error || 'Could not save your progress')
+      } else {
+        await refreshUser()
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleNext = async () => {
+    if (!isStepComplete() || saving) return
+    if (currentStep === 1) {
+      // Save the location alongside step advance.
+      await persistStep(2, {
+        hostAddress: form.address.trim(),
+        hostCity: form.city.trim(),
+        hostState: form.state.trim(),
+      })
+    } else if (currentStep === 2) {
+      await persistStep(3)
+    }
+    setCurrentStep((s) => Math.min(s + 1, TOTAL_STEPS))
+  }
+
+  const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 1))
+
+  const handleHandoff = () => router.push('/host/payouts/settings')
+  const handleSkipForNow = () =>
+    router.push('/host/dashboard?tab=earnings&setup=skipped')
+
   return (
     <HostGuard>
       <div className="min-h-screen bg-background">
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <header className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Become a Host</h1>
-                <p className="text-muted-foreground mt-1">
-                  Share your passion for food and earn money
-                </p>
-              </div>
-              <Button variant="outline" onClick={() => router.push('/')}>
-                <Home className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
+        <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+          <header className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Become a Host</h1>
+              <p className="mt-1 text-muted-foreground">
+                Three quick steps and you're ready to set up payouts.
+              </p>
             </div>
+            <Button variant="outline" onClick={() => router.push('/')}>
+              <Home className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
           </header>
 
-          <nav className="mb-8" aria-label="Onboarding Progress">
+          <nav className="mb-8" aria-label="Onboarding progress">
             <div className="flex items-center justify-between">
-              {[1, 2, 3, 4, 5].map((step) => (
+              {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
                 <div key={step} className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step <= currentStep ? 'bg-primary-600 text-white' : 'bg-muted text-muted-foreground'}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium tabular-nums transition ${
+                      step <= currentStep
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
                   >
                     {step}
                   </div>
-                  {step < 5 && (
+                  {step < TOTAL_STEPS && (
                     <div
-                      className={`w-16 h-0.5 mx-2 ${step < currentStep ? 'bg-primary-600' : 'bg-muted'}`}
+                      className={`mx-2 h-0.5 w-12 ${
+                        step < currentStep ? 'bg-primary' : 'bg-muted'
+                      }`}
                     />
                   )}
                 </div>
@@ -149,33 +140,128 @@ export default function HostOnboardingClient() {
             {currentStep === 1 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
+                  <CardTitle>Where will you be hosting?</CardTitle>
+                  <CardDescription>
+                    Your home address — guests only see the neighborhood until they book.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Input
-                    placeholder="Full Name"
-                    value={hostData.fullName}
-                    onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  />
-                  <Input
-                    placeholder="Email"
-                    value={hostData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                  />
-                  {/* ... other fields ... */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address">Street address</Label>
+                    <Input
+                      id="address"
+                      placeholder="Laugavegur 1"
+                      value={form.address}
+                      onChange={(e) => set('address', e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        placeholder="Reykjavík"
+                        value={form.city}
+                        onChange={(e) => set('city', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="state">Region</Label>
+                      <Input
+                        id="state"
+                        placeholder="Capital Region"
+                        value={form.state}
+                        onChange={(e) => set('state', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {currentStep === 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Host responsibilities</CardTitle>
+                  <CardDescription>
+                    As a host you take responsibility for food safety, hygiene, and event execution
+                    in your home. Datthome handles payments and platform support.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={form.termsAccepted}
+                      onChange={(e) => set('termsAccepted', e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">
+                      I accept the{' '}
+                      <Link
+                        href="/terms-of-use"
+                        target="_blank"
+                        className="text-primary font-medium hover:underline underline-offset-4"
+                      >
+                        host terms and conditions
+                      </Link>{' '}
+                      and confirm I'm an Icelandic resident.
+                    </span>
+                  </label>
+                </CardContent>
+              </Card>
+            )}
+
+            {currentStep === 3 && (
+              <Card>
+                <CardContent className="space-y-6 py-10 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                    <ChefHat className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold tracking-tight">Almost there</h2>
+                    <p className="mx-auto max-w-md text-muted-foreground">
+                      You can already start drafting dinners. To start receiving payouts, finish a
+                      one-time identity check and link a card. About 3 minutes.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <Button onClick={handleHandoff} size="lg" className="w-full sm:w-auto">
+                      Set up payouts
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                    <div>
+                      <button
+                        onClick={handleSkipForNow}
+                        className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                      >
+                        I'll do this later
+                      </button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
           </section>
 
-          <footer className="flex items-center justify-between">
-            <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-            </Button>
-            <Button onClick={nextStep} disabled={!isStepComplete()}>
-              {currentStep === 5 ? 'Finish' : 'Next'} <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </footer>
+          {currentStep !== 3 && (
+            <footer className="flex items-center justify-between">
+              <Button variant="outline" onClick={handleBack} disabled={currentStep === 1 || saving}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+              </Button>
+              <Button onClick={handleNext} disabled={!isStepComplete() || saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
+                  </>
+                ) : (
+                  <>
+                    Next <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </footer>
+          )}
         </main>
       </div>
     </HostGuard>

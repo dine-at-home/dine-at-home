@@ -694,6 +694,24 @@ function EditDinnerPageContent() {
         validationErrors.push('Please upload at least one image')
       }
 
+      const CONTACT_INFO_RE =
+        /(@[a-zA-Z0-9_.]{2,})|([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})|(https?:\/\/|www\.)|(\+[\d\s\-().]{5,}\d)/i
+      const textFieldsToCheck = [
+        { label: 'Description', value: dinnerData.description },
+        { label: 'Menu', value: dinnerData.menu },
+        { label: 'Ingredients', value: dinnerData.ingredients || '' },
+        { label: 'Directions', value: dinnerData.directions || '' },
+        { label: 'Accessibility info', value: dinnerData.accessibility || '' },
+        { label: 'House rules', value: dinnerData.houseRules || '' },
+      ]
+      for (const field of textFieldsToCheck) {
+        if (field.value && CONTACT_INFO_RE.test(field.value)) {
+          validationErrors.push(
+            `${field.label} must not contain contact information (phone numbers, emails, URLs, or social handles)`
+          )
+        }
+      }
+
       if (validationErrors.length > 0) {
         setError(validationErrors.join('. ') + '.')
         setIsSubmitting(false)
@@ -745,7 +763,7 @@ function EditDinnerPageContent() {
         capacity: dinnerData.maxCapacity,
         minGuests: dinnerData.minGuests,
         price: dinnerData.pricePerPerson,
-        currency: 'EUR',
+        currency: 'ISK',
         images: allImages,
         dietary: dinnerData.dietaryAccommodations,
         experienceLevel: dinnerData.experienceLevel,
@@ -1067,55 +1085,10 @@ function EditDinnerPageContent() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Country *</label>
-                    <Popover open={openCountry} onOpenChange={setOpenCountry}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openCountry}
-                          className="w-full justify-between"
-                        >
-                          {dinnerData.state
-                            ? COUNTRIES.find((country) => country.value === dinnerData.state)?.label
-                            : 'Select country...'}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search country..."
-                            className="border-none focus:ring-0 outline-none shadow-none ring-0"
-                          />
-                          <CommandList>
-                            <CommandEmpty>No country found.</CommandEmpty>
-                            <CommandGroup>
-                              {COUNTRIES.map((country) => (
-                                <CommandItem
-                                  key={country.value}
-                                  value={country.label}
-                                  onSelect={(currentValue) => {
-                                    handleInputChange('state', country.value)
-                                    setOpenCountry(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      dinnerData.state === country.value
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
-                                    )}
-                                  />
-                                  {country.label}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <label className="block text-sm font-medium mb-2">Country</label>
+                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
+                      Iceland
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">ZIP Code</label>
@@ -1431,12 +1404,12 @@ function EditDinnerPageContent() {
                   <label className="block text-sm font-medium mb-2">Price Per Person *</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
-                      €
+                      kr
                     </span>
                     <Input
                       type="number"
                       min="1"
-                      max="1000"
+                      max="100000"
                       value={dinnerData.pricePerPerson}
                       onChange={(e) => {
                         const value = e.target.value ? parseInt(e.target.value) || 0 : 0

@@ -10,7 +10,7 @@ const publicRoutes = [
   '/auth/signup',
   '/auth/error',
   '/auth/forgot-password',
-  '/auth/callback',
+  '/auth/reset-password',
   '/auth/google/callback',
   '/auth/role-selection',
   '/auth/verify-otp', // Allow access to OTP verification page

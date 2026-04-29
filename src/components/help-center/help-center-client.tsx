@@ -1,29 +1,11 @@
 'use client'
 
 import { MainLayout } from '@/components/layout/main-layout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  HelpCircle,
-  Search,
-  MessageCircle,
-  Phone,
-  Mail,
-  Clock,
-  BookOpen,
-  Shield,
-  CreditCard,
-  ChefHat,
-  Star,
-  Calendar,
-  MapPin,
-} from 'lucide-react'
-import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+import { HelpCircle, BookOpen, Shield, CreditCard, ChefHat, Mail } from 'lucide-react'
 
 export default function HelpCenterClient() {
-  const [searchQuery, setSearchQuery] = useState('')
-
   const faqCategories = [
     {
       title: 'Getting Started',
@@ -42,7 +24,7 @@ export default function HelpCenterClient() {
         {
           question: 'How do I verify my account?',
           answer:
-            "We'll send you a verification email after signup. Click the link in the email to verify your account and unlock all features.",
+            "After signup we send a 6-digit verification code to your email. Enter the code on the verification screen to confirm your address and unlock all features.",
         },
       ],
     },
@@ -53,17 +35,17 @@ export default function HelpCenterClient() {
         {
           question: 'How do I book a dining experience?',
           answer:
-            "Search for experiences, select your preferred date and time, and complete the booking process. You'll receive instant confirmation and all details.",
+            "Search for experiences and submit a booking request for the dinner you want. Your card is pre-authorized for the full amount but only charged once the host confirms your reservation. If the host doesn't confirm, the authorization is released automatically and no charge appears on your statement. A phone number on your profile is required to submit a booking.",
         },
         {
           question: 'What payment methods do you accept?',
           answer:
-            'We accept all major credit cards (Visa, MasterCard, American Express) and digital wallets like PayPal and Apple Pay.',
+            'We accept Visa and Mastercard. All amounts are charged in Icelandic Króna (ISK). Foreign cardholders will see the ISK amount converted to their home currency at their bank\'s exchange rate.',
         },
         {
           question: 'Can I cancel my booking?',
           answer:
-            'Yes! You can cancel bookings up to 24 hours in advance for a full refund. Cancellations within 24 hours may be subject to different policies.',
+            'Yes. Refunds depend on the cancellation policy set by the host (Flexible, Moderate, or Strict), which is shown on the dinner listing and on your booking confirmation. See our Refund & Cancellation Policy for the rules and refund timing.',
         },
       ],
     },
@@ -74,17 +56,17 @@ export default function HelpCenterClient() {
         {
           question: 'How do I become a host?',
           answer:
-            'Sign up as a host, complete your profile with your culinary background, and create your first dining experience listing.',
+            'Sign up as a host (currently available to Icelandic residents only), complete identity verification with Rafræn skilríki (Icelandic eID), register a Visa or Mastercard payout card, and create your first dining experience listing.',
         },
         {
           question: 'What are the requirements to host?',
           answer:
-            "You need a safe kitchen space, food safety knowledge, and a passion for sharing your culinary skills. We'll guide you through the verification process.",
+            'You must be an Icelandic resident, complete identity verification via Rafræn skilríki, and register a payout card. Hosts are responsible for the food they prepare, including hygiene, allergen disclosure, and compliance with local food and health regulations.',
         },
         {
           question: 'How do I get paid?',
           answer:
-            'Hosts receive payments within 24-48 hours after each completed dining experience, minus our service fee.',
+            'Hosts receive 80% of the booking price in ISK, credited to a registered Visa or Mastercard payout card via Paystrax, 72 hours after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
         },
       ],
     },
@@ -95,43 +77,19 @@ export default function HelpCenterClient() {
         {
           question: 'How do you verify hosts?',
           answer:
-            'All hosts undergo identity verification, background checks, and food safety assessments before they can start hosting.',
+            'All hosts complete identity verification using Rafræn skilríki (Icelandic eID) before they can publish a dinner or receive payouts. Datthome does not perform background checks or food safety inspections — hosts are solely responsible for food preparation, hygiene, and compliance with local regulations.',
         },
         {
           question: 'What if I have a problem with my experience?',
           answer:
-            'Contact our support team immediately. We have a dedicated team to resolve issues and ensure your safety and satisfaction.',
+            'Contact us at info@datthome.com. As Merchant of Record, Datthome handles payment-related issues, refunds, and disputes. Issues regarding the food or the conduct of the event are the responsibility of the host.',
         },
         {
           question: 'Are the dining experiences safe?',
           answer:
-            'Yes! All hosts are verified, and we have safety guidelines in place. You can also read reviews from other guests before booking.',
+            'Hosts complete identity verification, but Datthome does not inspect kitchens, food, or events. You participate at your own risk — please read the listing, check reviews, and disclose any allergies to the host before the dinner. See our Assumption of Risk & Liability Waiver for full details.',
         },
       ],
-    },
-  ]
-
-  const contactMethods = [
-    {
-      title: 'Live Chat',
-      description: 'Get instant help from our support team',
-      icon: <MessageCircle className="w-6 h-6" />,
-      action: 'Start Chat',
-      available: 'Available 24/7',
-    },
-    {
-      title: 'Email Support',
-      description: 'Send us a detailed message',
-      icon: <Mail className="w-6 h-6" />,
-      action: 'Send Email',
-      available: 'Response within 24 hours',
-    },
-    {
-      title: 'Phone Support',
-      description: 'Speak directly with our team',
-      icon: <Phone className="w-6 h-6" />,
-      action: 'Call Now',
-      available: 'Mon-Fri 9AM-6PM EST',
     },
   ]
 
@@ -145,49 +103,38 @@ export default function HelpCenterClient() {
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Help Center</h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Find answers to your questions or get in touch with our support team
+            Find answers to your questions
           </p>
         </header>
 
-        {/* Search Bar */}
+        {/* Contact */}
         <section className="mb-12">
           <Card>
-            <CardContent className="p-6">
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input
-                  placeholder="Search for help articles, FAQs, or topics..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 pr-4 py-3 text-lg"
-                />
-              </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Contact Support
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-muted-foreground">
+                Can&apos;t find what you&apos;re looking for? Our support team is here to help.
+              </p>
+              <p>
+                Email:{' '}
+                <a
+                  href="mailto:info@datthome.com"
+                  className="text-primary underline hover:no-underline font-medium"
+                >
+                  info@datthome.com
+                </a>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                We aim to respond within 1 business day.
+              </p>
             </CardContent>
           </Card>
         </section>
-
-        {/* Quick Links */}
-        <nav className="mb-12" aria-label="Help Quick Links">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Quick Links</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <Calendar className="w-6 h-6" />
-              <span className="font-medium">Booking Help</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <CreditCard className="w-6 h-6" />
-              <span className="font-medium">Payment Issues</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <ChefHat className="w-6 h-6" />
-              <span className="font-medium">Hosting Guide</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <Shield className="w-6 h-6" />
-              <span className="font-medium">Safety Info</span>
-            </Button>
-          </div>
-        </nav>
 
         {/* FAQ Categories */}
         <section className="mb-12">
@@ -215,112 +162,6 @@ export default function HelpCenterClient() {
                 </Card>
               </article>
             ))}
-          </div>
-        </section>
-
-        {/* Contact Methods */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Contact Support</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {contactMethods.map((method, index) => (
-              <article key={index}>
-                <Card className="text-center h-full">
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      {method.icon}
-                    </div>
-                    <CardTitle className="text-xl">{method.title}</CardTitle>
-                    <CardDescription>{method.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button className="w-full mb-2">{method.action}</Button>
-                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {method.available}
-                    </p>
-                  </CardContent>
-                </Card>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Popular Topics */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Popular Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              {
-                title: 'How to Book',
-                icon: <Calendar className="w-4 h-4 text-blue-600" />,
-                bg: 'bg-blue-100',
-                desc: 'Step-by-step booking guide',
-              },
-              {
-                title: 'Hosting Tips',
-                icon: <ChefHat className="w-4 h-4 text-green-600" />,
-                bg: 'bg-green-100',
-                desc: 'Everything for hosts',
-              },
-              {
-                title: 'Refund Policy',
-                icon: <CreditCard className="w-4 h-4 text-purple-600" />,
-                bg: 'bg-purple-100',
-                desc: 'Understanding refunds',
-              },
-              {
-                title: 'Reviews',
-                icon: <Star className="w-4 h-4 text-orange-600" />,
-                bg: 'bg-orange-100',
-                desc: 'Ratings guide',
-              },
-              {
-                title: 'Safety',
-                icon: <Shield className="w-4 h-4 text-red-600" />,
-                bg: 'bg-red-100',
-                desc: 'Stay safe',
-              },
-              {
-                title: 'Find Food',
-                icon: <MapPin className="w-4 h-4 text-teal-600" />,
-                bg: 'bg-teal-100',
-                desc: 'Discover experiences',
-              },
-            ].map((topic, i) => (
-              <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-8 h-8 ${topic.bg} rounded-full flex items-center justify-center flex-shrink-0`}
-                    >
-                      {topic.icon}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{topic.title}</h3>
-                      <p className="text-sm text-muted-foreground">{topic.desc}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Still Need Help */}
-        <section className="bg-primary-50 rounded-xl">
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Still Need Help?</h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              Can't find what you're looking for? Our support team is here to help you 24/7.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-primary-600 hover:bg-primary-700">
-                Contact Support
-              </Button>
-              <Button variant="outline" size="lg">
-                Browse All Articles
-              </Button>
-            </div>
           </div>
         </section>
       </div>

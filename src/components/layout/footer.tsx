@@ -2,6 +2,26 @@ import { Button } from '@/components/ui/button'
 import { Facebook, Instagram, Twitter, Globe } from 'lucide-react'
 import Link from 'next/link'
 
+function VisaLogo() {
+  return (
+    <div className="h-8 w-12 rounded bg-[#1A1F71] flex items-center justify-center" aria-label="Visa">
+      <span className="text-white font-bold text-sm italic tracking-tight">VISA</span>
+    </div>
+  )
+}
+
+function MastercardLogo() {
+  return (
+    <div className="h-8 w-12 rounded bg-[#252525] flex items-center justify-center relative overflow-hidden" aria-label="Mastercard">
+      <div className="absolute left-1.5 w-5 h-5 rounded-full bg-[#EB001B]" />
+      <div className="absolute right-1.5 w-5 h-5 rounded-full bg-[#F79E1B]" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-3 h-5 bg-[#FF5F00]" style={{ clipPath: 'none', opacity: 0.85 }} />
+      </div>
+    </div>
+  )
+}
+
 export function Footer() {
   return (
     <footer className="bg-background-secondary py-16">
@@ -16,48 +36,6 @@ export function Footer() {
                   How it works
                 </Link>
               </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Newsroom
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Investors
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Careers
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Hosts */}
-          <div>
-            <h3 className="font-semibold mb-4">Hosts</h3>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Become a host
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Host resources
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Community forum
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Host insurance
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -71,18 +49,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Safety information
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Cancellation options
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Report issue
+                <a href="mailto:info@datthome.com" className="hover:text-foreground transition-colors">
+                  Contact Us
                 </a>
               </li>
             </ul>
@@ -103,10 +71,12 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/assumption-of-risk"
-                  className="hover:text-foreground transition-colors"
-                >
+                <Link href="/refund-policy" className="hover:text-foreground transition-colors">
+                  Refund & Cancellation Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/assumption-of-risk" className="hover:text-foreground transition-colors">
                   Assumption of Risk
                 </Link>
               </li>
@@ -117,10 +87,28 @@ export function Footer() {
               </li>
             </ul>
           </div>
+
+          {/* Hosting */}
+          <div>
+            <h3 className="font-semibold mb-4">Hosting</h3>
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li>
+                <Link href="/host-payouts-info" className="hover:text-foreground transition-colors">
+                  Host Payouts
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Bottom Footer */}
         <div className="border-t border-border pt-8">
+          {/* Company legal info */}
+          <p className="text-xs text-muted-foreground mb-4 text-center">
+            Payments processed by <strong>Esja Fjarskipti ehf</strong> (Datthome) · Storakrika 17,
+            Mosfellsbær, 270, Iceland · Merchant of Record for all transactions on this platform.
+          </p>
+
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
@@ -136,6 +124,12 @@ export function Footer() {
             </div>
 
             <div className="flex items-center space-x-6">
+              {/* Payment logos */}
+              <div className="flex items-center space-x-2" aria-label="Accepted payment methods">
+                <VisaLogo />
+                <MastercardLogo />
+              </div>
+
               {/* Language/Currency */}
               <Button variant="ghost" size="sm" className="text-sm">
                 <Globe className="w-4 h-4 mr-2" />

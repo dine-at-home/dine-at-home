@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,9 +20,14 @@ export default function RoleSelectionPage() {
       router.push('/auth/signin')
     }
 
-    // If user already has a role and doesn't need role selection, redirect
+    // If user already has a role and doesn't need role selection, redirect.
+    // Hosts that haven't finished KYC should land on onboarding, not the dashboard.
     if (user && !user.needsRoleSelection && user.role !== 'guest') {
-      router.push(user.role === 'host' ? '/host/dashboard' : '/')
+      if (user.role === 'host') {
+        router.push(user.kycStatus === 'VERIFIED' ? '/host/dashboard' : '/host/onboarding')
+      } else {
+        router.push('/')
+      }
     }
   }, [user, loading, isAuthenticated, router])
 
@@ -32,9 +38,9 @@ export default function RoleSelectionPage() {
       const result = await updateRole(role)
 
       if (result.success) {
-        // Redirect based on role
+        // Brand-new hosts always start in onboarding (KYC unverified by definition).
         if (role === 'host') {
-          router.push('/host/dashboard')
+          router.push('/host/onboarding')
         } else {
           router.push('/')
         }
@@ -136,7 +142,14 @@ export default function RoleSelectionPage() {
             </Card>
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-8 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              By continuing you agree to our{' '}
+              <Link href="/terms-of-use" target="_blank" className="underline hover:text-foreground">
+                Terms of Use
+              </Link>
+              .
+            </p>
             <p className="text-sm text-muted-foreground">
               Don't worry, you can always change your role later in your account settings.
             </p>

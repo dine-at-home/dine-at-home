@@ -26,6 +26,7 @@ export default function LiabilityWaiverClient() {
             Assumption of Risk & Liability Waiver
           </h1>
           <p className="text-xl text-muted-foreground">IMPORTANT – PLEASE READ CAREFULLY</p>
+          <p className="text-sm text-muted-foreground mt-2">Last updated: April 29, 2026</p>
         </header>
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
@@ -141,10 +142,16 @@ export default function LiabilityWaiverClient() {
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                   <li>their own actions, omissions, health, and safety</li>
                   <li>compliance with all applicable laws and regulations</li>
-                  <li>resolving disputes directly with each other</li>
+                  <li>
+                    resolving disputes about the food, the conduct of the dinner, and any in-person
+                    interactions directly with each other
+                  </li>
                 </ul>
                 <p className="mt-4 font-medium">
-                  The Website shall not be involved in dispute resolution or liability allocation.
+                  As Merchant of Record, Datthome is responsible only for the transaction itself —
+                  billing, refunds, chargebacks, and payment-related disputes. Datthome is not
+                  involved in resolving disputes about food quality, allergens, hygiene, or the
+                  conduct of dining events.
                 </p>
               </CardContent>
             </Card>
