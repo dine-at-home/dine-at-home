@@ -120,11 +120,13 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
     }
   }, [user])
 
-  // Guest pays dinner.price * guests. Platform's 20% commission is deducted from the host's
-  // payout server-side — it is NOT an extra charge on top of the listed price. Authoritative
-  // totals come from the backend; this display value is presentational only.
+  // Pricing model: guest pays subtotal + platform service fee on top. Backend is authoritative;
+  // this display mirrors the dinner detail page so the guest sees the same number end-to-end.
+  // Keep PLATFORM_FEE_PERCENTAGE in sync if you change it server-side.
+  const PLATFORM_FEE_PERCENT = 20
   const subtotal = dinner.price * guests
-  const total = subtotal
+  const serviceFee = Math.round(subtotal * (PLATFORM_FEE_PERCENT / 100))
+  const total = subtotal + serviceFee
 
   const handleGuestDetailsSubmit = () => {
     if (
@@ -568,6 +570,10 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                       kr {dinner.price} x {guests} guests
                     </span>
                     <span>kr {subtotal}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Service fee</span>
+                    <span>kr {serviceFee}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
