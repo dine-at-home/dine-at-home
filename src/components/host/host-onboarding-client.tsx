@@ -185,7 +185,8 @@ export default function HostOnboardingClient() {
                   <CardTitle>Host responsibilities</CardTitle>
                   <CardDescription>
                     As a host you take responsibility for food safety, hygiene, and event execution
-                    in your home. Datthome handles payments and platform support.
+                    in your home. Datthome handles payments as Merchant of Record, and may deduct
+                    refunds or chargebacks caused by host conduct from your payouts.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -199,13 +200,29 @@ export default function HostOnboardingClient() {
                     <span className="text-sm">
                       I accept the{' '}
                       <Link
+                        href="/host-agreement"
+                        target="_blank"
+                        className="text-primary font-medium hover:underline underline-offset-4"
+                      >
+                        Host Agreement
+                      </Link>
+                      ,{' '}
+                      <Link
                         href="/terms-of-use"
                         target="_blank"
                         className="text-primary font-medium hover:underline underline-offset-4"
                       >
-                        host terms and conditions
-                      </Link>{' '}
-                      and confirm I'm an Icelandic resident.
+                        Terms of Use
+                      </Link>
+                      , and{' '}
+                      <Link
+                        href="/assumption-of-risk"
+                        target="_blank"
+                        className="text-primary font-medium hover:underline underline-offset-4"
+                      >
+                        Liability Waiver
+                      </Link>
+                      , and confirm I'm an Icelandic resident.
                     </span>
                   </label>
                 </CardContent>

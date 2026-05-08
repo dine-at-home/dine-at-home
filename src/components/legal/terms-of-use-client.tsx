@@ -24,7 +24,7 @@ export default function TermsOfUseClient() {
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Terms of Use</h1>
-          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: May 8, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -156,14 +156,19 @@ export default function TermsOfUseClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>The Website and its owners:</p>
+                <p>
+                  This disclaimer applies only to the dining experience itself and does not limit
+                  Datthome's responsibilities as Merchant of Record. With respect to the dining
+                  experience, the Website and its owners:
+                </p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                   <li>
-                    assume no liability for any dining event listed or booked through the Website
+                    assume no liability for the food, the conduct, or the execution of any dining
+                    event listed on the Website
                   </li>
                   <li>
                     assume no liability for illness, injury, allergic reactions, accidents, damages,
-                    losses, or disputes
+                    or losses arising from a dining event
                   </li>
                   <li>
                     make no warranties regarding the quality, safety, legality, or suitability of
@@ -171,7 +176,11 @@ export default function TermsOfUseClient() {
                   </li>
                 </ul>
                 <p className="mt-4 font-medium">
-                  Use of the Website is entirely at the user's own risk.
+                  As Merchant of Record, Datthome remains fully responsible for the transaction
+                  itself — billing, payment processing, refunds, chargebacks, payment-related
+                  disputes, and applicable tax remittance. Nothing in this section limits those
+                  responsibilities. Participation in dining events is at the Host's and Guest's own
+                  risk.
                 </p>
               </CardContent>
             </Card>

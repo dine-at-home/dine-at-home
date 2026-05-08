@@ -26,7 +26,7 @@ export default function LiabilityWaiverClient() {
             Assumption of Risk & Liability Waiver
           </h1>
           <p className="text-xl text-muted-foreground">IMPORTANT – PLEASE READ CAREFULLY</p>
-          <p className="text-sm text-muted-foreground mt-2">Last updated: April 29, 2026</p>
+          <p className="text-sm text-muted-foreground mt-2">Last updated: May 8, 2026</p>
         </header>
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
@@ -76,8 +76,8 @@ export default function LiabilityWaiverClient() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p>
-                  To the maximum extent permitted by law, you hereby irrevocably release, waive,
-                  discharge, and hold harmless:
+                  To the maximum extent permitted by law, and subject to the carve-out below, you
+                  hereby irrevocably release, waive, discharge, and hold harmless:
                 </p>
                 <p className="font-medium">
                   datthome.com, its owners, operators, directors, employees, contractors, and
@@ -89,13 +89,24 @@ export default function LiabilityWaiverClient() {
                   otherwise, arising out of or related to:
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                  <li>hosting, booking, attending, or participating in any dining event</li>
-                  <li>food preparation, consumption, or allergens</li>
-                  <li>acts or omissions of Hosts, Guests, or third parties</li>
+                  <li>hosting, attending, or participating in any dining event</li>
+                  <li>food preparation, consumption, hygiene, or allergens</li>
+                  <li>
+                    acts or omissions of Hosts, Guests, or third parties at or in connection with a
+                    dining event
+                  </li>
                 </ul>
                 <p className="mt-4 font-medium text-red-700 bg-red-50 p-3 rounded-lg">
                   This release applies even if the claim arises from alleged negligence of the
-                  Website.
+                  Website with respect to the dining event itself.
+                </p>
+                <p className="mt-4 font-medium">
+                  Carve-out — Merchant of Record responsibilities. This release does not apply to,
+                  and does not limit, Datthome's responsibilities as Merchant of Record for the
+                  transaction itself, including billing, payment processing, refunds, chargebacks,
+                  payment-related disputes, and applicable tax remittance. Claims relating solely to
+                  the transaction (for example, an unauthorised charge, a failure to refund where a
+                  refund is owed, or a payment-processing error) are not released by this Waiver.
                 </p>
               </CardContent>
             </Card>
@@ -111,15 +122,26 @@ export default function LiabilityWaiverClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>You acknowledge and agree that the Website:</p>
+                <p>
+                  With respect to the dining experience itself, you acknowledge and agree that the
+                  Website:
+                </p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                  <li>owes no duty of care to Hosts or Guests</li>
+                  <li>
+                    owes no duty of care to Hosts or Guests in relation to the conduct or execution
+                    of any dining event
+                  </li>
                   <li>does not inspect, verify, approve, or supervise dining events</li>
                   <li>does not verify compliance with health, safety, or food regulations</li>
                 </ul>
                 <p className="mt-4">
-                  The Website makes no representations or guarantees regarding any dining event or
-                  user.
+                  The Website makes no representations or guarantees regarding the food, conduct, or
+                  execution of any dining event.
+                </p>
+                <p className="mt-4 font-medium">
+                  This section does not affect the duty of care Datthome owes as Merchant of Record
+                  in connection with the transaction itself — including billing, refunds,
+                  chargebacks, and payment-related disputes.
                 </p>
               </CardContent>
             </Card>
