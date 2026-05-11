@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { authService } from '@/lib/auth-service'
 import { toast } from 'sonner'
+import { CURRENT_LEGAL_VERSIONS } from '@/lib/legal-document-versions'
 
 const TOTAL_STEPS = 3
 
@@ -28,14 +29,27 @@ export default function HostOnboardingClient() {
   })
 
   // Resume mid-flow + auto-fill what we already know about the host.
+  // If the host's accepted legal versions are stale (or never set), force them
+  // back to step 2 regardless of saved progress so they re-accept.
   useEffect(() => {
     if (!user) return
-    setCurrentStep(Math.min(Math.max(user.hostOnboardingStep || 1, 1), TOTAL_STEPS))
+    const u = user as {
+      legalAcceptedTermsVersion?: string | null
+      legalAcceptedHostAgreementVersion?: string | null
+      legalAcceptedLiabilityWaiverVersion?: string | null
+    }
+    const legalUpToDate =
+      u.legalAcceptedTermsVersion === CURRENT_LEGAL_VERSIONS.termsOfUse &&
+      u.legalAcceptedHostAgreementVersion === CURRENT_LEGAL_VERSIONS.hostAgreement &&
+      u.legalAcceptedLiabilityWaiverVersion === CURRENT_LEGAL_VERSIONS.liabilityWaiver
+    const savedStep = Math.min(Math.max(user.hostOnboardingStep || 1, 1), TOTAL_STEPS)
+    setCurrentStep(legalUpToDate ? savedStep : Math.min(savedStep, 2))
     setForm((prev) => ({
       ...prev,
       address: prev.address || user.hostAddress || '',
       city: prev.city || user.hostCity || '',
       state: prev.state || user.hostState || '',
+      termsAccepted: prev.termsAccepted || legalUpToDate,
     }))
   }, [user])
 
@@ -83,7 +97,13 @@ export default function HostOnboardingClient() {
         hostState: form.state.trim(),
       })
     } else if (currentStep === 2) {
-      await persistStep(3)
+      await persistStep(3, {
+        legalAcceptance: {
+          termsOfUseVersion: CURRENT_LEGAL_VERSIONS.termsOfUse,
+          hostAgreementVersion: CURRENT_LEGAL_VERSIONS.hostAgreement,
+          liabilityWaiverVersion: CURRENT_LEGAL_VERSIONS.liabilityWaiver,
+        },
+      })
     }
     setCurrentStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }

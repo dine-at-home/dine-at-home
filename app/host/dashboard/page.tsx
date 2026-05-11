@@ -91,6 +91,7 @@ import { Check, ChevronsUpDown } from 'lucide-react'
 import { COUNTRIES } from '@/lib/countries'
 import { cn } from '@/components/ui/utils'
 import { KycStatusBanner } from '@/components/host/dashboard/kyc-status-banner'
+import { StaleLegalBanner } from '@/components/host/dashboard/stale-legal-banner'
 import { HostSetupChecklist } from '@/components/host/dashboard/host-setup-checklist'
 import { EarningsSection } from '@/components/host/dashboard/earnings-section'
 import { StatCard } from '@/components/ui/stat-card'
@@ -2908,7 +2909,8 @@ function HostDashboardContent() {
           </div>
 
           {/* Persistent KYC banner — visible across every tab until verified */}
-          <div className="mb-6">
+          <div className="mb-6 space-y-3">
+            <StaleLegalBanner />
             <KycStatusBanner />
           </div>
 
