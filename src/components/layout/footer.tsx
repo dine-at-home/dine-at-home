@@ -105,8 +105,8 @@ export function Footer() {
         <div className="border-t border-border pt-8">
           {/* Company legal info */}
           <p className="text-xs text-muted-foreground mb-4 text-center">
-            Payments processed by <strong>Esja Fjarskipti ehf</strong> (Datthome) · Hèðinsgata 2,
-            Reykjavík, Iceland · Merchant of Record for all transactions on this platform.
+            Payments processed by <strong>Esja Fjarskipti ehf</strong> (Datthome) · Stórikríki 17,
+            270 Mosfellsbær, Iceland · Merchant of Record for all transactions on this platform.
           </p>
 
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">

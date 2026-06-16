@@ -170,6 +170,8 @@ function CreateDinnerPageContent() {
   >([])
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
   const [cityBounds, setCityBounds] = useState<google.maps.LatLngBounds | null>(null)
+  // Real coordinates for the selected address, geocoded via Google Places (used for the map).
+  const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   // Host Profile Address State (for "Use your address" feature)
   const [hostProfileAddress, setHostProfileAddress] = useState<{
@@ -861,8 +863,9 @@ function CreateDinnerPageContent() {
         zipCode: dinnerData.zipCode || '', // Optional - can be empty
         neighborhood: dinnerData.neighborhood || dinnerData.city, // Use area/neighborhood if provided, fallback to city
         coordinates: {
-          lat: 0, // TODO: Get from geocoding service
-          lng: 0, // TODO: Get from geocoding service
+          // Real coordinates from the geocoded address pick; (0,0) only if none was selected.
+          lat: addressCoords?.lat ?? 0,
+          lng: addressCoords?.lng ?? 0,
         },
       }
 
@@ -1392,6 +1395,24 @@ function CreateDinnerPageContent() {
                                 suggestion.structured_formatting.main_text
                               )
                               setShowAddressSuggestions(false)
+                              // Geocode the picked address so the dinner has real map coordinates
+                              // instead of (0,0). Best-effort — falls back to (0,0) if unavailable.
+                              if (placesServiceRef.current && suggestion.place_id) {
+                                placesServiceRef.current.getDetails(
+                                  { placeId: suggestion.place_id, fields: ['geometry'] },
+                                  (place, status) => {
+                                    if (
+                                      status === google.maps.places.PlacesServiceStatus.OK &&
+                                      place?.geometry?.location
+                                    ) {
+                                      setAddressCoords({
+                                        lat: place.geometry.location.lat(),
+                                        lng: place.geometry.location.lng(),
+                                      })
+                                    }
+                                  }
+                                )
+                              }
                             }}
                           >
                             <div className="flex items-start gap-3">

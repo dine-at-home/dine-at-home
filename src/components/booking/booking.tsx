@@ -276,6 +276,21 @@ export function Booking({ dinner, date, guests, onNavigate }: BookingProps) {
                       </label>
                     </div>
                   )}
+                  <p className="mt-4 text-xs text-muted-foreground text-center">
+                    By clicking “Pay now” you confirm you have read and agree to our{' '}
+                    <a href="/terms-of-use" className="underline hover:text-foreground">
+                      Terms of Use
+                    </a>
+                    ,{' '}
+                    <a href="/refund-policy" className="underline hover:text-foreground">
+                      Refund &amp; Cancellation Policy
+                    </a>
+                    , and{' '}
+                    <a href="/privacy-policy" className="underline hover:text-foreground">
+                      Privacy Policy
+                    </a>
+                    .
+                  </p>
                 </CardContent>
               </Card>
             ) : (

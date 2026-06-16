@@ -39,7 +39,7 @@ export interface Host {
   avatar?: string
   superhost: boolean
   joinedDate: string
-  responseRate: number
+  responseRate: number | null
   responseTime: string
   bio?: string
   rating?: number // Host's average rating across all their dinners

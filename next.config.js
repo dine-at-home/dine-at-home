@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['@prisma/client', '@prisma/engines'],
+  // Strip debug console.* (log/info/debug) from production builds in one place — keeps
+  // console.error/console.warn. Avoids leaking the 🔵/🔴/🟡 debug traces to users' consoles.
+  compiler: {
+    removeConsole: { exclude: ['error', 'warn'] },
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },

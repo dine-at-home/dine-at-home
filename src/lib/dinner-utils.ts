@@ -180,8 +180,10 @@ export function transformDinner(dinner: any): Dinner {
     avatar: dinner.host?.image || dinner.host?.avatar,
     superhost: dinner.host?.superhost || false,
     joinedDate: dinner.host?.createdAt || dinner.host?.joinedDate || new Date().toISOString(),
-    responseRate: dinner.host?.responseRate || 0,
-    responseTime: dinner.host?.responseTime || 'responds within 24 hours',
+    // Preserve null/'' from the backend so the UI hides these rather than showing a
+    // fabricated rate/time when we don't have real data yet.
+    responseRate: dinner.host?.responseRate ?? null,
+    responseTime: dinner.host?.responseTime ?? '',
     bio: dinner.host?.bio,
   }
 

@@ -362,11 +362,15 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                   })()}
                 </p>
                 {dinner.host.bio && <p className="text-sm">"{dinner.host.bio}"</p>}
-                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                  <span>Response Rate: {dinner.host.responseRate}%</span>
-                  <span>•</span>
-                  <span>{dinner.host.responseTime}</span>
-                </div>
+                {(dinner.host.responseRate != null || dinner.host.responseTime) && (
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    {dinner.host.responseRate != null && (
+                      <span>Response Rate: {dinner.host.responseRate}%</span>
+                    )}
+                    {dinner.host.responseRate != null && dinner.host.responseTime && <span>•</span>}
+                    {dinner.host.responseTime && <span>{dinner.host.responseTime}</span>}
+                  </div>
+                )}
               </div>
             </div>
 
