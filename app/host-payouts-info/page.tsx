@@ -100,18 +100,17 @@ export default function HostPayoutsInfoPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p>
-                  Payouts are credited directly to a Visa or Mastercard debit card that you register
-                  during host onboarding. Datthome uses Paystrax to push funds onto your card via an
-                  Original Credit Transaction (OCT). Most card issuers post the funds to your bank
-                  account within 1–3 business days, depending on the issuer.
+                  Payouts are paid directly to the Icelandic bank account (IBAN) you register during
+                  host onboarding. Datthome sends a bank transfer to your account after each
+                  completed dinner; funds typically arrive within 1–3 business days.
                 </p>
                 <p>
-                  You can update or replace your registered payout card at any time from your host
-                  payout settings. Payouts are processed in ISK.
+                  You can update your bank account (IBAN) at any time from your host payout settings.
+                  Payouts are processed in ISK.
                 </p>
                 <p>
-                  Payments and payouts are handled via our payment provider, Paystrax (Esja
-                  Fjarskipti ehf), which is regulated in Iceland.
+                  Guest payments are handled via our payment provider, Paystrax (Esja Fjarskipti
+                  ehf), which is regulated in Iceland.
                 </p>
               </CardContent>
             </Card>
@@ -129,7 +128,7 @@ export default function HostPayoutsInfoPage() {
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm list-disc list-inside">
                   <li>Completed identity verification (Rafræn skilríki / Icelandic eID)</li>
-                  <li>A registered Visa or Mastercard payout card on your host profile</li>
+                  <li>A registered Icelandic bank account (IBAN) on your host profile</li>
                   <li>Account in good standing (no active disputes or policy violations)</li>
                   <li>Minimum payout balance of 10,000 kr</li>
                 </ul>

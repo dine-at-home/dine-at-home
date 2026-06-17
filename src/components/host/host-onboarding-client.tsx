@@ -259,7 +259,7 @@ export default function HostOnboardingClient() {
                     <h2 className="text-2xl font-bold tracking-tight">Almost there</h2>
                     <p className="mx-auto max-w-md text-muted-foreground">
                       You can already start drafting dinners. To start receiving payouts, finish a
-                      one-time identity check and link a card. About 3 minutes.
+                      one-time identity check and add your bank account (IBAN). About 3 minutes.
                     </p>
                   </div>
                   <div className="space-y-3">

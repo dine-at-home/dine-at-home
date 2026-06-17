@@ -25,7 +25,7 @@ export default function PrivacyPolicyClient() {
             <Shield className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Privacy Policy</h1>
-          <p className="text-xl text-muted-foreground">Last updated: April 29, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: June 17, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -69,8 +69,12 @@ export default function PrivacyPolicyClient() {
                     <li>Profile photo and biography</li>
                     <li>Address information (for Hosts, used as the dinner location)</li>
                     <li>
-                      Payment and payout card details (entered into Paystrax's PCI-DSS compliant
-                      hosted widget — full card numbers never reach Datthome servers)
+                      Payment card details for guest bookings (entered into Paystrax's PCI-DSS
+                      compliant hosted widget — full card numbers never reach Datthome servers)
+                    </li>
+                    <li>
+                      Host bank account details (IBAN, account holder name) used to pay out host
+                      earnings by bank transfer
                     </li>
                     <li>
                       Identity data verified through Rafræn skilríki / Icelandic eID (for Hosts)

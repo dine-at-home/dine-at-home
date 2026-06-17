@@ -56,17 +56,17 @@ export default function HelpCenterClient() {
         {
           question: 'How do I become a host?',
           answer:
-            'Sign up as a host (currently available to Icelandic residents only), complete identity verification with Rafræn skilríki (Icelandic eID), register a Visa or Mastercard payout card, and create your first dining experience listing.',
+            'Sign up as a host (currently available to Icelandic residents only), complete identity verification with Rafræn skilríki (Icelandic eID), add your Icelandic bank account (IBAN), and create your first dining experience listing.',
         },
         {
           question: 'What are the requirements to host?',
           answer:
-            'You must be an Icelandic resident, complete identity verification via Rafræn skilríki, and register a payout card. Hosts are responsible for the food they prepare, including hygiene, allergen disclosure, and compliance with local food and health regulations.',
+            'You must be an Icelandic resident, complete identity verification via Rafræn skilríki, and add your Icelandic bank account (IBAN). Hosts are responsible for the food they prepare, including hygiene, allergen disclosure, and compliance with local food and health regulations.',
         },
         {
           question: 'How do I get paid?',
           answer:
-            'Hosts receive 80% of the booking price in ISK, credited to a registered Visa or Mastercard payout card via Paystrax, 72 hours after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
+            'Hosts receive 80% of the booking price in ISK, paid by bank transfer to your registered Icelandic bank account (IBAN), after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
         },
       ],
     },

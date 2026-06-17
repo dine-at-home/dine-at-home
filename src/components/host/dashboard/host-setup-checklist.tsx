@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Check, ArrowRight, ShieldCheck, CreditCard, FileText } from 'lucide-react'
+import { Check, ArrowRight, ShieldCheck, Landmark } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,7 +15,7 @@ interface HostSetupChecklistProps {
 }
 
 type StepDef = {
-  key: 'identity' | 'card' | 'details'
+  key: 'identity' | 'bank'
   title: string
   copy: string
   icon: typeof ShieldCheck
@@ -31,18 +31,11 @@ const STEPS: StepDef[] = [
     isComplete: (s) => Boolean(s.rafraenSkilrikiVerifiedAt),
   },
   {
-    key: 'card',
-    title: 'Register a payout card',
-    copy: '1 ISK verification charge that is reversed instantly.',
-    icon: CreditCard,
-    isComplete: (s) => s.hasCardRegistered,
-  },
-  {
-    key: 'details',
-    title: 'Add recipient details',
-    copy: 'Cardholder name, kennitala, and registered address.',
-    icon: FileText,
-    isComplete: (s) => Boolean((s.accountHolderName || '').trim() && (s.payoutAddress || '').trim()),
+    key: 'bank',
+    title: 'Add your bank account',
+    copy: 'Account holder name and IBAN — earnings are paid here by bank transfer.',
+    icon: Landmark,
+    isComplete: (s) => Boolean((s.bankAccountHolder || '').trim() && (s.iban || '').trim()),
   },
 ]
 
@@ -72,7 +65,7 @@ export function HostSetupChecklist({ className, highlight = false }: HostSetupCh
           <Skeleton className="mt-2 h-4 w-72" />
         </CardHeader>
         <CardContent className="space-y-4">
-          {[0, 1, 2].map((i) => (
+          {[0, 1].map((i) => (
             <Skeleton key={i} className="h-16 w-full" />
           ))}
         </CardContent>
@@ -104,7 +97,7 @@ export function HostSetupChecklist({ className, highlight = false }: HostSetupCh
                 Get paid for your dinners
               </CardTitle>
               <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Finish three quick steps to unlock automatic payouts after every booking.
+                Finish two quick steps to start getting paid after every booking.
               </p>
             </div>
             <div className="flex items-center gap-3">

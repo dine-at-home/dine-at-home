@@ -24,7 +24,7 @@ export default function TermsOfUseClient() {
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">Terms of Use</h1>
-          <p className="text-xl text-muted-foreground">Last updated: May 8, 2026</p>
+          <p className="text-xl text-muted-foreground">Last updated: June 17, 2026</p>
         </header>
 
         <main className="space-y-8">
@@ -102,8 +102,8 @@ export default function TermsOfUseClient() {
                 </p>
                 <p className="mt-4">
                   Hosting is currently available only to Icelandic residents. Each Host must
-                  complete identity verification with Rafræn skilríki and register a Visa or
-                  Mastercard payout card before publishing a dinner or receiving a payout.
+                  complete identity verification with Rafræn skilríki and register a valid Icelandic
+                  bank account (IBAN) before publishing a dinner or receiving a payout.
                 </p>
                 <p className="mt-4">Hosts are solely and fully responsible for:</p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">

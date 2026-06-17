@@ -28,7 +28,7 @@ export default function HostAgreementClient() {
           <p className="text-xl text-muted-foreground">
             The terms that govern your relationship with Datthome as a Host
           </p>
-          <p className="text-sm text-muted-foreground mt-2">Last updated: May 8, 2026</p>
+          <p className="text-sm text-muted-foreground mt-2">Last updated: June 17, 2026</p>
         </header>
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
@@ -58,7 +58,7 @@ export default function HostAgreementClient() {
                     complete identity verification with Rafræn skilríki (Icelandic electronic ID)
                   </li>
                   <li>
-                    register a Visa or Mastercard payout card in your own legal name before
+                    register a valid Icelandic bank account (IBAN) in your own legal name before
                     receiving any payout
                   </li>
                   <li>
@@ -162,8 +162,9 @@ export default function HostAgreementClient() {
                   in Section 5 (Set-off and Claw-back).
                 </p>
                 <p>
-                  Payouts are released to the Host's registered payout card after the dinner is
-                  marked complete and the settlement window has elapsed. The settlement window may
+                  Payouts are paid by bank transfer to the Host's registered Icelandic bank account
+                  (IBAN) after the dinner is marked complete and the settlement window has elapsed.
+                  The settlement window may
                   vary and is set by Datthome to manage chargeback and dispute risk. Datthome may
                   extend the settlement window for individual bookings if it suspects fraud, abuse,
                   a chargeback risk, or a dispute.
@@ -224,8 +225,8 @@ export default function HostAgreementClient() {
                 </p>
                 <p>
                   If amounts you owe exceed your pending and future payouts, you agree to pay the
-                  shortfall on demand. Datthome may also charge the shortfall to your registered
-                  payout card or any other payment instrument you have on file.
+                  shortfall on demand. Datthome may also recover the shortfall by deducting it from
+                  your future payouts or by other lawful means.
                 </p>
                 <p>
                   Datthome will use reasonable efforts to give you notice of a deduction and the

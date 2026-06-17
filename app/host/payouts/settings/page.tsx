@@ -10,39 +10,20 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
-  CreditCard,
+  Landmark,
   Loader2,
   ShieldCheck,
-  UserRound,
 } from 'lucide-react'
 import { payoutService, type PayoutSettings } from '@/lib/payout-service'
-import { PaystraxWidget } from '@/components/booking/paystrax-widget'
-import {
-  CARD_REGISTRATION_RETURN_TO_KEY,
-} from '@/components/host/host-card-registration-step'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
-const RETURN_TO = '/host/payouts/settings'
 const AUTOSAVE_DEBOUNCE_MS = 600
-
-type StepKey = 'identity' | 'card' | 'details'
 
 type RafraenWidgetState =
   | { phase: 'idle' }
   | { phase: 'starting' }
   | { phase: 'redirecting'; mock: boolean }
-
-type CardWidgetState =
-  | { phase: 'idle' }
-  | { phase: 'starting' }
-  | {
-      phase: 'mounted'
-      checkoutId: string
-      scriptUrl: string
-      shopperResultUrl: string
-      brands: string
-    }
 
 function StatusPill({
   tone,
@@ -136,17 +117,20 @@ export default function PayoutSettingsPage() {
   )
 }
 
+const TOTAL_STEPS = 2
+
 function PayoutSettingsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<PayoutSettings | null>(null)
   const [rafraen, setRafraen] = useState<RafraenWidgetState>({ phase: 'idle' })
-  const [card, setCard] = useState<CardWidgetState>({ phase: 'idle' })
   const [details, setDetails] = useState({
-    accountHolderName: '',
+    bankAccountHolder: '',
+    iban: '',
+    bankSwiftBic: '',
+    bankName: '',
     taxId: '',
-    payoutAddress: '',
   })
   const [savedAt, setSavedAt] = useState<number | null>(null)
 
@@ -155,9 +139,11 @@ function PayoutSettingsPageInner() {
     if (res.success && res.data) {
       setSettings(res.data)
       setDetails((prev) => ({
-        accountHolderName: prev.accountHolderName || res.data?.accountHolderName || '',
+        bankAccountHolder: prev.bankAccountHolder || res.data?.bankAccountHolder || '',
+        iban: prev.iban || res.data?.iban || '',
+        bankSwiftBic: prev.bankSwiftBic || res.data?.bankSwiftBic || '',
+        bankName: prev.bankName || res.data?.bankName || '',
         taxId: prev.taxId || res.data?.taxId || '',
-        payoutAddress: prev.payoutAddress || res.data?.payoutAddress || '',
       }))
     }
     setLoading(false)
@@ -180,12 +166,9 @@ function PayoutSettingsPageInner() {
   }, [searchParams])
 
   const identityDone = Boolean(settings?.rafraenSkilrikiVerifiedAt)
-  const cardDone = Boolean(settings?.hasCardRegistered)
-  const detailsDone = Boolean(
-    details.accountHolderName.trim() && details.payoutAddress.trim()
-  )
-  const stepsDone = [identityDone, cardDone, detailsDone].filter(Boolean).length
-  const allDone = stepsDone === 3 && settings?.kycStatus === 'VERIFIED'
+  const bankDone = Boolean(details.bankAccountHolder.trim() && details.iban.trim())
+  const stepsDone = [identityDone, bankDone].filter(Boolean).length
+  const allDone = stepsDone === TOTAL_STEPS && settings?.kycStatus === 'VERIFIED'
 
   const handleStartRafraen = async () => {
     setRafraen({ phase: 'starting' })
@@ -200,58 +183,45 @@ function PayoutSettingsPageInner() {
     window.location.href = res.data.authorizeUrl
   }
 
-  const handleRegisterCard = async () => {
-    setCard({ phase: 'starting' })
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem(CARD_REGISTRATION_RETURN_TO_KEY, RETURN_TO)
-    }
-    const res = await payoutService.initiateCardRegistration()
-    if (!res.success || !res.data) {
-      setCard({ phase: 'idle' })
-      toast.error(res.error || 'Could not start card registration')
-      return
-    }
-    setCard({
-      phase: 'mounted',
-      checkoutId: res.data.checkoutId,
-      scriptUrl: res.data.scriptUrl,
-      shopperResultUrl: res.data.shopperResultUrl,
-      brands: res.data.brands,
-    })
-  }
-
-  // Debounced autosave for recipient details. Only saves when something changed.
+  // Debounced autosave for bank details. Only saves when something changed and the required
+  // fields (account holder + IBAN) are present.
   const initialDetailsRef = useRef<typeof details | null>(null)
   useEffect(() => {
     if (!settings) return
     if (!initialDetailsRef.current) {
       initialDetailsRef.current = {
-        accountHolderName: settings.accountHolderName ?? '',
+        bankAccountHolder: settings.bankAccountHolder ?? '',
+        iban: settings.iban ?? '',
+        bankSwiftBic: settings.bankSwiftBic ?? '',
+        bankName: settings.bankName ?? '',
         taxId: settings.taxId ?? '',
-        payoutAddress: settings.payoutAddress ?? '',
       }
       return
     }
     const baseline = initialDetailsRef.current
     const changed =
-      baseline.accountHolderName !== details.accountHolderName ||
-      baseline.taxId !== details.taxId ||
-      baseline.payoutAddress !== details.payoutAddress
+      baseline.bankAccountHolder !== details.bankAccountHolder ||
+      baseline.iban !== details.iban ||
+      baseline.bankSwiftBic !== details.bankSwiftBic ||
+      baseline.bankName !== details.bankName ||
+      baseline.taxId !== details.taxId
     if (!changed) return
-    if (!details.accountHolderName.trim() || !details.payoutAddress.trim()) return
+    if (!details.bankAccountHolder.trim() || !details.iban.trim()) return
 
     const timer = setTimeout(async () => {
       const res = await payoutService.updateSettings({
-        accountHolderName: details.accountHolderName,
-        taxId: details.taxId,
-        payoutAddress: details.payoutAddress,
+        bankAccountHolder: details.bankAccountHolder,
+        iban: details.iban,
+        bankSwiftBic: details.bankSwiftBic || undefined,
+        bankName: details.bankName || undefined,
+        taxId: details.taxId || undefined,
       })
       if (res.success && res.data) {
         setSettings((prev) => (prev ? { ...prev, ...res.data } : prev))
         initialDetailsRef.current = { ...details }
         setSavedAt(Date.now())
       } else {
-        toast.error(res.error || 'Failed to save recipient details')
+        toast.error(res.error || 'Failed to save bank details')
       }
     }, AUTOSAVE_DEBOUNCE_MS)
     return () => clearTimeout(timer)
@@ -282,7 +252,8 @@ function PayoutSettingsPageInner() {
           <header className="mb-6 space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Get paid</h1>
             <p className="text-muted-foreground">
-              Three steps. Once you're done, payouts run automatically after every dinner.
+              Two steps. Once you're verified, your earnings are paid to your bank account after
+              each dinner.
             </p>
           </header>
 
@@ -298,11 +269,11 @@ function PayoutSettingsPageInner() {
               <div className="text-sm">
                 {allDone ? (
                   <span className="font-medium text-emerald-800">
-                    You're verified — payouts run automatically after each dinner.
+                    You're verified — earnings are paid to your bank account after each dinner.
                   </span>
                 ) : (
                   <span className="font-medium">
-                    {stepsDone} of 3 complete
+                    {stepsDone} of {TOTAL_STEPS} complete
                     <span className="ml-2 text-muted-foreground">
                       Finish the remaining steps to enable payouts.
                     </span>
@@ -316,7 +287,7 @@ function PayoutSettingsPageInner() {
                 className={`h-full transition-all duration-500 ease-out ${
                   allDone ? 'bg-emerald-500' : 'bg-primary'
                 }`}
-                style={{ width: `${(stepsDone / 3) * 100}%` }}
+                style={{ width: `${(stepsDone / TOTAL_STEPS) * 100}%` }}
               />
             </div>
           </div>
@@ -390,83 +361,16 @@ function PayoutSettingsPageInner() {
                 )}
               </StepShell>
 
-              {/* ② Payout card */}
+              {/* ② Bank account */}
               <StepShell
                 number={2}
-                done={cardDone}
-                icon={CreditCard}
-                title="Payout card"
-                subtitle="A Visa or Mastercard. Earnings settle in ISK and arrive after each dinner."
+                done={bankDone}
+                icon={Landmark}
+                title="Bank account"
+                subtitle="Your IBAN. Earnings are paid here in ISK by bank transfer after each dinner."
                 status={
-                  cardDone ? (
+                  bankDone ? (
                     <StatusPill tone="success" label="Saved" />
-                  ) : (
-                    <StatusPill tone="neutral" label="Required" />
-                  )
-                }
-              >
-                {card.phase === 'mounted' ? (
-                  <div className="rounded-lg border border-stone-200 bg-stone-50/40 p-4">
-                    <p className="mb-3 text-sm text-muted-foreground">
-                      You'll be charged 1.00 in {/* registrationCurrency */}EUR to verify the
-                      card; the authorization is reversed immediately.
-                    </p>
-                    <PaystraxWidget
-                      checkoutId={card.checkoutId}
-                      scriptUrl={card.scriptUrl}
-                      shopperResultUrl={card.shopperResultUrl}
-                      brands={card.brands}
-                    />
-                  </div>
-                ) : cardDone ? (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3 rounded-lg bg-stone-50 px-3 py-2 text-sm">
-                      <div className="flex h-7 w-10 items-center justify-center rounded bg-stone-900 text-[10px] font-bold uppercase tracking-wider text-white">
-                        {settings?.payoutCardBrand || 'CARD'}
-                      </div>
-                      <span className="font-medium tabular-nums">
-                        •••• {settings?.payoutCardLast4 || '••••'}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleRegisterCard}
-                      disabled={card.phase === 'starting'}
-                      className="text-xs text-stone-500 underline-offset-4 hover:text-stone-700 hover:underline"
-                    >
-                      {card.phase === 'starting' ? 'Loading…' : 'Replace card'}
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={handleRegisterCard}
-                    disabled={card.phase === 'starting'}
-                    className="w-full sm:w-auto"
-                  >
-                    {card.phase === 'starting' ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading widget…
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Register card
-                      </>
-                    )}
-                  </Button>
-                )}
-              </StepShell>
-
-              {/* ③ Recipient details */}
-              <StepShell
-                number={3}
-                done={detailsDone}
-                icon={UserRound}
-                title="Recipient details"
-                subtitle="These travel with each transfer and must match the cardholder."
-                status={
-                  detailsDone ? (
-                    <StatusPill tone="success" label={showSaved ? 'Saved' : 'Saved'} />
                   ) : (
                     <StatusPill tone="neutral" label="Required" />
                   )
@@ -474,18 +378,53 @@ function PayoutSettingsPageInner() {
               >
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="cardholderName">Cardholder name</Label>
+                    <Label htmlFor="bankAccountHolder">Account holder name</Label>
                     <Input
-                      id="cardholderName"
+                      id="bankAccountHolder"
                       placeholder="e.g. Jón Jónsson"
-                      value={details.accountHolderName}
+                      value={details.bankAccountHolder}
                       onChange={(e) =>
-                        setDetails((prev) => ({ ...prev, accountHolderName: e.target.value }))
+                        setDetails((prev) => ({ ...prev, bankAccountHolder: e.target.value }))
                       }
                     />
                     <p className="text-xs text-muted-foreground">
-                      Must match the name printed on your payout card.
+                      Must match the name on your bank account.
                     </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="iban">IBAN</Label>
+                    <Input
+                      id="iban"
+                      placeholder="e.g. IS14 0159 2600 7654 5510 7303 39"
+                      value={details.iban}
+                      onChange={(e) =>
+                        setDetails((prev) => ({ ...prev, iban: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="bankSwiftBic">SWIFT / BIC (optional)</Label>
+                      <Input
+                        id="bankSwiftBic"
+                        placeholder="e.g. NBIIISRE"
+                        value={details.bankSwiftBic}
+                        onChange={(e) =>
+                          setDetails((prev) => ({ ...prev, bankSwiftBic: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="bankName">Bank name (optional)</Label>
+                      <Input
+                        id="bankName"
+                        placeholder="e.g. Landsbankinn"
+                        value={details.bankName}
+                        onChange={(e) =>
+                          setDetails((prev) => ({ ...prev, bankName: e.target.value }))
+                        }
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="kennitala">Tax ID (kennitala)</Label>
@@ -495,17 +434,6 @@ function PayoutSettingsPageInner() {
                       value={details.taxId}
                       onChange={(e) =>
                         setDetails((prev) => ({ ...prev, taxId: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="payoutAddress">Registered address</Label>
-                    <Input
-                      id="payoutAddress"
-                      placeholder="e.g. Laugavegur 1, 101 Reykjavík"
-                      value={details.payoutAddress}
-                      onChange={(e) =>
-                        setDetails((prev) => ({ ...prev, payoutAddress: e.target.value }))
                       }
                     />
                   </div>

@@ -6,25 +6,28 @@ const getToken = (): string | null => {
 }
 
 export interface PayoutSettings {
-  accountHolderName?: string | null
-  payoutAddress?: string | null
+  // Manual bank-transfer payout details (current model). Hosts give us an IBAN; payouts are
+  // sent off-platform via a bank file the admin exports (see PAYIN_MANUAL_PAYOUT_PLAN.md).
+  bankAccountHolder?: string | null
+  iban?: string | null
+  bankSwiftBic?: string | null
+  bankName?: string | null
   payoutCurrency?: string
   payoutCountry?: string
-  payoutEntityType?: string
+  commissionRate?: number | null
   taxId?: string | null
   kycStatus: 'UNVERIFIED' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED'
   rafraenSkilrikiVerifiedAt?: string | null
-  hasCardRegistered: boolean
-  payoutCardBrand?: 'VISA' | 'MASTER' | null
-  payoutCardLast4?: string | null
+  hasBankAccount: boolean
 }
 
 export interface UpdatePayoutSettingsBody {
-  accountHolderName?: string
-  payoutAddress?: string
+  bankAccountHolder?: string
+  iban?: string
+  bankSwiftBic?: string
+  bankName?: string
   payoutCountry?: string
   payoutCurrency?: string
-  payoutEntityType?: string
   taxId?: string
 }
 
@@ -55,19 +58,21 @@ export interface RafraenStartResponse {
   mockMode: boolean
 }
 
-export interface CardRegistrationInitResponse {
-  checkoutId: string
-  registrationRef: string
-  scriptUrl: string
-  shopperResultUrl: string
-  brands: string
-}
-
-export interface CardRegistrationFinalizeResponse {
-  hasCardRegistered: boolean
-  payoutCardBrand: 'VISA' | 'MASTER' | null
-  payoutCardLast4: string | null
-}
+// DISABLED — card-payout (OCT) registration. Replaced by manual IBAN collection.
+// Kept on the `card-payout` branch (see PAYIN_MANUAL_PAYOUT_PLAN.md).
+// export interface CardRegistrationInitResponse {
+//   checkoutId: string
+//   registrationRef: string
+//   scriptUrl: string
+//   shopperResultUrl: string
+//   brands: string
+// }
+//
+// export interface CardRegistrationFinalizeResponse {
+//   hasCardRegistered: boolean
+//   payoutCardBrand: 'VISA' | 'MASTER' | null
+//   payoutCardLast4: string | null
+// }
 
 async function request<T>(
   endpoint: string,
@@ -107,32 +112,10 @@ export const payoutService = {
       body: JSON.stringify(body),
     })
   },
-  initiateCardRegistration(): Promise<{
-    success: boolean
-    data?: CardRegistrationInitResponse
-    error?: string
-  }> {
-    return request<CardRegistrationInitResponse>('/host/payout-card-registration/initiate', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    })
-  },
-  finalizeCardRegistration(input: {
-    resourcePath: string
-    registrationRef: string
-  }): Promise<{
-    success: boolean
-    data?: CardRegistrationFinalizeResponse
-    error?: string
-  }> {
-    return request<CardRegistrationFinalizeResponse>(
-      '/host/payout-card-registration/finalize',
-      {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }
-    )
-  },
+  // DISABLED — card-payout (OCT) registration. Replaced by manual IBAN collection via
+  // updateSettings (see PAYIN_MANUAL_PAYOUT_PLAN.md). Kept on the `card-payout` branch.
+  // initiateCardRegistration() { ... }
+  // finalizeCardRegistration(input) { ... }
   listPayouts(): Promise<{ success: boolean; data?: HostPayout[]; error?: string }> {
     return request<HostPayout[]>('/host/payouts', { method: 'GET' })
   },

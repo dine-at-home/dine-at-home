@@ -17,8 +17,7 @@ const completedSteps = (settings: PayoutSettings | null): number => {
   if (!settings) return 0
   let n = 0
   if (settings.rafraenSkilrikiVerifiedAt) n++
-  if (settings.hasCardRegistered) n++
-  if ((settings.accountHolderName || '').trim() && (settings.payoutAddress || '').trim()) n++
+  if ((settings.bankAccountHolder || '').trim() && (settings.iban || '').trim()) n++
   return n
 }
 
@@ -60,12 +59,12 @@ export function KycStatusBanner({ className }: KycStatusBannerProps) {
   const status = rawStatus === 'IN_REVIEW' && identityDone ? 'UNVERIFIED' : rawStatus
 
   const steps = completedSteps(settings)
-  const total = 3
+  const total = 2
 
   const variants = {
     UNVERIFIED: {
       title: 'Finish payout setup to start receiving earnings',
-      copy: 'Three quick steps — identity, card, and bank details. Takes about 3 minutes.',
+      copy: 'Two quick steps — identity and your bank account (IBAN). Takes about 3 minutes.',
       tone: 'amber' as const,
       cta: 'Set up payouts',
       icon: ShieldAlert,
@@ -179,7 +178,7 @@ export function KycVerifiedRibbon() {
   return (
     <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
       <ShieldCheck className="h-3.5 w-3.5" />
-      Verified — payouts run automatically
+      Verified — paid to your bank account
     </div>
   )
 }

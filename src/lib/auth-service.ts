@@ -29,9 +29,15 @@ export interface User {
   hostState?: string | null
   hostZipCode?: string | null
   hostNeighborhood?: string | null
-  // Payout (card-based OCT)
+  // Payout — manual bank transfer (current model)
+  bankAccountHolder?: string | null
+  iban?: string | null
+  bankSwiftBic?: string | null
+  bankName?: string | null
+  commissionRate?: number | null
   payoutCountry?: string | null
   payoutCurrency?: string | null
+  // Payout (card-based OCT) — DISABLED, kept for the future card-payout phase.
   payoutCardBrand?: 'VISA' | 'MASTER' | null
   payoutCardLast4?: string | null
   hasCardRegistered?: boolean
