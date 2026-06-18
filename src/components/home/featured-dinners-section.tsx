@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { DinnerCard } from '@/components/dinner/dinner-card'
-import { ArrowRight, UtensilsCrossed, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { Dinner } from '@/types'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -17,6 +17,11 @@ export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps)
 
   const handleViewAll = () => {
     router.push('/search')
+  }
+
+  // No dinners → hide the whole section (no empty-state placeholder).
+  if (featuredDinners.length === 0) {
+    return null
   }
 
   return (
@@ -52,8 +57,7 @@ export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps)
           </Button>
         </motion.div>
 
-        {featuredDinners.length > 0 ? (
-          <>
+        <>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -91,33 +95,6 @@ export function FeaturedDinnersSection({ dinners }: FeaturedDinnersSectionProps)
               </Button>
             </motion.div>
           </>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="text-center py-24 bg-white rounded-[3rem] border border-zinc-100 shadow-sm"
-          >
-            <div className="flex flex-col items-center justify-center max-w-md mx-auto px-6">
-              <div className="w-24 h-24 rounded-3xl bg-zinc-50 flex items-center justify-center mb-8 rotate-12 transition-transform hover:rotate-0 duration-500">
-                <UtensilsCrossed className="w-12 h-12 text-zinc-300" />
-              </div>
-              <h3 className="text-3xl font-bold mb-4 text-zinc-900">No dinners yet</h3>
-              <p className="text-zinc-500 mb-10 text-lg leading-relaxed">
-                We're bringing elite local chefs and hosts to your area soon. Check back later or
-                expand your search.
-              </p>
-              <Button
-                size="lg"
-                className="items-center gap-2 px-10 py-6 rounded-2xl shadow-xl shadow-primary-500/20"
-                onClick={handleViewAll}
-              >
-                <span>Browse All</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </motion.div>
-        )}
       </div>
     </section>
   )

@@ -192,7 +192,7 @@ function EditDinnerPageContent() {
     accessibility: '',
     date: '',
     time: '',
-    duration: 3,
+    duration: 180,
     maxCapacity: 8,
     pricePerPerson: 100,
     minGuests: 2,
@@ -302,8 +302,6 @@ function EditDinnerPageContent() {
             : dinner.houseRules?.[0] || ''
 
           const durationMinutes = rawDinner.duration || 180
-          const durationHours =
-            durationMinutes < 60 ? durationMinutes / 60 : Math.floor(durationMinutes / 60)
 
           const locationData = rawDinner.location
             ? typeof rawDinner.location === 'string'
@@ -338,7 +336,7 @@ function EditDinnerPageContent() {
             accessibility: dinner.accessibility || '',
             date: formattedDate,
             time: dinner.time || '',
-            duration: durationHours,
+            duration: durationMinutes,
             maxCapacity: dinner.capacity || 8,
             pricePerPerson: dinner.price || 100,
             minGuests: dinner.minGuests || 2,
@@ -759,7 +757,7 @@ function EditDinnerPageContent() {
         accessibility: dinnerData.accessibility,
         date: dateTime,
         time: dinnerData.time,
-        duration: dinnerData.duration * 60,
+        duration: dinnerData.duration,
         capacity: dinnerData.maxCapacity,
         minGuests: dinnerData.minGuests,
         price: dinnerData.pricePerPerson,
@@ -1331,20 +1329,20 @@ function EditDinnerPageContent() {
                       Duration (hours/minutes)
                     </label>
                     <Select
-                      value={dinnerData.duration?.toString() || '3'}
+                      value={dinnerData.duration?.toString() || '180'}
                       onValueChange={(value) =>
-                        handleInputChange('duration', parseFloat(value) || 3)
+                        handleInputChange('duration', parseInt(value, 10) || 180)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="0.033333">2 minutes</SelectItem>
-                        <SelectItem value="2">2 hours</SelectItem>
-                        <SelectItem value="3">3 hours</SelectItem>
-                        <SelectItem value="4">4 hours</SelectItem>
-                        <SelectItem value="5">5 hours</SelectItem>
+                        <SelectItem value="2">2 minutes</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                        <SelectItem value="180">3 hours</SelectItem>
+                        <SelectItem value="240">4 hours</SelectItem>
+                        <SelectItem value="300">5 hours</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

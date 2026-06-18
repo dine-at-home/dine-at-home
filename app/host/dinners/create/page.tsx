@@ -46,8 +46,14 @@ import {
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/components/ui/utils'
+import { payoutService } from '@/lib/payout-service'
+import Link from 'next/link'
 
 import { COUNTRIES } from '@/lib/countries'
+
+// Hosting is Iceland-only: a valid Icelandic IBAN is IS + 24 digits (after stripping spaces).
+const isIcelandicIban = (iban?: string | null): boolean =>
+  !!iban && /^IS\d{24}$/.test(iban.replace(/\s+/g, '').toUpperCase())
 
 const HOUR_OPTIONS = Array.from({ length: 24 }).map((_, i) => i.toString().padStart(2, '0'))
 
@@ -144,6 +150,9 @@ const MENU_SUGGESTIONS = [
 
 function CreateDinnerPageContent() {
   const router = useRouter()
+  // Posting a dinner is gated on Auðkenni identity verification + a valid Icelandic IBAN.
+  const [verifyState, setVerifyState] = useState<'checking' | 'ok' | 'blocked'>('checking')
+  const [verifyNeeds, setVerifyNeeds] = useState<{ eid: boolean; iban: boolean }>({ eid: false, iban: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
@@ -191,6 +200,27 @@ function CreateDinnerPageContent() {
         window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1'
       : process.env.NODE_ENV === 'development'
+
+  // Gate: confirm the host is Auðkenni-verified and has a valid Icelandic IBAN before letting
+  // them fill out (and submit) a listing. Mirrors the authoritative backend check.
+  useEffect(() => {
+    let cancelled = false
+    payoutService.getSettings().then((res) => {
+      if (cancelled) return
+      const s = res.data
+      const eid = Boolean(s?.rafraenSkilrikiVerifiedAt) && s?.kycStatus === 'VERIFIED'
+      const iban = Boolean(s?.bankAccountHolder) && isIcelandicIban(s?.iban)
+      if (eid && iban) {
+        setVerifyState('ok')
+      } else {
+        setVerifyNeeds({ eid, iban })
+        setVerifyState('blocked')
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Auto-scroll to error when it appears
   useEffect(() => {
@@ -270,7 +300,7 @@ function CreateDinnerPageContent() {
         accessibility: '',
         date: '',
         time: '',
-        duration: 3,
+        duration: 180,
         maxCapacity: 8,
         pricePerPerson: '' as unknown as number,
         minGuests: 2,
@@ -307,7 +337,7 @@ function CreateDinnerPageContent() {
       accessibility: 'Wheelchair accessible entrance and restroom available',
       date: dateStr,
       time: '19:00',
-      duration: 3,
+      duration: 180,
       maxCapacity: 8,
       pricePerPerson: 100,
       minGuests: 2,
@@ -775,10 +805,6 @@ function CreateDinnerPageContent() {
         validationErrors.push('Price per person must be greater than 0')
       }
 
-      if (dinnerData.pricePerPerson > 100000) {
-        validationErrors.push('Price per person cannot exceed 100,000 ISK')
-      }
-
       // Check for contact info in text fields
       const textFieldsToCheck = [
         { label: 'Description', value: dinnerData.description },
@@ -912,7 +938,7 @@ function CreateDinnerPageContent() {
           // Backend Zod schema requires full ISO string (e.g., 2023-10-27T19:00:00.000Z)
           date: dateObj.toISOString(),
           time: item.time,
-          duration: dinnerData.duration || 3,
+          duration: dinnerData.duration || 180,
 
           capacity: dinnerData.maxCapacity || 1,
           minGuests: dinnerData.minGuests || 1,
@@ -991,6 +1017,49 @@ function CreateDinnerPageContent() {
       setError('An unexpected error occurred. Please try again.')
       setIsSubmitting(false)
     }
+  }
+
+  // While checking verification, show a light loading state.
+  if (verifyState === 'checking') {
+    return (
+      <HostGuard>
+        <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+          Loading…
+        </div>
+      </HostGuard>
+    )
+  }
+
+  // Not verified → block the form entirely and route them to finish setup.
+  if (verifyState === 'blocked') {
+    return (
+      <HostGuard>
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Finish verification to publish a dinner</CardTitle>
+              <CardDescription>
+                Hosting on DatHome is currently available to Icelandic residents only. Before you
+                can publish a dinner you need to:
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-sm">
+                <li className={verifyNeeds.eid ? 'text-emerald-600' : 'text-foreground'}>
+                  {verifyNeeds.eid ? '✓' : '•'} Verify your identity with Auðkenni (Rafræn skilríki)
+                </li>
+                <li className={verifyNeeds.iban ? 'text-emerald-600' : 'text-foreground'}>
+                  {verifyNeeds.iban ? '✓' : '•'} Add a valid Icelandic bank account (IBAN)
+                </li>
+              </ul>
+              <Button asChild className="w-full">
+                <Link href="/host/payouts/settings">Complete verification</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </HostGuard>
+    )
   }
 
   return (
@@ -1643,20 +1712,19 @@ function CreateDinnerPageContent() {
                       Duration (hours/minutes)
                     </label>
                     <Select
-                      value={dinnerData.duration?.toString() || '3'}
+                      value={dinnerData.duration?.toString() || '180'}
                       onValueChange={(value) =>
-                        handleInputChange('duration', parseFloat(value) || 3)
+                        handleInputChange('duration', parseInt(value, 10) || 180)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="0.033333">2 minutes</SelectItem>
-                        <SelectItem value="2">2 hours</SelectItem>
-                        <SelectItem value="3">3 hours</SelectItem>
-                        <SelectItem value="4">4 hours</SelectItem>
-                        <SelectItem value="5">5 hours</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                        <SelectItem value="180">3 hours</SelectItem>
+                        <SelectItem value="240">4 hours</SelectItem>
+                        <SelectItem value="300">5 hours</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1730,9 +1798,7 @@ function CreateDinnerPageContent() {
                           handleInputChange('pricePerPerson', '' as unknown as number)
                         } else {
                           const numValue = parseInt(rawValue, 10)
-                          // Prevent values over 1000
-                          const clampedValue = numValue > 1000 ? 1000 : numValue
-                          handleInputChange('pricePerPerson', clampedValue)
+                          handleInputChange('pricePerPerson', numValue)
                         }
                       }}
                       placeholder="Enter price"

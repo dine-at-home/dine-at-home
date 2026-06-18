@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowRight, ArrowLeft, Home, ChefHat, Loader2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, ChefHat, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { authService } from '@/lib/auth-service'
@@ -118,17 +118,11 @@ export default function HostOnboardingClient() {
     <HostGuard>
       <div className="min-h-screen bg-background">
         <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <header className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Become a Host</h1>
-              <p className="mt-1 text-muted-foreground">
-                Three quick steps and you're ready to set up payouts.
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => router.push('/')}>
-              <Home className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold">Become a Host</h1>
+            <p className="mt-1 text-muted-foreground">
+              Three quick steps and you're ready to set up payouts.
+            </p>
           </header>
 
           <nav className="mb-8" aria-label="Onboarding progress">

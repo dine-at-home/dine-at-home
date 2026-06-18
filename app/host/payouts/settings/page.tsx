@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   CheckCircle2,
   Landmark,
@@ -446,6 +447,15 @@ function PayoutSettingsPageInner() {
                   </p>
                 </div>
               </StepShell>
+            </div>
+          )}
+
+          {allDone && (
+            <div className="mt-8 flex justify-end">
+              <Button size="lg" onClick={() => router.push('/host/dinners/create')}>
+                Continue — create your first dinner
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>

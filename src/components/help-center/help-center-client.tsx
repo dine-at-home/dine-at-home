@@ -66,7 +66,7 @@ export default function HelpCenterClient() {
         {
           question: 'How do I get paid?',
           answer:
-            'Hosts receive 80% of the booking price in ISK, paid by bank transfer to your registered Icelandic bank account (IBAN), after the dining event completes. A minimum balance of 10,000 kr is required before a payout is sent. See our Host Payouts page for full details.',
+            'Hosts receive 80% of the booking price in ISK, paid weekly by bank transfer to your registered Icelandic bank account (IBAN). See our Host Payouts page for full details.',
         },
       ],
     },

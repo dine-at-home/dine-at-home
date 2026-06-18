@@ -86,7 +86,7 @@ export function EarningsSection({ highlightSetup = false }: EarningsSectionProps
             Your kitchen, your books.
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Payouts are sent 72 hours after each dinner ends, in batches of {formatIsk(earnings?.minimumPayout || 10000)} or more.
+            Payouts are sent every week to your registered bank account.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -125,7 +125,7 @@ export function EarningsSection({ highlightSetup = false }: EarningsSectionProps
               icon={Wallet}
               label="Pending balance"
               value={formatIsk(earnings?.pendingBalance || 0)}
-              hint={`Released once you reach the ${formatIsk(earnings?.minimumPayout || 10000)} minimum.`}
+              hint="Released with the next weekly payout."
               accent="orange"
             />
             <StatCard
@@ -159,7 +159,7 @@ export function EarningsSection({ highlightSetup = false }: EarningsSectionProps
             <div>
               <CardTitle className="font-dm-sans text-lg font-semibold tracking-tight">Payout history</CardTitle>
               <CardDescription className="mt-1">
-                Every batch disbursement to your bank account.
+                Weekly disbursements to your bank account.
               </CardDescription>
             </div>
             {payouts.length > 0 && (
@@ -237,7 +237,7 @@ function EmptyHistory({ verified }: { verified: boolean }) {
       </p>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         {verified
-          ? 'Your first batch will appear here after a dinner is completed and the 72-hour settlement window passes.'
+          ? 'Your first payout will appear here after a dinner is completed and the next weekly payout cycle runs.'
           : 'Finish payout setup to start receiving automatic disbursements after each dinner.'}
       </p>
     </div>

@@ -1606,8 +1606,8 @@ function ProfilePageContent() {
                                       <div className="mt-3">
                                         <Button
                                           size="sm"
-                                          variant="outline"
-                                          className="text-destructive border-destructive hover:bg-destructive hover:text-white"
+                                          variant="link"
+                                          className="text-xs text-muted-foreground/50 hover:text-muted-foreground p-0 h-auto font-normal"
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             // Calculate cancellation details
