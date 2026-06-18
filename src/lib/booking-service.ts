@@ -71,11 +71,6 @@ class BookingService {
 
       const result = await response.json()
 
-      console.log('🔴 Booking Service - Raw API Response:', result)
-      console.log('🔴 Response status:', response.status)
-      console.log('🔴 result.data:', result.data)
-      console.log('🔴 result.data.dinnerId:', result.data?.dinnerId)
-
       if (!response.ok) {
         return {
           success: false,
@@ -84,8 +79,6 @@ class BookingService {
       }
 
       const responseData = result.data || result
-      console.log('🔴 Returning data to component:', responseData)
-      console.log('🔴 responseData.dinnerId:', responseData.dinnerId)
 
       return {
         success: true,
@@ -112,7 +105,6 @@ class BookingService {
       }
 
       const url = getApiUrl(`/bookings/user/${userId}`)
-      console.log('🔵 Fetching bookings from:', url)
 
       const response = await fetch(url, {
         method: 'GET',
@@ -122,10 +114,7 @@ class BookingService {
         },
       })
 
-      console.log('🔵 Response status:', response.status, response.statusText)
-
       const result = await response.json()
-      console.log('🔵 Response data:', result)
 
       if (!response.ok) {
         console.error('❌ API error response:', result)
@@ -133,7 +122,6 @@ class BookingService {
       }
 
       const bookings = result.data || []
-      console.log('🔵 Parsed bookings:', bookings.length, 'bookings found')
 
       return {
         success: true,
