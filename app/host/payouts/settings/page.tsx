@@ -170,6 +170,8 @@ function PayoutSettingsPageInner() {
   const bankDone = Boolean(details.bankAccountHolder.trim() && details.iban.trim())
   const stepsDone = [identityDone, bankDone].filter(Boolean).length
   const allDone = stepsDone === TOTAL_STEPS && settings?.kycStatus === 'VERIFIED'
+  // Both steps submitted but admin hasn't approved yet — nothing left for the host to do.
+  const awaitingReview = stepsDone === TOTAL_STEPS && settings?.kycStatus !== 'VERIFIED'
 
   const handleStartRafraen = async () => {
     setRafraen({ phase: 'starting' })
@@ -262,7 +264,9 @@ function PayoutSettingsPageInner() {
             className={`mb-6 rounded-xl border p-4 transition-colors ${
               allDone
                 ? 'border-emerald-200 bg-emerald-50/60'
-                : 'border-stone-200 bg-stone-50/70'
+                : awaitingReview
+                  ? 'border-amber-200 bg-amber-50/60'
+                  : 'border-stone-200 bg-stone-50/70'
             }`}
             role="status"
           >
@@ -271,6 +275,14 @@ function PayoutSettingsPageInner() {
                 {allDone ? (
                   <span className="font-medium text-emerald-800">
                     You're verified — earnings are paid to your bank account after each dinner.
+                  </span>
+                ) : awaitingReview ? (
+                  <span className="font-medium text-amber-800">
+                    Under review
+                    <span className="ml-2 font-normal text-amber-700/80">
+                      You've completed both steps. We're verifying your details — payouts unlock
+                      once approved.
+                    </span>
                   </span>
                 ) : (
                   <span className="font-medium">
@@ -286,7 +298,7 @@ function PayoutSettingsPageInner() {
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-stone-200">
               <div
                 className={`h-full transition-all duration-500 ease-out ${
-                  allDone ? 'bg-emerald-500' : 'bg-primary'
+                  allDone ? 'bg-emerald-500' : awaitingReview ? 'bg-amber-500' : 'bg-primary'
                 }`}
                 style={{ width: `${(stepsDone / TOTAL_STEPS) * 100}%` }}
               />

@@ -52,14 +52,14 @@ export function KycStatusBanner({ className }: KycStatusBannerProps) {
   if (rawStatus === 'VERIFIED') return null
   if (dismissed) return null
 
-  // Once identity is confirmed, the backend may still report IN_REVIEW for the
-  // overall KYC status while card/details remain incomplete. Show the "finish
-  // setup" prompt instead of "reviewing" so the user knows what to do next.
-  const identityDone = Boolean(settings?.rafraenSkilrikiVerifiedAt)
-  const status = rawStatus === 'IN_REVIEW' && identityDone ? 'UNVERIFIED' : rawStatus
-
   const steps = completedSteps(settings)
   const total = 2
+
+  // While the host still has a step to finish, show the "finish setup" prompt
+  // even if the backend reports IN_REVIEW. Once both steps are done and we're
+  // only waiting on admin approval, keep IN_REVIEW so they see "under review"
+  // rather than being told to set up payouts again.
+  const status = rawStatus === 'IN_REVIEW' && steps < total ? 'UNVERIFIED' : rawStatus
 
   const variants = {
     UNVERIFIED: {

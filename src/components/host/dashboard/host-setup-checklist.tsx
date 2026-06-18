@@ -113,6 +113,15 @@ export function HostSetupChecklist({ className, highlight = false }: HostSetupCh
         </CardHeader>
 
         <CardContent className="pt-2">
+          {isInReview && done === total && (
+            <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-800">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.25} />
+              <span>
+                <span className="font-semibold">Under review.</span> You've completed both steps —
+                we're verifying your details. Payouts unlock once approved.
+              </span>
+            </div>
+          )}
           <ol className="space-y-3">
             {STEPS.map((step, index) => {
               const isDone = completed[index]
