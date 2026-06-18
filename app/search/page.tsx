@@ -7,7 +7,13 @@ export const metadata: Metadata = {
   title: 'Search Dinners | Find Authentic Home-Cooked Meals',
   description:
     'Search for unique social dining experiences near you. Filter by location, cuisine, and date to find the perfect home-cooked meal.',
-  keywords: ['search dinners', 'find food events', 'local dining search', 'book home meals'],
+  keywords: ['search dinners', 'find food events', 'local dining search', 'book home meals', 'Iceland dinner experiences'],
+  alternates: { canonical: 'https://datthome.com/search' },
+  openGraph: {
+    title: 'Search Dinners | Dine at Home',
+    description: 'Find and book authentic home-cooked dinner experiences with local hosts.',
+    url: 'https://datthome.com/search',
+  },
 }
 
 export default function SearchPage() {

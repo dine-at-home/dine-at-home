@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Banknote, Clock, CreditCard, CheckCircle, HelpCircle } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Host Payouts | Dine at Home',
+  title: 'Host Payouts',
   description:
     'Learn how and when hosts receive payment for their dining experiences on Dine at Home.',
+  alternates: { canonical: 'https://datthome.com/host-payouts-info' },
 }
 
 export default function HostPayoutsInfoPage() {

@@ -75,11 +75,12 @@ export function Header({ onSearch }: HeaderProps = {}) {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <div className="flex items-center">
-            <a href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">D</span>
-              </div>
-              <span className="hidden sm:block font-bold text-xl text-primary">Dine at Home</span>
+            <a href="/" className="flex items-center" aria-label="datthome.com home">
+              <img
+                src="/datthome-logo.svg"
+                alt="datthome.com — Eat Like a Local"
+                className="h-9 lg:h-10 w-auto"
+              />
             </a>
           </div>
 

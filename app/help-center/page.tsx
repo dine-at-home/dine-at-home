@@ -3,10 +3,16 @@ import HelpCenterClient from '@/components/help-center/help-center-client'
 import { JsonLd, getFaqSchema } from '@/components/seo/JsonLd'
 
 export const metadata: Metadata = {
-  title: 'Help Center | FAQ & Support | Dine at Home',
+  title: 'Help Center | FAQ & Support',
   description:
     'Find answers to frequently asked questions about booking, hosting, payments, and safety at Dine at Home.',
   keywords: ['help center', 'faq', 'customer support', 'dining safety', 'refund policy'],
+  alternates: { canonical: 'https://datthome.com/help-center' },
+  openGraph: {
+    title: 'Help Center | Dine at Home',
+    description: 'Answers to common questions about booking dinners, hosting, payments, and safety.',
+    url: 'https://datthome.com/help-center',
+  },
 }
 
 const faqData = [

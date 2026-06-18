@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="datthome.com logo Eat Like a Local">
+  <rect width="1600" height="900" fill="#ffffff"/>
+  <g text-anchor="middle" font-family="Montserrat, Poppins, Arial, Helvetica, sans-serif">
+    <text x="760" y="435" font-size="148" font-weight="800" fill="#111111" letter-spacing="-5">datthome</text>
+    <text x="1184" y="435" font-size="96" font-weight="800" fill="#f58220" letter-spacing="-2">.com</text>
+    <line x1="706" y1="505" x2="894" y2="505" stroke="#f58220" stroke-width="8" stroke-linecap="round"/>
+    <text x="888" y="592" font-size="44" font-weight="600" fill="#111111" letter-spacing="22">EAT LIKE A LOCAL</text>
+  </g>
+</svg>

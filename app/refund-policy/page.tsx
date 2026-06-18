@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshCw, Clock, AlertTriangle, CreditCard, XCircle } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Refund & Cancellation Policy | Dine at Home',
+  title: 'Refund & Cancellation Policy',
   description:
     'Learn about our refund and cancellation policies for dining experiences on Dine at Home.',
+  alternates: { canonical: 'https://datthome.com/refund-policy' },
 }
 
 export default function RefundPolicyPage() {

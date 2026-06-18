@@ -3,7 +3,7 @@ import HostOnboardingClient from '@/components/host/host-onboarding-client'
 import { Suspense } from 'react'
 
 export const metadata: Metadata = {
-  title: 'Become a Host | Share Your Culinary Passion | Dine at Home',
+  title: 'Become a Host | Share Your Culinary Passion',
   description:
     'Join our community of local hosts. Share your home-cooked meals, meet new people, and earn money doing what you love. Sign up to start hosting today.',
   keywords: [
@@ -13,6 +13,12 @@ export const metadata: Metadata = {
     'chef at home',
     'food entrepreneur',
   ],
+  alternates: { canonical: 'https://datthome.com/host/onboarding' },
+  openGraph: {
+    title: 'Become a Host | Dine at Home',
+    description: 'Share your home-cooked meals, meet new people, and earn money doing what you love.',
+    url: 'https://datthome.com/host/onboarding',
+  },
 }
 
 export default function HostOnboardingPage() {

@@ -111,15 +111,14 @@ export function Footer() {
 
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
             <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">D</span>
-                </div>
-                <span className="font-bold text-xl text-primary">Dine at Home</span>
-              </div>
+              <img
+                src="/datthome-logo.svg"
+                alt="datthome.com — Eat Like a Local"
+                className="h-8 w-auto"
+              />
 
               <p className="text-sm text-muted-foreground">
-                © 2026 Dine at Home. All rights reserved.
+                © 2026 datthome.com. All rights reserved.
               </p>
             </div>
 

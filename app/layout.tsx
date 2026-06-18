@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import { Metadata, Viewport } from 'next'
 import { Instrument_Serif, DM_Sans } from 'next/font/google'
 import { JsonLd, KnowledgeGraphSchema } from '@/components/seo/JsonLd'
 import { AuthProvider } from '@/contexts/auth-context'
@@ -20,6 +20,16 @@ const dmSans = DM_Sans({
   display: 'swap',
   variable: '--font-dm-sans',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1a1a' },
+  ],
+}
 
 export const metadata: Metadata = {
   title: {
@@ -111,6 +121,14 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
+  },
+  metadataBase: new URL('https://datthome.com'),
+  category: 'food & drink',
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+  },
+  other: {
+    'format-detection': 'telephone=no',
   },
 }
 
