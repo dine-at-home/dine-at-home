@@ -251,12 +251,12 @@ function CreateDinnerPageContent() {
           const result = await response.json()
           const user = result.data || result
 
-          // Only set if host has address saved
-          if (user.hostAddress && user.hostCity && user.hostState) {
+          // Only set if host has address saved (region is optional)
+          if (user.hostAddress && user.hostCity) {
             setHostProfileAddress({
               address: user.hostAddress,
               city: user.hostCity,
-              state: user.hostState,
+              state: user.hostState || '',
               zipCode: user.hostZipCode || '',
               neighborhood: user.hostNeighborhood || '',
             })

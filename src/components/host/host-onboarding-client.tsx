@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { HostAddressFields } from '@/components/host/host-address-fields'
 import { ArrowRight, ArrowLeft, ChefHat, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -24,7 +23,8 @@ export default function HostOnboardingClient() {
   const [form, setForm] = useState({
     address: '',
     city: '',
-    state: '',
+    state: '', // region
+    zipCode: '',
     termsAccepted: false,
   })
 
@@ -49,6 +49,7 @@ export default function HostOnboardingClient() {
       address: prev.address || user.hostAddress || '',
       city: prev.city || user.hostCity || '',
       state: prev.state || user.hostState || '',
+      zipCode: prev.zipCode || user.hostZipCode || '',
       termsAccepted: prev.termsAccepted || legalUpToDate,
     }))
   }, [user])
@@ -59,7 +60,8 @@ export default function HostOnboardingClient() {
   const isStepComplete = () => {
     switch (currentStep) {
       case 1:
-        return Boolean(form.address.trim() && form.city.trim() && form.state.trim())
+        // Region is optional; only city + street address are required.
+        return Boolean(form.city.trim() && form.address.trim())
       case 2:
         return form.termsAccepted
       case 3:
@@ -90,11 +92,13 @@ export default function HostOnboardingClient() {
   const handleNext = async () => {
     if (!isStepComplete() || saving) return
     if (currentStep === 1) {
-      // Save the location alongside step advance.
+      // Save the location alongside step advance. Country is always Iceland.
       await persistStep(2, {
+        country: 'Iceland',
         hostAddress: form.address.trim(),
         hostCity: form.city.trim(),
         hostState: form.state.trim(),
+        hostZipCode: form.zipCode.trim(),
       })
     } else if (currentStep === 2) {
       await persistStep(3, {
@@ -159,36 +163,24 @@ export default function HostOnboardingClient() {
                     Your home address — guests only see the neighborhood until they book.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="address">Street address</Label>
-                    <Input
-                      id="address"
-                      placeholder="Laugavegur 1"
-                      value={form.address}
-                      onChange={(e) => set('address', e.target.value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        placeholder="Reykjavík"
-                        value={form.city}
-                        onChange={(e) => set('city', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="state">Region</Label>
-                      <Input
-                        id="state"
-                        placeholder="Capital Region"
-                        value={form.state}
-                        onChange={(e) => set('state', e.target.value)}
-                      />
-                    </div>
-                  </div>
+                <CardContent>
+                  <HostAddressFields
+                    value={{
+                      city: form.city,
+                      region: form.state,
+                      address: form.address,
+                      zipCode: form.zipCode,
+                    }}
+                    onChange={(next) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        city: next.city,
+                        state: next.region,
+                        address: next.address,
+                        zipCode: next.zipCode,
+                      }))
+                    }
+                  />
                 </CardContent>
               </Card>
             )}
