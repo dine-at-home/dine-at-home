@@ -49,16 +49,10 @@ function isValidIban(raw: string): boolean {
   return remainder === 1
 }
 
-// Icelandic kennitala: 10 digits with a mod-11 check digit in position 9.
+// Icelandic kennitala: 10 digits. (Optional field, usually auto-seeded from Auðkenni —
+// we only sanity-check the length, not the mod-11 checksum.)
 function isValidKennitala(raw: string): boolean {
-  const k = raw.replace(/\D/g, '')
-  if (k.length !== 10) return false
-  const weights = [3, 2, 7, 6, 5, 4, 3, 2]
-  const sum = weights.reduce((acc, w, i) => acc + w * Number(k[i]), 0)
-  const remainder = sum % 11
-  const check = remainder === 0 ? 0 : 11 - remainder
-  if (check === 10) return false
-  return check === Number(k[8])
+  return raw.replace(/\D/g, '').length === 10
 }
 
 // SWIFT/BIC: 8 or 11 alphanumeric characters.
@@ -210,7 +204,9 @@ function PayoutSettingsPageInner() {
   const [savedAt, setSavedAt] = useState<number | null>(null)
 
   const bankErrors = useMemo(() => validateBankDetails(details), [details])
-  const bankValid = Object.keys(bankErrors).length === 0
+  // Only the required fields (account holder + IBAN) gate step completion and saving.
+  // Optional fields (SWIFT, kennitala) show their own errors but never block the step.
+  const requiredBankValid = !bankErrors.bankAccountHolder && !bankErrors.iban
   const markTouched = (field: keyof BankDetails) =>
     setTouched((prev) => ({ ...prev, [field]: true }))
 
@@ -246,7 +242,7 @@ function PayoutSettingsPageInner() {
   }, [searchParams])
 
   const identityDone = Boolean(settings?.rafraenSkilrikiVerifiedAt)
-  const bankDone = bankValid
+  const bankDone = requiredBankValid
   const stepsDone = [identityDone, bankDone].filter(Boolean).length
   const allDone = stepsDone === TOTAL_STEPS && settings?.kycStatus === 'VERIFIED'
   const rejected = settings?.kycStatus === 'REJECTED'
@@ -290,16 +286,18 @@ function PayoutSettingsPageInner() {
       baseline.bankName !== details.bankName ||
       baseline.taxId !== details.taxId
     if (!changed) return
-    // Never persist invalid bank details — inline errors guide the host instead.
-    if (Object.keys(validateBankDetails(details)).length > 0) return
+    // Required fields must be valid to save at all. Optional fields are saved only when
+    // valid — an invalid SWIFT/kennitala shows its own error but never blocks the save.
+    const errs = validateBankDetails(details)
+    if (errs.bankAccountHolder || errs.iban) return
 
     const timer = setTimeout(async () => {
       const res = await payoutService.updateSettings({
         bankAccountHolder: details.bankAccountHolder,
         iban: details.iban,
-        bankSwiftBic: details.bankSwiftBic || undefined,
+        bankSwiftBic: details.bankSwiftBic && !errs.bankSwiftBic ? details.bankSwiftBic : undefined,
         bankName: details.bankName || undefined,
-        taxId: details.taxId || undefined,
+        taxId: details.taxId && !errs.taxId ? details.taxId : undefined,
       })
       if (res.success && res.data) {
         setSettings((prev) => (prev ? { ...prev, ...res.data } : prev))
