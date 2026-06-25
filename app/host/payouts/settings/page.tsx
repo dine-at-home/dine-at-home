@@ -21,6 +21,79 @@ import { toast } from 'sonner'
 
 const AUTOSAVE_DEBOUNCE_MS = 600
 
+type BankDetails = {
+  bankAccountHolder: string
+  iban: string
+  bankSwiftBic: string
+  bankName: string
+  taxId: string
+}
+
+type BankErrors = Partial<Record<keyof BankDetails, string>>
+
+function normalizeIban(value: string): string {
+  return value.replace(/\s+/g, '').toUpperCase()
+}
+
+// IBAN check: structural shape + ISO 7064 mod-97 checksum (== 1 when valid).
+function isValidIban(raw: string): boolean {
+  const iban = normalizeIban(raw)
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) return false
+  const rearranged = iban.slice(4) + iban.slice(0, 4)
+  const expanded = rearranged.replace(/[A-Z]/g, (c) => (c.charCodeAt(0) - 55).toString())
+  // Process in chunks to avoid overflowing Number on the long integer.
+  let remainder = 0
+  for (const digit of expanded) {
+    remainder = (remainder * 10 + Number(digit)) % 97
+  }
+  return remainder === 1
+}
+
+// Icelandic kennitala: 10 digits with a mod-11 check digit in position 9.
+function isValidKennitala(raw: string): boolean {
+  const k = raw.replace(/\D/g, '')
+  if (k.length !== 10) return false
+  const weights = [3, 2, 7, 6, 5, 4, 3, 2]
+  const sum = weights.reduce((acc, w, i) => acc + w * Number(k[i]), 0)
+  const remainder = sum % 11
+  const check = remainder === 0 ? 0 : 11 - remainder
+  if (check === 10) return false
+  return check === Number(k[8])
+}
+
+// SWIFT/BIC: 8 or 11 alphanumeric characters.
+function isValidSwiftBic(raw: string): boolean {
+  return /^[A-Z0-9]{8}([A-Z0-9]{3})?$/.test(normalizeIban(raw))
+}
+
+// Hosts are paid in ISK by domestic transfer, so the IBAN must be Icelandic.
+function validateBankDetails(details: BankDetails): BankErrors {
+  const errors: BankErrors = {}
+
+  if (!details.bankAccountHolder.trim()) {
+    errors.bankAccountHolder = 'Account holder name is required.'
+  }
+
+  const iban = details.iban.trim()
+  if (!iban) {
+    errors.iban = 'IBAN is required.'
+  } else if (!isValidIban(iban)) {
+    errors.iban = 'Enter a valid IBAN.'
+  } else if (!normalizeIban(iban).startsWith('IS')) {
+    errors.iban = 'Enter an Icelandic IBAN (starts with IS).'
+  }
+
+  if (details.bankSwiftBic.trim() && !isValidSwiftBic(details.bankSwiftBic)) {
+    errors.bankSwiftBic = 'Enter a valid SWIFT/BIC (8 or 11 characters).'
+  }
+
+  if (details.taxId.trim() && !isValidKennitala(details.taxId)) {
+    errors.taxId = 'Enter a valid kennitala (10 digits).'
+  }
+
+  return errors
+}
+
 type RafraenWidgetState =
   | { phase: 'idle' }
   | { phase: 'starting' }
@@ -126,14 +199,20 @@ function PayoutSettingsPageInner() {
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<PayoutSettings | null>(null)
   const [rafraen, setRafraen] = useState<RafraenWidgetState>({ phase: 'idle' })
-  const [details, setDetails] = useState({
+  const [details, setDetails] = useState<BankDetails>({
     bankAccountHolder: '',
     iban: '',
     bankSwiftBic: '',
     bankName: '',
     taxId: '',
   })
+  const [touched, setTouched] = useState<Partial<Record<keyof BankDetails, boolean>>>({})
   const [savedAt, setSavedAt] = useState<number | null>(null)
+
+  const bankErrors = useMemo(() => validateBankDetails(details), [details])
+  const bankValid = Object.keys(bankErrors).length === 0
+  const markTouched = (field: keyof BankDetails) =>
+    setTouched((prev) => ({ ...prev, [field]: true }))
 
   const refresh = async () => {
     const res = await payoutService.getSettings()
@@ -167,7 +246,7 @@ function PayoutSettingsPageInner() {
   }, [searchParams])
 
   const identityDone = Boolean(settings?.rafraenSkilrikiVerifiedAt)
-  const bankDone = Boolean(details.bankAccountHolder.trim() && details.iban.trim())
+  const bankDone = bankValid
   const stepsDone = [identityDone, bankDone].filter(Boolean).length
   const allDone = stepsDone === TOTAL_STEPS && settings?.kycStatus === 'VERIFIED'
   // Both steps submitted but admin hasn't approved yet — nothing left for the host to do.
@@ -209,7 +288,8 @@ function PayoutSettingsPageInner() {
       baseline.bankName !== details.bankName ||
       baseline.taxId !== details.taxId
     if (!changed) return
-    if (!details.bankAccountHolder.trim() || !details.iban.trim()) return
+    // Never persist invalid bank details — inline errors guide the host instead.
+    if (Object.keys(validateBankDetails(details)).length > 0) return
 
     const timer = setTimeout(async () => {
       const res = await payoutService.updateSettings({
@@ -399,10 +479,21 @@ function PayoutSettingsPageInner() {
                       onChange={(e) =>
                         setDetails((prev) => ({ ...prev, bankAccountHolder: e.target.value }))
                       }
+                      onBlur={() => markTouched('bankAccountHolder')}
+                      aria-invalid={Boolean(touched.bankAccountHolder && bankErrors.bankAccountHolder)}
+                      className={
+                        touched.bankAccountHolder && bankErrors.bankAccountHolder
+                          ? 'border-destructive focus-visible:ring-destructive'
+                          : ''
+                      }
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Must match the name on your bank account.
-                    </p>
+                    {touched.bankAccountHolder && bankErrors.bankAccountHolder ? (
+                      <p className="text-xs text-destructive">{bankErrors.bankAccountHolder}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Must match the name on your bank account.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="iban">IBAN</Label>
@@ -410,10 +501,18 @@ function PayoutSettingsPageInner() {
                       id="iban"
                       placeholder="e.g. IS14 0159 2600 7654 5510 7303 39"
                       value={details.iban}
-                      onChange={(e) =>
-                        setDetails((prev) => ({ ...prev, iban: e.target.value }))
+                      onChange={(e) => setDetails((prev) => ({ ...prev, iban: e.target.value }))}
+                      onBlur={() => markTouched('iban')}
+                      aria-invalid={Boolean(touched.iban && bankErrors.iban)}
+                      className={
+                        touched.iban && bankErrors.iban
+                          ? 'border-destructive focus-visible:ring-destructive'
+                          : ''
                       }
                     />
+                    {touched.iban && bankErrors.iban && (
+                      <p className="text-xs text-destructive">{bankErrors.iban}</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
@@ -425,7 +524,17 @@ function PayoutSettingsPageInner() {
                         onChange={(e) =>
                           setDetails((prev) => ({ ...prev, bankSwiftBic: e.target.value }))
                         }
+                        onBlur={() => markTouched('bankSwiftBic')}
+                        aria-invalid={Boolean(touched.bankSwiftBic && bankErrors.bankSwiftBic)}
+                        className={
+                          touched.bankSwiftBic && bankErrors.bankSwiftBic
+                            ? 'border-destructive focus-visible:ring-destructive'
+                            : ''
+                        }
                       />
+                      {touched.bankSwiftBic && bankErrors.bankSwiftBic && (
+                        <p className="text-xs text-destructive">{bankErrors.bankSwiftBic}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bankName">Bank name (optional)</Label>
@@ -445,10 +554,18 @@ function PayoutSettingsPageInner() {
                       id="kennitala"
                       placeholder="e.g. 010101-2570"
                       value={details.taxId}
-                      onChange={(e) =>
-                        setDetails((prev) => ({ ...prev, taxId: e.target.value }))
+                      onChange={(e) => setDetails((prev) => ({ ...prev, taxId: e.target.value }))}
+                      onBlur={() => markTouched('taxId')}
+                      aria-invalid={Boolean(touched.taxId && bankErrors.taxId)}
+                      className={
+                        touched.taxId && bankErrors.taxId
+                          ? 'border-destructive focus-visible:ring-destructive'
+                          : ''
                       }
                     />
+                    {touched.taxId && bankErrors.taxId && (
+                      <p className="text-xs text-destructive">{bankErrors.taxId}</p>
+                    )}
                   </div>
                   <p
                     className={`text-xs text-stone-500 transition-opacity duration-300 ${
@@ -462,14 +579,22 @@ function PayoutSettingsPageInner() {
             </div>
           )}
 
-          {allDone && (
+          {allDone ? (
             <div className="mt-8 flex justify-end">
               <Button size="lg" onClick={() => router.push('/host/dinners/create')}>
                 Continue — create your first dinner
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
-          )}
+          ) : awaitingReview ? (
+            // Nothing left for the host to do until admin approves — let them leave.
+            <div className="mt-8 flex justify-end">
+              <Button size="lg" onClick={() => router.push('/host/dashboard')}>
+                Go to dashboard
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ) : null}
         </div>
       </MainLayout>
     </HostGuard>

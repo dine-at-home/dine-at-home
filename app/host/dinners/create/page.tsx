@@ -151,7 +151,9 @@ const MENU_SUGGESTIONS = [
 function CreateDinnerPageContent() {
   const router = useRouter()
   // Posting a dinner is gated on Auðkenni identity verification + a valid Icelandic IBAN.
-  const [verifyState, setVerifyState] = useState<'checking' | 'ok' | 'blocked'>('checking')
+  const [verifyState, setVerifyState] = useState<'checking' | 'ok' | 'blocked' | 'awaiting'>(
+    'checking'
+  )
   const [verifyNeeds, setVerifyNeeds] = useState<{ eid: boolean; iban: boolean }>({ eid: false, iban: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -208,12 +210,18 @@ function CreateDinnerPageContent() {
     payoutService.getSettings().then((res) => {
       if (cancelled) return
       const s = res.data
-      const eid = Boolean(s?.rafraenSkilrikiVerifiedAt) && s?.kycStatus === 'VERIFIED'
-      const iban = Boolean(s?.bankAccountHolder) && isIcelandicIban(s?.iban)
-      if (eid && iban) {
+      // The host's own actions: completed the Auðkenni step and saved a valid Icelandic IBAN.
+      const identitySubmitted = Boolean(s?.rafraenSkilrikiVerifiedAt)
+      const ibanValid = Boolean(s?.bankAccountHolder) && isIcelandicIban(s?.iban)
+      // Admin-side gate: manual KYC approval, separate from the host completing the steps.
+      const approved = s?.kycStatus === 'VERIFIED'
+      if (identitySubmitted && ibanValid && approved) {
         setVerifyState('ok')
+      } else if (identitySubmitted && ibanValid) {
+        // Both steps done — nothing left for the host but to wait for manual approval.
+        setVerifyState('awaiting')
       } else {
-        setVerifyNeeds({ eid, iban })
+        setVerifyNeeds({ eid: identitySubmitted, iban: ibanValid })
         setVerifyState('blocked')
       }
     })
@@ -1054,6 +1062,39 @@ function CreateDinnerPageContent() {
               </ul>
               <Button asChild className="w-full">
                 <Link href="/host/payouts/settings">Complete verification</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </HostGuard>
+    )
+  }
+
+  // Steps done, but manual KYC approval is still pending — explain the wait instead of
+  // pushing them back through verification they've already completed.
+  if (verifyState === 'awaiting') {
+    return (
+      <HostGuard>
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Verification under review</CardTitle>
+              <CardDescription>
+                You've completed both steps. Our team manually reviews each host before their
+                first dinner can go live — you'll be able to publish dinners here as soon as your
+                verification is approved.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-sm">
+                <li className="text-emerald-600">
+                  ✓ Verify your identity with Auðkenni (Rafræn skilríki)
+                </li>
+                <li className="text-emerald-600">✓ Add a valid Icelandic bank account (IBAN)</li>
+                <li className="text-amber-600">• Manual review by our team — in progress</li>
+              </ul>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/host/dashboard">Go to dashboard</Link>
               </Button>
             </CardContent>
           </Card>
