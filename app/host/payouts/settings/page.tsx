@@ -249,8 +249,10 @@ function PayoutSettingsPageInner() {
   const bankDone = bankValid
   const stepsDone = [identityDone, bankDone].filter(Boolean).length
   const allDone = stepsDone === TOTAL_STEPS && settings?.kycStatus === 'VERIFIED'
-  // Both steps submitted but admin hasn't approved yet — nothing left for the host to do.
-  const awaitingReview = stepsDone === TOTAL_STEPS && settings?.kycStatus !== 'VERIFIED'
+  const rejected = settings?.kycStatus === 'REJECTED'
+  // Both steps submitted, admin hasn't approved yet, and not rejected — nothing left to do but wait.
+  const awaitingReview =
+    stepsDone === TOTAL_STEPS && !rejected && settings?.kycStatus !== 'VERIFIED'
 
   const handleStartRafraen = async () => {
     setRafraen({ phase: 'starting' })
@@ -344,9 +346,11 @@ function PayoutSettingsPageInner() {
             className={`mb-6 rounded-xl border p-4 transition-colors ${
               allDone
                 ? 'border-emerald-200 bg-emerald-50/60'
-                : awaitingReview
-                  ? 'border-amber-200 bg-amber-50/60'
-                  : 'border-stone-200 bg-stone-50/70'
+                : rejected
+                  ? 'border-rose-200 bg-rose-50/60'
+                  : awaitingReview
+                    ? 'border-amber-200 bg-amber-50/60'
+                    : 'border-stone-200 bg-stone-50/70'
             }`}
             role="status"
           >
@@ -355,6 +359,16 @@ function PayoutSettingsPageInner() {
                 {allDone ? (
                   <span className="font-medium text-emerald-800">
                     You're verified — earnings are paid to your bank account after each dinner.
+                  </span>
+                ) : rejected ? (
+                  <span className="font-medium text-rose-800">
+                    Verification declined
+                    <span className="ml-2 font-normal text-rose-700/90">
+                      {settings?.kycRejectionReason
+                        ? settings.kycRejectionReason
+                        : 'Your last submission could not be verified.'}{' '}
+                      Update your details below — saving sends them back for review automatically.
+                    </span>
                   </span>
                 ) : awaitingReview ? (
                   <span className="font-medium text-amber-800">
@@ -378,7 +392,13 @@ function PayoutSettingsPageInner() {
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-stone-200">
               <div
                 className={`h-full transition-all duration-500 ease-out ${
-                  allDone ? 'bg-emerald-500' : awaitingReview ? 'bg-amber-500' : 'bg-primary'
+                  allDone
+                    ? 'bg-emerald-500'
+                    : rejected
+                      ? 'bg-rose-500'
+                      : awaitingReview
+                        ? 'bg-amber-500'
+                        : 'bg-primary'
                 }`}
                 style={{ width: `${(stepsDone / TOTAL_STEPS) * 100}%` }}
               />

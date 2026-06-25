@@ -78,7 +78,9 @@ export function KycStatusBanner({ className }: KycStatusBannerProps) {
     },
     REJECTED: {
       title: 'Payout setup needs your attention',
-      copy: 'Your last submission could not be verified. Please update your details and resubmit.',
+      copy: settings?.kycRejectionReason
+        ? `Your verification was declined: ${settings.kycRejectionReason} Please update your details and resubmit.`
+        : 'Your last submission could not be verified. Please update your details and resubmit.',
       tone: 'rose' as const,
       cta: 'Update details',
       icon: ShieldAlert,

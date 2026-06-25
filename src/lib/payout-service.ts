@@ -17,6 +17,7 @@ export interface PayoutSettings {
   commissionRate?: number | null
   taxId?: string | null
   kycStatus: 'UNVERIFIED' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED'
+  kycRejectionReason?: string | null
   rafraenSkilrikiVerifiedAt?: string | null
   hasBankAccount: boolean
 }

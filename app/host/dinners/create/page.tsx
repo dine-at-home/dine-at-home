@@ -151,10 +151,11 @@ const MENU_SUGGESTIONS = [
 function CreateDinnerPageContent() {
   const router = useRouter()
   // Posting a dinner is gated on Auðkenni identity verification + a valid Icelandic IBAN.
-  const [verifyState, setVerifyState] = useState<'checking' | 'ok' | 'blocked' | 'awaiting'>(
-    'checking'
-  )
+  const [verifyState, setVerifyState] = useState<
+    'checking' | 'ok' | 'blocked' | 'awaiting' | 'rejected'
+  >('checking')
   const [verifyNeeds, setVerifyNeeds] = useState<{ eid: boolean; iban: boolean }>({ eid: false, iban: false })
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [uploadingImages, setUploadingImages] = useState(false)
@@ -217,6 +218,10 @@ function CreateDinnerPageContent() {
       const approved = s?.kycStatus === 'VERIFIED'
       if (identitySubmitted && ibanValid && approved) {
         setVerifyState('ok')
+      } else if (s?.kycStatus === 'REJECTED') {
+        // Admin declined — show why and route them to fix their details.
+        setRejectionReason(s?.kycRejectionReason ?? null)
+        setVerifyState('rejected')
       } else if (identitySubmitted && ibanValid) {
         // Both steps done — nothing left for the host but to wait for manual approval.
         setVerifyState('awaiting')
@@ -1095,6 +1100,35 @@ function CreateDinnerPageContent() {
               </ul>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/host/dashboard">Go to dashboard</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </HostGuard>
+    )
+  }
+
+  // Admin declined the host's verification — explain why and send them to fix their details
+  // (saving there re-submits for review automatically).
+  if (verifyState === 'rejected') {
+    return (
+      <HostGuard>
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Verification declined</CardTitle>
+              <CardDescription>
+                We couldn&apos;t verify your details, so you can&apos;t publish dinners yet. Update
+                your information and we&apos;ll review it again.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-rose-100 bg-rose-50/70 px-3 py-2 text-sm text-rose-700">
+                <span className="font-semibold">Reason: </span>
+                {rejectionReason || 'No reason was provided.'}
+              </div>
+              <Button asChild className="w-full">
+                <Link href="/host/payouts/settings">Update your details</Link>
               </Button>
             </CardContent>
           </Card>

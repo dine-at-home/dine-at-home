@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Check, ArrowRight, ShieldCheck, Landmark } from 'lucide-react'
+import { Check, ArrowRight, ShieldCheck, ShieldAlert, Landmark } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -80,6 +80,7 @@ export function HostSetupChecklist({ className, highlight = false }: HostSetupCh
   const done = completed.filter(Boolean).length
   const nextIndex = completed.findIndex((c) => !c)
   const isInReview = settings.kycStatus === 'IN_REVIEW'
+  const isRejected = settings.kycStatus === 'REJECTED'
 
   return (
     <Card
@@ -119,6 +120,18 @@ export function HostSetupChecklist({ className, highlight = false }: HostSetupCh
               <span>
                 <span className="font-semibold">Under review.</span> You've completed both steps —
                 we're verifying your details. Payouts unlock once approved.
+              </span>
+            </div>
+          )}
+          {isRejected && (
+            <div className="mb-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-800">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.25} />
+              <span>
+                <span className="font-semibold">Verification declined.</span>{' '}
+                {settings.kycRejectionReason
+                  ? settings.kycRejectionReason
+                  : 'Your last submission could not be verified.'}{' '}
+                Update your details below and we'll review again.
               </span>
             </div>
           )}
