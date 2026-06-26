@@ -1338,7 +1338,7 @@ function EditDinnerPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="2">2 minutes</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
                         <SelectItem value="120">2 hours</SelectItem>
                         <SelectItem value="180">3 hours</SelectItem>
                         <SelectItem value="240">4 hours</SelectItem>

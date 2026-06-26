@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { getApiUrl } from '@/lib/api-config'
+import { transformDinner } from '@/lib/dinner-utils'
 import {
   Command,
   CommandEmpty,
@@ -150,6 +151,12 @@ const MENU_SUGGESTIONS = [
 
 function CreateDinnerPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // When duplicating, we pre-fill the form from an existing dinner (everything but date/time).
+  const duplicateId = searchParams.get('duplicate')
+  const [isDuplicating, setIsDuplicating] = useState(Boolean(duplicateId))
+  // Image URLs carried over from the duplicated dinner — reused as-is, no re-upload needed.
+  const [existingImages, setExistingImages] = useState<string[]>([])
   // Posting a dinner is gated on Auðkenni identity verification + a valid Icelandic IBAN.
   const [verifyState, setVerifyState] = useState<
     'checking' | 'ok' | 'blocked' | 'awaiting' | 'rejected'
@@ -390,6 +397,91 @@ function CreateDinnerPageContent() {
     'Mediterranean',
     'Thai',
   ]
+
+  // Duplicate flow: load the source dinner and pre-fill every field except date/time, so the
+  // host can re-post the same experience on a new day without filling it out from scratch.
+  useEffect(() => {
+    if (!duplicateId) return
+
+    const fetchDinnerToDuplicate = async () => {
+      try {
+        const token = localStorage.getItem('auth_token')
+        const response = await fetch(getApiUrl(`/dinners/${duplicateId}`), {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        const result = await response.json()
+
+        if (!result.success || !result.data) {
+          setError(result.error || 'Could not load the dinner to duplicate.')
+          return
+        }
+
+        const rawDinner = result.data
+        const dinner = transformDinner(rawDinner)
+
+        const menuString = Array.isArray(dinner.menu) ? dinner.menu.join('\n') : dinner.menu || ''
+        const houseRulesString = Array.isArray(dinner.houseRules)
+          ? dinner.houseRules.join('\n')
+          : (dinner.houseRules as unknown as string) || ''
+
+        const locationData =
+          rawDinner.location && typeof rawDinner.location === 'string'
+            ? JSON.parse(rawDinner.location)
+            : rawDinner.location || {}
+
+        // Intentionally leave date and time blank — the host picks a fresh slot.
+        setDinnerData((prev) => ({
+          ...prev,
+          title: dinner.title || '',
+          description: dinner.description || '',
+          cuisineType: dinner.cuisine || '',
+          dietaryAccommodations: Array.isArray(dinner.dietary) ? dinner.dietary : [],
+          menu: menuString,
+          ingredients: dinner.ingredients || '',
+          houseRules: houseRulesString,
+          address: locationData.address || dinner.location?.address || '',
+          city: locationData.city || dinner.location?.city || '',
+          neighborhood: locationData.neighborhood || dinner.location?.neighborhood || '',
+          state: locationData.state || dinner.location?.state || 'Iceland',
+          zipCode: locationData.zipCode || '',
+          directions: dinner.directions || '',
+          accessibility: dinner.accessibility || '',
+          date: '',
+          time: '',
+          duration: rawDinner.duration || 180,
+          maxCapacity: dinner.capacity || 8,
+          pricePerPerson: dinner.price || (0 as unknown as number),
+          minGuests: dinner.minGuests || 2,
+          images: [],
+          experienceLevel: dinner.experienceLevel || 'beginner',
+          includesDrinks: !!dinner.includesDrinks,
+          includesDessert: !!dinner.includesDessert,
+          cancellationPolicy: dinner.cancellationPolicy || 'flexible',
+        }))
+
+        // Carry the photos over so the host doesn't have to re-upload them.
+        if (Array.isArray(dinner.images) && dinner.images.length > 0) {
+          setExistingImages(dinner.images.filter((img) => img && typeof img === 'string').slice(0, 5))
+        }
+
+        // A custom (non-listed) cuisine needs the free-text input, not the dropdown.
+        if (dinner.cuisine && !cuisineTypes.includes(dinner.cuisine) && dinner.cuisine !== 'Other') {
+          setIsManualCuisine(true)
+        }
+      } catch (err) {
+        console.error('Error loading dinner to duplicate:', err)
+        setError('Could not load the dinner to duplicate. Please try again.')
+      } finally {
+        setIsDuplicating(false)
+      }
+    }
+
+    fetchDinnerToDuplicate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duplicateId])
 
   const dietaryAccommodations = [
     'Vegetarian',
@@ -654,13 +746,14 @@ function CreateDinnerPageContent() {
 
     const newFiles = Array.from(files)
 
-    // Check total image count (max 5)
-    const totalAfterAdd = selectedImageFiles.length + newFiles.length
+    // Check total image count (max 5) — existing (duplicated) photos count toward the limit.
+    const currentCount = existingImages.length + selectedImageFiles.length
+    const totalAfterAdd = currentCount + newFiles.length
     if (totalAfterAdd > 5) {
       setError(
-        `Maximum 5 images allowed. You already have ${
-          selectedImageFiles.length
-        } image${selectedImageFiles.length !== 1 ? 's' : ''} selected.`
+        `Maximum 5 images allowed. You already have ${currentCount} image${
+          currentCount !== 1 ? 's' : ''
+        }.`
       )
       e.target.value = ''
       return
@@ -683,7 +776,7 @@ function CreateDinnerPageContent() {
     }
 
     // Limit to 5 total images
-    const remainingSlots = 5 - selectedImageFiles.length
+    const remainingSlots = 5 - existingImages.length - selectedImageFiles.length
     const filesToAdd = sizeValidFiles.slice(0, remainingSlots)
 
     if (filesToAdd.length < sizeValidFiles.length) {
@@ -706,6 +799,10 @@ function CreateDinnerPageContent() {
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }))
+  }
+
+  const removeExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index))
   }
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
@@ -853,7 +950,7 @@ function CreateDinnerPageContent() {
 
       // ZIP code is optional - no validation needed
 
-      if (selectedImageFiles.length === 0) {
+      if (selectedImageFiles.length === 0 && existingImages.length === 0) {
         validationErrors.push('Please upload at least one image for your dinner listing')
       }
 
@@ -873,17 +970,21 @@ function CreateDinnerPageContent() {
         return
       }
 
-      // Step 2: Upload images (only after all validations pass)
-      let imageUrls: string[] = []
-      setUploadingImages(true)
-      try {
-        imageUrls = await uploadImages(selectedImageFiles)
-        setUploadingImages(false)
-      } catch (uploadError: any) {
-        setUploadingImages(false)
-        setError(uploadError.message || 'Failed to upload images. Please try again.')
-        setIsSubmitting(false)
-        return
+      // Step 2: Upload any newly added images (only after all validations pass).
+      // Photos carried over from a duplicated dinner are already hosted, so we reuse their URLs.
+      let imageUrls: string[] = [...existingImages]
+      if (selectedImageFiles.length > 0) {
+        setUploadingImages(true)
+        try {
+          const uploadedUrls = await uploadImages(selectedImageFiles)
+          imageUrls = [...existingImages, ...uploadedUrls]
+          setUploadingImages(false)
+        } catch (uploadError: any) {
+          setUploadingImages(false)
+          setError(uploadError.message || 'Failed to upload images. Please try again.')
+          setIsSubmitting(false)
+          return
+        }
       }
 
       // Parse menu from string (assuming it's comma-separated or newline-separated)
@@ -1032,8 +1133,8 @@ function CreateDinnerPageContent() {
     }
   }
 
-  // While checking verification, show a light loading state.
-  if (verifyState === 'checking') {
+  // While checking verification (or loading the dinner being duplicated), show a light loading state.
+  if (verifyState === 'checking' || isDuplicating) {
     return (
       <HostGuard>
         <div className="flex min-h-screen items-center justify-center text-muted-foreground">
@@ -1153,9 +1254,13 @@ function CreateDinnerPageContent() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Create New Dinner</h1>
+                <h1 className="text-3xl font-bold text-foreground">
+                  {duplicateId ? 'Duplicate Dinner' : 'Create New Dinner'}
+                </h1>
                 <p className="text-muted-foreground mt-1">
-                  Share your culinary passion with guests
+                  {duplicateId
+                    ? 'We pre-filled everything from your previous dinner — just pick a new date and time.'
+                    : 'Share your culinary passion with guests'}
                 </p>
               </div>
               <Button variant="outline" onClick={() => router.push('/host/dashboard')}>
@@ -1796,6 +1901,7 @@ function CreateDinnerPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="60">1 hour</SelectItem>
                         <SelectItem value="120">2 hours</SelectItem>
                         <SelectItem value="180">3 hours</SelectItem>
                         <SelectItem value="240">4 hours</SelectItem>
@@ -1905,9 +2011,9 @@ function CreateDinnerPageContent() {
                       Upload at least one photo (maximum 5 images) of your dishes, kitchen, or
                       dining space
                     </p>
-                    {selectedImageFiles.length > 0 && (
+                    {existingImages.length + selectedImageFiles.length > 0 && (
                       <p className="text-xs text-muted-foreground mb-2">
-                        {selectedImageFiles.length} of 5 images selected
+                        {existingImages.length + selectedImageFiles.length} of 5 images selected
                       </p>
                     )}
                     <input
@@ -1929,6 +2035,36 @@ function CreateDinnerPageContent() {
                     </Button>
                   </div>
                 </div>
+
+                {existingImages.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">
+                      Photos from original dinner ({existingImages.length})
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {existingImages.map((imageUrl, index) => (
+                        <div key={imageUrl} className="relative">
+                          <Image
+                            src={imageUrl}
+                            alt={`Photo ${index + 1}`}
+                            width={200}
+                            height={150}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            className="absolute top-2 right-2 w-6 h-6 p-0"
+                            onClick={() => removeExistingImage(index)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {selectedImageFiles.length > 0 && (
                   <div>

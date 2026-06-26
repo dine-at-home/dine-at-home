@@ -81,15 +81,17 @@ export function isDinnerEnded(dinner: Dinner): boolean {
 
 /**
  * Determine dinner status for host dashboard
- * Returns: 'upcoming', 'ongoing', 'completed', or 'draft'
+ * Returns: 'upcoming', 'ongoing', 'completed', 'draft', or 'unbooked' (ended with no bookings)
  */
 export function getDinnerStatus(
   dinner: Dinner,
   isActive: boolean = true
-): 'upcoming' | 'ongoing' | 'completed' | 'draft' {
-  // Draft dinners (not active)
+): 'upcoming' | 'ongoing' | 'completed' | 'draft' | 'unbooked' {
+  // Inactive dinners. The backend's expiration cron deactivates a dinner once its start time
+  // passes with zero bookings, so an inactive dinner in the past isn't a draft — it ran its
+  // course unbooked. Only an inactive dinner still in the future is a genuine draft.
   if (!isActive) {
-    return 'draft'
+    return isDinnerPast(dinner) ? 'unbooked' : 'draft'
   }
 
   // Check if dinner is currently ongoing

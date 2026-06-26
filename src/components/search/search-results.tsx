@@ -72,7 +72,7 @@ const FiltersContent = ({
             if (Array.isArray(val)) setPriceRange(val)
           }}
           onValueCommit={onPriceCommit}
-          max={1000}
+          max={500000}
           min={0}
           step={1}
           className="w-full"
@@ -95,8 +95,8 @@ const FiltersContent = ({
 export function SearchResults({ searchParams }: SearchResultsProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('rating')
-  const [priceRange, setPriceRange] = useState([0, 1000])
-  const [displayPriceRange, setDisplayPriceRange] = useState([0, 1000])
+  const [priceRange, setPriceRange] = useState([0, 500000])
+  const [displayPriceRange, setDisplayPriceRange] = useState([0, 500000])
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([])
   const [instantBookOnly, setInstantBookOnly] = useState(false)
   const [superhostOnly, setSuperhostOnly] = useState(false)
@@ -138,7 +138,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         if (priceRange[0] > 0) {
           queryParams.append('minPrice', priceRange[0].toString())
         }
-        if (priceRange[1] < 1000) {
+        if (priceRange[1] < 500000) {
           queryParams.append('maxPrice', priceRange[1].toString())
         }
 
@@ -312,8 +312,8 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
   }
 
   const clearFilters = () => {
-    setPriceRange([0, 1000])
-    setDisplayPriceRange([0, 1000])
+    setPriceRange([0, 500000])
+    setDisplayPriceRange([0, 500000])
     setSelectedCuisines([])
     setInstantBookOnly(false)
     setSuperhostOnly(false)
@@ -512,7 +512,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                 instantBookOnly ||
                 superhostOnly ||
                 priceRange[0] > 0 ||
-                priceRange[1] < 200) && (
+                priceRange[1] < 500000) && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {selectedCuisines.map((cuisine) => (
                     <Badge
@@ -547,12 +547,12 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                       Superhost ×
                     </Badge>
                   )}
-                  {(priceRange[0] > 0 || priceRange[1] < 1000) && (
+                  {(priceRange[0] > 0 || priceRange[1] < 500000) && (
                     <Badge
                       variant="secondary"
                       className="cursor-pointer hover:bg-secondary/80"
                       onClick={() => {
-                        setPriceRange([0, 1000])
+                        setPriceRange([0, 500000])
                         setCurrentPage(1)
                       }}
                     >

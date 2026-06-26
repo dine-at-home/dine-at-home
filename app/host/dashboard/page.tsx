@@ -35,6 +35,7 @@ import {
   Star,
   Plus,
   Edit,
+  Copy,
   Eye,
   Clock,
   MapPin,
@@ -1125,12 +1126,25 @@ function HostDashboardContent() {
         return 'bg-orange-100 text-orange-800'
       case 'completed':
         return 'bg-green-100 text-green-800'
+      case 'unbooked':
+        return 'bg-amber-100 text-amber-800'
       case 'draft':
         return 'bg-gray-100 text-gray-800'
       case 'cancelled':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  // Human-readable status label. 'unbooked' reads as completed-but-never-booked so hosts can tell
+  // an expired dinner that nobody booked apart from one that actually ran.
+  const getDinnerStatusLabel = (status: string) => {
+    switch (status) {
+      case 'unbooked':
+        return 'Completed · No bookings'
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1)
     }
   }
 
@@ -1587,10 +1601,12 @@ function HostDashboardContent() {
                                     ? 'bg-slate-100 text-slate-700'
                                     : dinner.status === 'ongoing'
                                       ? 'bg-green-50 text-green-700'
-                                      : 'bg-gray-100 text-gray-700'
+                                      : dinner.status === 'unbooked'
+                                        ? 'bg-amber-50 text-amber-700'
+                                        : 'bg-gray-100 text-gray-700'
                               }`}
                           >
-                            {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
+                            {getDinnerStatusLabel(dinner.status)}
                           </span>
                         </TableCell>
                         <TableCell className="p-4">
@@ -1618,7 +1634,9 @@ function HostDashboardContent() {
                             >
                               <Eye className="w-4 h-4 text-muted-foreground" />
                             </Button>
-                            {dinner.status !== 'completed' && dinner.status !== 'ongoing' && (
+                            {dinner.status !== 'completed' &&
+                              dinner.status !== 'ongoing' &&
+                              dinner.status !== 'unbooked' && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1629,6 +1647,17 @@ function HostDashboardContent() {
                                 <Edit className="w-4 h-4 text-muted-foreground" />
                               </Button>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-background hover:shadow-sm rounded-full"
+                              onClick={() =>
+                                router.push(`/host/dinners/create?duplicate=${dinner.id}`)
+                              }
+                              title="Duplicate"
+                            >
+                              <Copy className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1657,7 +1686,7 @@ function HostDashboardContent() {
                       <Badge
                         className={`absolute top-3 right-3 ${getDinnerStatusColor(dinner.status)}`}
                       >
-                        {dinner.status.charAt(0).toUpperCase() + dinner.status.slice(1)}
+                        {getDinnerStatusLabel(dinner.status)}
                       </Badge>
                     </div>
                     <CardContent className="p-6">
@@ -1700,7 +1729,9 @@ function HostDashboardContent() {
                           <Eye className="w-4 h-4 mr-2" />
                           View
                         </Button>
-                        {dinner.status !== 'completed' && dinner.status !== 'ongoing' && (
+                        {dinner.status !== 'completed' &&
+                              dinner.status !== 'ongoing' &&
+                              dinner.status !== 'unbooked' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1711,6 +1742,17 @@ function HostDashboardContent() {
                             Edit
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() =>
+                            router.push(`/host/dinners/create?duplicate=${dinner.id}`)
+                          }
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
