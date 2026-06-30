@@ -1921,7 +1921,6 @@ function CreateDinnerPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 guest</SelectItem>
                         <SelectItem value="2">2 guests</SelectItem>
                         <SelectItem value="3">3 guests</SelectItem>
                         <SelectItem value="4">4 guests</SelectItem>

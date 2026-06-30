@@ -71,8 +71,8 @@ export default function HostOnboardingClient() {
     }
   }
 
-  const persistStep = async (step: number, extra: Record<string, unknown> = {}) => {
-    if (!user) return
+  const persistStep = async (step: number, extra: Record<string, unknown> = {}): Promise<boolean> => {
+    if (!user) return false
     setSaving(true)
     try {
       const res = await authService.updateProfile(user.id, {
@@ -81,9 +81,10 @@ export default function HostOnboardingClient() {
       } as any)
       if (!res.success) {
         toast.error(res.error || 'Could not save your progress')
-      } else {
-        await refreshUser()
+        return false
       }
+      await refreshUser()
+      return true
     } finally {
       setSaving(false)
     }
@@ -91,9 +92,10 @@ export default function HostOnboardingClient() {
 
   const handleNext = async () => {
     if (!isStepComplete() || saving) return
+    let saved = false
     if (currentStep === 1) {
       // Save the location alongside step advance. Country is always Iceland.
-      await persistStep(2, {
+      saved = await persistStep(2, {
         country: 'Iceland',
         hostAddress: form.address.trim(),
         hostCity: form.city.trim(),
@@ -101,7 +103,7 @@ export default function HostOnboardingClient() {
         hostZipCode: form.zipCode.trim(),
       })
     } else if (currentStep === 2) {
-      await persistStep(3, {
+      saved = await persistStep(3, {
         legalAcceptance: {
           termsOfUseVersion: CURRENT_LEGAL_VERSIONS.termsOfUse,
           hostAgreementVersion: CURRENT_LEGAL_VERSIONS.hostAgreement,
@@ -109,6 +111,9 @@ export default function HostOnboardingClient() {
         },
       })
     }
+    // Don't advance if the save failed — otherwise the host sees "Almost there"
+    // while their acceptance/location never persisted.
+    if (!saved) return
     setCurrentStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
 

@@ -295,10 +295,10 @@ function EditDinnerPageContent() {
           const dinner = transformDinner(result.data)
 
           const menuString = Array.isArray(dinner.menu)
-            ? dinner.menu.join('\\n')
+            ? dinner.menu.join('\n')
             : dinner.menu || ''
           const houseRulesString = Array.isArray(dinner.houseRules)
-            ? dinner.houseRules.join('\\n')
+            ? dinner.houseRules.join('\n')
             : dinner.houseRules?.[0] || ''
 
           const durationMinutes = rawDinner.duration || 180
@@ -585,16 +585,16 @@ function EditDinnerPageContent() {
   }
 
   const handleToggleSuggestion = (suggestion: { title: string; description: string }) => {
-    const textBlock = `${suggestion.title}\\n${suggestion.description}`
+    const textBlock = `${suggestion.title}\n${suggestion.description}`
     const currentMenu = dinnerData.menu || ''
 
     if (currentMenu.includes(textBlock)) {
-      let newMenu = currentMenu.replace(`\\n\\n${textBlock}`, '')
-      if (newMenu === currentMenu) newMenu = currentMenu.replace(`${textBlock}\\n\\n`, '')
+      let newMenu = currentMenu.replace(`\n\n${textBlock}`, '')
+      if (newMenu === currentMenu) newMenu = currentMenu.replace(`${textBlock}\n\n`, '')
       if (newMenu === currentMenu) newMenu = currentMenu.replace(textBlock, '')
       handleInputChange('menu', newMenu.trim())
     } else {
-      const separator = currentMenu.length > 0 ? '\\n\\n' : ''
+      const separator = currentMenu.length > 0 ? '\n\n' : ''
       handleInputChange('menu', currentMenu + separator + textBlock)
     }
   }
@@ -1015,7 +1015,7 @@ function EditDinnerPageContent() {
                               className={cn(
                                 'h-auto py-1 px-3 text-left whitespace-normal text-xs transition-colors',
                                 (dinnerData.menu || '').includes(
-                                  `${item.title}\\n${item.description}`
+                                  `${item.title}\n${item.description}`
                                 )
                                   ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground border-primary'
                                   : 'hover:border-primary hover:text-primary'
@@ -1358,7 +1358,6 @@ function EditDinnerPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 guest</SelectItem>
                         <SelectItem value="2">2 guests</SelectItem>
                         <SelectItem value="3">3 guests</SelectItem>
                         <SelectItem value="4">4 guests</SelectItem>
@@ -1407,13 +1406,14 @@ function EditDinnerPageContent() {
                     <Input
                       type="number"
                       min="1"
-                      max="100000"
+                      max="1000000"
                       value={dinnerData.pricePerPerson}
                       onChange={(e) => {
+                        // Match the create form: take the entered amount as-is (no silent cap).
+                        // Previously this clamped to 1000, which corrupted any dinner priced higher
+                        // the moment the host edited any field.
                         const value = e.target.value ? parseInt(e.target.value) || 0 : 0
-                        // Prevent values over 1000
-                        const clampedValue = value > 1000 ? 1000 : value
-                        handleInputChange('pricePerPerson', clampedValue)
+                        handleInputChange('pricePerPerson', value)
                       }}
                       placeholder="100"
                       className="pl-10"
