@@ -1350,9 +1350,13 @@ function EditDinnerPageContent() {
                     <label className="block text-sm font-medium mb-2">Max Capacity *</label>
                     <Select
                       value={dinnerData.maxCapacity?.toString() || '8'}
-                      onValueChange={(value) =>
-                        handleInputChange('maxCapacity', parseInt(value) || 8)
-                      }
+                      onValueChange={(value) => {
+                        const newCapacity = parseInt(value) || 8
+                        handleInputChange('maxCapacity', newCapacity)
+                        if ((dinnerData.minGuests || 1) > newCapacity) {
+                          handleInputChange('minGuests', newCapacity)
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1384,14 +1388,14 @@ function EditDinnerPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 guest</SelectItem>
-                        <SelectItem value="2">2 guests</SelectItem>
-                        <SelectItem value="3">3 guests</SelectItem>
-                        <SelectItem value="4">4 guests</SelectItem>
-                        <SelectItem value="5">5 guests</SelectItem>
-                        <SelectItem value="6">6 guests</SelectItem>
-                        <SelectItem value="7">7 guests</SelectItem>
-                        <SelectItem value="8">8 guests</SelectItem>
+                        {Array.from(
+                          { length: dinnerData.maxCapacity || 8 },
+                          (_, i) => i + 1
+                        ).map((n) => (
+                          <SelectItem key={n} value={n.toString()}>
+                            {n === 1 ? '1 guest' : `${n} guests`}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
