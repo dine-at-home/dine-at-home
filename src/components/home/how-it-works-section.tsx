@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Search, Calendar, ChefHat, Star, ArrowRight } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 
@@ -10,6 +11,7 @@ export function HowItWorksSection() {
       title: 'Discover',
       desc: 'Explore curated dinners by location, cuisine, or date.',
       color: 'bg-orange-500/10 text-orange-600',
+      href: '/search',
     },
     {
       icon: Calendar,
@@ -109,6 +111,14 @@ export function HowItWorksSection() {
         >
           {steps.map((step, idx) => (
             <motion.div key={idx} variants={itemVariants} className="relative group pt-8">
+              {step.href && (
+                // Stretched link: the whole step card is clickable while the markup stays unchanged.
+                <Link
+                  href={step.href}
+                  aria-label={`${step.title} — browse dinners`}
+                  className="absolute inset-0 z-20 rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                />
+              )}
               <div className="absolute top-0 left-0 text-7xl font-black text-white/5 group-hover:text-primary-500/10 transition-colors duration-500 -translate-y-4">
                 0{idx + 1}
               </div>

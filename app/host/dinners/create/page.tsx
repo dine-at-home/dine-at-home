@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { HostGuard } from '@/components/auth/host-guard'
+import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -152,6 +153,7 @@ const MENU_SUGGESTIONS = [
 function CreateDinnerPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user } = useAuth()
   // When duplicating, we pre-fill the form from an existing dinner (everything but date/time).
   const duplicateId = searchParams.get('duplicate')
   const [isDuplicating, setIsDuplicating] = useState(Boolean(duplicateId))
@@ -401,7 +403,8 @@ function CreateDinnerPageContent() {
   // Duplicate flow: load the source dinner and pre-fill every field except date/time, so the
   // host can re-post the same experience on a new day without filling it out from scratch.
   useEffect(() => {
-    if (!duplicateId) return
+    // Wait for the signed-in user so we can confirm the host owns the source dinner.
+    if (!duplicateId || !user?.id) return
 
     const fetchDinnerToDuplicate = async () => {
       try {
@@ -420,6 +423,13 @@ function CreateDinnerPageContent() {
         }
 
         const rawDinner = result.data
+
+        // Hosts may only duplicate their own dinners (not copy another host's listing and photos).
+        if (rawDinner.host?.id && rawDinner.host.id !== user.id) {
+          setError('You can only duplicate your own dinners.')
+          return
+        }
+
         const dinner = transformDinner(rawDinner)
 
         const menuString = Array.isArray(dinner.menu) ? dinner.menu.join('\n') : dinner.menu || ''
@@ -462,6 +472,13 @@ function CreateDinnerPageContent() {
           cancellationPolicy: dinner.cancellationPolicy || 'flexible',
         }))
 
+        // Keep the original map position; otherwise the copy is saved at (0, 0) unless the host
+        // happens to re-pick the address from the suggestions.
+        const coords = locationData.coordinates
+        if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number' && (coords.lat !== 0 || coords.lng !== 0)) {
+          setAddressCoords({ lat: coords.lat, lng: coords.lng })
+        }
+
         // Carry the photos over so the host doesn't have to re-upload them.
         if (Array.isArray(dinner.images) && dinner.images.length > 0) {
           setExistingImages(dinner.images.filter((img) => img && typeof img === 'string').slice(0, 5))
@@ -481,7 +498,7 @@ function CreateDinnerPageContent() {
 
     fetchDinnerToDuplicate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duplicateId])
+  }, [duplicateId, user?.id])
 
   const dietaryAccommodations = [
     'Vegetarian',
@@ -1902,6 +1919,7 @@ function CreateDinnerPageContent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="90">1.5 hours</SelectItem>
                         <SelectItem value="120">2 hours</SelectItem>
                         <SelectItem value="180">3 hours</SelectItem>
                         <SelectItem value="240">4 hours</SelectItem>

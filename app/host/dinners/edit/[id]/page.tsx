@@ -173,6 +173,11 @@ function EditDinnerPageContent() {
   >([])
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
   const [cityBounds, setCityBounds] = useState<google.maps.LatLngBounds | null>(null)
+  // Coordinates already stored on the dinner — re-sent on save so editing doesn't reset them to
+  // (0, 0). Only valid for the address they were geocoded from.
+  const [savedCoords, setSavedCoords] = useState<{ lat: number; lng: number; address: string } | null>(
+    null
+  )
 
   // Initial State (empty, populated by useEffect)
   const [dinnerData, setDinnerData] = useState({
@@ -308,6 +313,18 @@ function EditDinnerPageContent() {
               ? JSON.parse(rawDinner.location)
               : rawDinner.location
             : {}
+
+          if (
+            locationData.coordinates &&
+            typeof locationData.coordinates.lat === 'number' &&
+            typeof locationData.coordinates.lng === 'number'
+          ) {
+            setSavedCoords({
+              lat: locationData.coordinates.lat,
+              lng: locationData.coordinates.lng,
+              address: locationData.address || '',
+            })
+          }
 
           let formattedDate = ''
           if (dinner.date) {
@@ -751,7 +768,10 @@ function EditDinnerPageContent() {
           state: dinnerData.state,
           zipCode: dinnerData.zipCode,
           neighborhood: dinnerData.neighborhood || dinnerData.city,
-          coordinates: { lat: 0, lng: 0 },
+          coordinates:
+            savedCoords && savedCoords.address === dinnerData.address
+              ? { lat: savedCoords.lat, lng: savedCoords.lng }
+              : { lat: 0, lng: 0 },
         },
         directions: dinnerData.directions,
         accessibility: dinnerData.accessibility,
@@ -1339,6 +1359,7 @@ function EditDinnerPageContent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="90">1.5 hours</SelectItem>
                         <SelectItem value="120">2 hours</SelectItem>
                         <SelectItem value="180">3 hours</SelectItem>
                         <SelectItem value="240">4 hours</SelectItem>

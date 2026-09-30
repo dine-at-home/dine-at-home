@@ -459,7 +459,7 @@ export function DinnerDetail({ dinner, onNavigate }: DinnerDetailProps) {
                 <div>
                   <p className="text-sm font-medium">Duration</p>
                   <p className="text-sm text-muted-foreground">
-                    {(dinner.duration || 0) / 60} hours
+                    {(dinner.duration || 0) / 60} {dinner.duration === 60 ? 'hour' : 'hours'}
                   </p>
                 </div>
               </div>

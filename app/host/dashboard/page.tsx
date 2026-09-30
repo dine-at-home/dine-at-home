@@ -86,57 +86,6 @@ import { EarningsSection } from '@/components/host/dashboard/earnings-section'
 import { StatCard } from '@/components/ui/stat-card'
 
 // Mock data for demonstration (fallback)
-const mockDinners = [
-  {
-    id: '1',
-    title: 'Authentic Italian Pasta Making',
-    date: '2024-02-15',
-    time: '19:00',
-    guests: 6,
-    maxCapacity: 8,
-    price: 100,
-    status: 'upcoming',
-    bookings: 6,
-    revenue: 510,
-    rating: 4.9,
-    reviews: 12,
-    image:
-      'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
-  },
-  {
-    id: '2',
-    title: 'Japanese Sushi Workshop',
-    date: '2024-02-20',
-    time: '18:30',
-    guests: 4,
-    maxCapacity: 6,
-    price: 120,
-    status: 'upcoming',
-    bookings: 4,
-    revenue: 480,
-    rating: 5.0,
-    reviews: 8,
-    image:
-      'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
-  },
-  {
-    id: '3',
-    title: 'French Wine Tasting',
-    date: '2024-01-08',
-    time: '20:00',
-    guests: 8,
-    maxCapacity: 10,
-    price: 95,
-    status: 'completed',
-    bookings: 8,
-    revenue: 760,
-    rating: 4.8,
-    reviews: 15,
-    image:
-      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=center',
-  },
-]
-
 const mockBookings = [
   {
     id: '1',
@@ -206,10 +155,17 @@ function HostDashboardContent() {
   const [bookings, setBookings] = useState<any[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(true)
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null)
-  const [hostStats, setHostStats] = useState({
+  const [hostStats, setHostStats] = useState<{
+    totalDinners: number
+    totalBookings: number
+    averageRating: number
+    totalRevenue: number | null
+    loading: boolean
+  }>({
     totalDinners: 0,
     totalBookings: 0,
     averageRating: 0,
+    totalRevenue: null,
     loading: true,
   })
   const [reviews, setReviews] = useState<any[]>([])
@@ -354,6 +310,8 @@ function HostDashboardContent() {
               totalDinners: result.data.totalDinners || 0,
               totalBookings: result.data.totalBookings || 0,
               averageRating: result.data.averageRating || 0,
+              totalRevenue:
+                typeof result.data.totalRevenue === 'number' ? result.data.totalRevenue : null,
               loading: false,
             })
           } else {
@@ -689,6 +647,7 @@ function HostDashboardContent() {
 
       try {
         setDinnersLoading(true)
+        setDinnersError(null)
         const token = localStorage.getItem('auth_token')
 
         if (!token) {
@@ -784,12 +743,13 @@ function HostDashboardContent() {
             })
             setDinners(transformedDinners)
           } else {
-            // Fallback to mock data if API fails
-            setDinners(mockDinners)
+            // Never fall back to mock data — it showed hosts fake dinners and revenue.
+            setDinners([])
+            setDinnersError(result.error || 'Failed to load dinners')
           }
         } else {
-          // Fallback to mock data if API fails
-          setDinners(mockDinners)
+          setDinners([])
+          setDinnersError('Failed to load dinners')
         }
       } catch (error: any) {
         console.error('[Host Dashboard] Error fetching dinners:', error)
@@ -799,8 +759,7 @@ function HostDashboardContent() {
         } else {
           setDinnersError(error.message || 'Failed to load dinners')
         }
-        // Fallback to mock data on error
-        setDinners(mockDinners)
+        setDinners([])
       } finally {
         setDinnersLoading(false)
       }
@@ -1166,7 +1125,10 @@ function HostDashboardContent() {
 
   // Calculate stats from real data
   const calculateStats = () => {
-    const totalRevenue = dinners.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    // Prefer the server-side lifetime total: the dinners list below is filter-dependent and
+    // capped at 100 rows by the API, so summing it under-reports revenue.
+    const totalRevenue =
+      hostStats.totalRevenue ?? dinners.reduce((sum, d) => sum + (d.revenue || 0), 0)
     const totalGuests = dinners.reduce((sum, d) => sum + (d.guests || 0), 0)
     const dinnersWithRatings = dinners.filter((d) => d.rating > 0)
     const averageRating =
@@ -1292,7 +1254,7 @@ function HostDashboardContent() {
             icon={Wallet}
             label="Total revenue"
             value={`kr ${stats.totalRevenue.toLocaleString()}`}
-            hint="Lifetime earnings before platform fee."
+            hint="Lifetime earnings from confirmed bookings (your share, service fee excluded)."
             accent="orange"
           />
           <StatCard
@@ -1505,13 +1467,17 @@ function HostDashboardContent() {
         <Card className="text-center py-12">
           <CardContent>
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No dinners found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {dinnersError ? "Couldn't load your dinners" : 'No dinners found'}
+            </h3>
             <p className="text-muted-foreground mb-6">
-              {dinnerFilter === 'all' && !searchQuery
-                ? "You haven't created any dinners yet. Create your first dining experience!"
-                : `No dinners found matching your current filters.`}
+              {dinnersError
+                ? "Something went wrong while loading your dinners. Please refresh the page."
+                : dinnerFilter === 'all' && !searchQuery
+                  ? "You haven't created any dinners yet. Create your first dining experience!"
+                  : `No dinners found matching your current filters.`}
             </p>
-            {dinnerFilter === 'all' && !searchQuery && (
+            {!dinnersError && dinnerFilter === 'all' && !searchQuery && (
               <Button onClick={() => router.push('/host/dinners/create')} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Create Your First Dinner
