@@ -1,7 +1,7 @@
-# dine-at-home — Next.js 16 frontend
+# dine-at-home — Next.js 15 frontend
 
 ## Stack
-- Next.js 16.1 App Router, React 18.3, TypeScript
+- Next.js 15.5 App Router, React 18.3, TypeScript
 - TailwindCSS, shadcn/ui (Radix), React Hook Form
 - Auth: JWT in localStorage, `AuthContext` + `useAuth()`
 - API: `src/lib/api-client.ts` (fetch wrapper, auto Bearer header)
